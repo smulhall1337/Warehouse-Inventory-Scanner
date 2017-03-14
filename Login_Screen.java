@@ -91,7 +91,7 @@ public class Login_Screen extends Dialog {
 			@Override
 			public void mouseDown(MouseEvent e) {
 				try {
-					Connection conn = SQL_Handler.getConnection(usr_txtBox.getText(), pw_txtBox.getText());
+					Connection conn = SQL_Handler.getConnection(/*usr_txtBox.getText(), pw_txtBox.getText()*/);
 					if (conn.isValid(130)) {
 						usr_txtBox.setVisible(false);
 						pw_txtBox.setVisible(false);
