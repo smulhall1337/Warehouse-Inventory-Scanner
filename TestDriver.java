@@ -1,15 +1,46 @@
 package wims_v1;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map.Entry;
+
+import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Shell;
 
 public class TestDriver {
 
 	public static void main(String[] args) throws SQLException {
-		ResultSet rs = null;
+		
+		//Test login screen
+		Display display = new Display();
+		Shell shell = new Shell(display);
+		try {			
+			Login_Screen login_scr = new Login_Screen(shell, 0);
+			login_scr.open();
+		
+			/*
+			Connection conn = SQL_Handler.getConnection();
+			String query = "SELECT * FROM employee";
+			Statement stmt = conn.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+			while (rs.next()) {
+				String emp_name = rs.getString("name");
+				String emp_id = rs.getString("employee_id");
+				System.out.println("Name: " + emp_name + " -> ID: " + emp_id);
+			}
+			System.out.println("Connected to: " + conn.getMetaData().getURL());
+			conn.close();
+			*/
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		//ResultSet rs = null;
 		
 		/* 
 		// Display the titles and sql statements currently stored in the SQL_Handler
@@ -31,8 +62,8 @@ public class TestDriver {
 		System.out.println(SQL_Handler.isValidUsernamePassword("123456", "wordpass")); //Should return false
 		System.out.println(SQL_Handler.isValidUsernamePassword("456123", "password")); //Should return false
 		*/
-		
-		SQL_Handler.insertNewEmployee("098765", "Paul Bayruns", false, SQL_Handler.md5_hash("wordpass" + SQL_Handler.salt), null);
+		//System.out.println(SQL_Handler.createSelectQuery("employees").toLowerCase());
+		//SQL_Handler.insertNewEmployee("098765", "Paul Bayruns", false, SQL_Handler.md5_hash("wordpass" + SQL_Handler.salt), null);
 	}
 
 }
