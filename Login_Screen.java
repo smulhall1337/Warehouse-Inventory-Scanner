@@ -18,7 +18,7 @@ public class Login_Screen extends Dialog {
 
 	protected Object result;
 	protected Shell shell;
-	private Text usr_txtBox;
+	private Text emp_txtBox;
 	private Text pw_txtBox;
 
 	/**
@@ -55,62 +55,66 @@ public class Login_Screen extends Dialog {
 		shell = new Shell(getParent(), SWT.SHELL_TRIM);
 		shell.setTouchEnabled(true);
 		shell.setBackground(SWTResourceManager.getColor(SWT.COLOR_DARK_CYAN));
-		shell.setSize(255, 145);
+		shell.setSize(275, 150);
 		shell.setText(getText());
 		
-		Label lblUsername = new Label(shell, SWT.NONE);
-		lblUsername.setBackground(SWTResourceManager.getColor(SWT.COLOR_DARK_CYAN));
-		lblUsername.setBounds(10, 10, 55, 15);
-		lblUsername.setText("Username:");
+		Label lblEmpID = new Label(shell, SWT.NONE);
+		lblEmpID.setAlignment(SWT.RIGHT);
+		lblEmpID.setBackground(SWTResourceManager.getColor(SWT.COLOR_DARK_CYAN));
+		lblEmpID.setBounds(10, 10, 70, 15);
+		lblEmpID.setText("Employee ID:");
 		
-		usr_txtBox = new Text(shell, SWT.BORDER);
-		usr_txtBox.setBackground(SWTResourceManager.getColor(SWT.COLOR_GRAY));
-		usr_txtBox.setBounds(71, 10, 163, 21);
+		emp_txtBox = new Text(shell, SWT.BORDER);
+		emp_txtBox.setBackground(SWTResourceManager.getColor(SWT.COLOR_GRAY));
+		emp_txtBox.setBounds(86, 7, 163, 21);
 		
 		Label lblPassword = new Label(shell, SWT.NONE);
+		lblPassword.setAlignment(SWT.RIGHT);
 		lblPassword.setBackground(SWTResourceManager.getColor(SWT.COLOR_DARK_CYAN));
-		lblPassword.setBounds(10, 50, 55, 15);
+		lblPassword.setBounds(10, 40, 70, 15);
 		lblPassword.setText("Password:");
 		
-		Label connection_lbl = new Label(shell, SWT.NONE);
-		connection_lbl.setBackground(SWTResourceManager.getColor(SWT.COLOR_GRAY));
-		connection_lbl.setBounds(10, 10, 224, 15);
-		connection_lbl.setVisible(false);
-		
-		Label url_lbl = new Label(shell, SWT.NONE);
-		url_lbl.setBackground(SWTResourceManager.getColor(SWT.COLOR_GRAY));
-		url_lbl.setBounds(10, 50, 224, 15);
-		url_lbl.setVisible(false);
-		
-		pw_txtBox = new Text(shell, SWT.BORDER);
+		pw_txtBox = new Text(shell, SWT.PASSWORD | SWT.BORDER);
 		pw_txtBox.setBackground(SWTResourceManager.getColor(SWT.COLOR_GRAY));
-		pw_txtBox.setBounds(71, 50, 163, 21);
+		pw_txtBox.setBounds(86, 37, 163, 21);
+		
+		Label lblConnection = new Label(shell, SWT.NONE);
+		lblConnection.setFont(SWTResourceManager.getFont("Segoe UI", 10, SWT.BOLD));
+		lblConnection.setAlignment(SWT.CENTER);
+		lblConnection.setForeground(SWTResourceManager.getColor(SWT.COLOR_DARK_RED));
+		lblConnection.setBackground(SWTResourceManager.getColor(SWT.COLOR_DARK_CYAN));
+		lblConnection.setBounds(10, 60, 239, 15);
 		
 		Button btnLogin = new Button(shell, SWT.NONE);
+		btnLogin.setBounds(81, 81, 75, 25);
+		btnLogin.setText("Login");
 		btnLogin.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseDown(MouseEvent e) {
 				try {
-					Connection conn = SQL_Handler.getConnection(/*usr_txtBox.getText(), pw_txtBox.getText()*/);
-					if (conn.isValid(130)) {
-						usr_txtBox.setVisible(false);
-						pw_txtBox.setVisible(false);
-						lblUsername.setVisible(false);
-						lblPassword.setVisible(false);
-						connection_lbl.setText("Successfully Connected To:");
-						url_lbl.setText(conn.getMetaData().getURL());
-						url_lbl.setVisible(true);
-						connection_lbl.setVisible(true);
+					Connection conn = SQL_Handler.getConnection();
+					if (conn.isValid(130) && SQL_Handler.isValidUsernamePassword(getEmpIDTxt(), getPwTxt())) {
+						lblConnection.setText("Successfully Connected!");
+						//Check user privileges
+						//Open application window with correct privileges
+						//Close login screen
 					}
-				} catch (Exception e1) {
+					else {
+						lblConnection.setText("Invalid Employee ID or Password.");
+					}
+				} catch (Exception e1) { //What is this intended to catch? Bad connection? 
 					// TODO Auto-generated catch block
 					e1.printStackTrace();
 				}
 			}
-		});
-		btnLogin.setBounds(81, 81, 75, 25);
-		btnLogin.setText("Login");
-		
+		});		
 	}
 	
+	public String getEmpIDTxt() {
+		return emp_txtBox.getText();
+	}
+	
+	public String getPwTxt() {
+		return pw_txtBox.getText();
+	}
 }
