@@ -4,7 +4,11 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.*;
 import java.util.HashMap;
-
+/**
+ * This class is used to handle common SQL operations for the WIMS application
+ * @author Jon Spratt
+ * @version WIMS_v1
+ */
 public class SQL_Handler {
 	
 	/**
@@ -43,10 +47,10 @@ public class SQL_Handler {
 			
 		} catch(SQLException e)
 		{
-			System.out.println(e.getMessage());
+			e.printStackTrace();
 		}		
 		catch (ClassNotFoundException e) {
-			System.out.println(e.getMessage());
+			e.printStackTrace();
 		}
 		
 		return null;
@@ -77,33 +81,22 @@ public class SQL_Handler {
 	
 	/**
 	 * Check whether the entered employee_id/password combination is valid
-	 * @param employee_id the in-bound employee_id
+	 * @param employee_id the in-bound unique employee_id
 	 * @param pw the inputed password
 	 * @return returns true if the employee_id/password combination is valid, false otherwise
 	 */
-	public static boolean isValidUsernamePassword(String employee_id, String pw) {
+	public static boolean isValidUsernamePassword(String employee_id, String pw) throws SQLException {
 		String sql_salt = "";
 		rs = getEmpRowByID(employee_id);
-		try {
-			if (rs.next()) {			// Returns true if the current row is not past the last row
-				sql_salt = rs.getString("salt");
-				if (sql_salt.equals(md5_hash(pw+salt))) {
-					// employee_id found with matching salted pw
-					return true;
-				}
-				else {
-					// Invalid employee_id/password combination
-					return false;
-				}
+		if (rs.next()) {			// Returns true if the current row is not past the last row
+			sql_salt = rs.getString("salt");
+			if (sql_salt.equals(md5_hash(pw+salt))) {
+				// employee_id found with matching salted pw
+				return true;
 			}
-			else {
-				//employee id not found
-				return false;
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-			return false;
 		}
+		// Employee ID not found or Invalid username/password combo
+		return false;
 	}
 	
 	/**
@@ -111,16 +104,12 @@ public class SQL_Handler {
 	 * @param employee_id the in-bound employee_id to match
 	 * @return returns the result set of the executed query
 	 */
-	public static ResultSet getEmpRowByID(String employee_id) {
+	public static ResultSet getEmpRowByID(String employee_id) throws SQLException {
 		// The prepared statement to be executed
 		stmt = sql_statements.get("EmpByID");
-		try {
-			//Set the statements wildcards. Starts @ index 1 and increments by 1
-			stmt.setString(1, employee_id);
-			rs = stmt.executeQuery();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
+		// Set the statements wildcards. Starts @ index 1 and increments by 1
+		stmt.setString(1, employee_id);
+		rs = stmt.executeQuery();
 		return rs;
 	}
 	
@@ -129,36 +118,72 @@ public class SQL_Handler {
 	 * @param employee_id the in-bound employee_id to match
 	 * @return returns the result set of the executed query
 	 */
-	public static ResultSet getEmpSalt(String employee_id) {
+	//MIGHT NOT EVEN NEED THIS
+	public static ResultSet getEmpSalt(String employee_id) throws SQLException {
 		// The prepared statement to be executed
 		stmt = sql_statements.get("EmpSalt");
-		try {
-			//Set statement wildcards. Starts @ index 1 and increments by 1
-			stmt.setString(1, employee_id);
-			rs = stmt.executeQuery();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
+		//Set statement wildcards. Starts @ index 1 and increments by 1
+		stmt.setString(1, employee_id);
+		rs = stmt.executeQuery();
 		return rs;
 	}
 	
+	/**
+	 * Insert a new employee to the DB
+	 * @param employee_id the employee id to set for the new employee
+	 * @param name the full name of the new employee
+	 * @param isManagement whether or not the new employee is management
+	 * @param salt the encrypted and salted pw for the new employee
+	 * @param warehouse_id the warehouse id that the new employee will be employed
+	 */
 	public static void insertNewEmployee(String employee_id, String name, boolean isManagement, 
-										 String salt, String warehouse_id) 
+										 String salt, String warehouse_id) throws SQLException
 	{
 		stmt = sql_statements.get("NewEmp");
-		try {
-			stmt.setString(1, employee_id);
-			stmt.setString(2, name);
-			stmt.setBoolean(3, isManagement);
-			stmt.setString(4, salt);
-			stmt.setString(5, warehouse_id);
-			stmt.execute();
-		} catch (SQLException e) {
-			e.printStackTrace();
-			System.out.println(e.getMessage());
-		}
+		stmt.setString(1, employee_id);
+		stmt.setString(2, name);
+		stmt.setBoolean(3, isManagement);
+		stmt.setString(4, salt);
+		stmt.setString(5, warehouse_id);
+		stmt.execute();
 	}
 	
+	public static void insertNewItem(String itemNumber, String name, String price, 
+			int weight, int currentStock, int restockThreshold) throws SQLException
+	{
+		stmt = sql_statements.get("NewItem");
+		stmt.setString(1, itemNumber);
+		stmt.setString(2, name);
+		stmt.setString(3, price);
+		stmt.setInt(4, weight);
+		stmt.setInt(5, currentStock);
+		stmt.setInt(6, restockThreshold);
+		stmt.execute();
+	}
+	
+	public static int getItemCurrentStock(String itemNumber) throws SQLException {
+		int currentStock = 0;
+		stmt = sql_statements.get("ItemStock");
+		stmt.setString(1, itemNumber);
+		rs = stmt.executeQuery();
+		currentStock = rs.getInt("current_stock");
+		return currentStock;
+	}
+	
+	public static void updateItemQtyByItemNum(int amount, String itemNumber) throws SQLException {
+		stmt = sql_statements.get("UpdateItemQty");
+		int currentStock = getItemCurrentStock(itemNumber);
+		stmt.setInt(1, currentStock + amount);
+		stmt.setString(2, itemNumber);
+		stmt.execute();
+	}
+	
+	public static ResultSet getAllEmp() throws SQLException {
+		stmt = sql_statements.get("AllEmp");
+		rs = stmt.executeQuery();
+		return rs;
+	}
+		
 	/**
 	 * Populate a hash map of prepared SQL statements
 	 * @return returns a collection of key - prepared SQL statement pairs
@@ -185,14 +210,30 @@ public class SQL_Handler {
 			statements.put(stmt_key, statement);
 			
 			stmt_key = "NewEmp";
-			statement = conn.prepareStatement("INSERT INTO employees (employee_id, name, is_management, salt, warehouse_id)" + 
+			statement = conn.prepareStatement("INSERT INTO employees (employee_id, name, is_management, salt, warehouse_id) " + 
 											  "VALUES (?,?,?,?,?)");
 			statements.put(stmt_key, statement);
+			
+			stmt_key = "AllEmp";
+			statement = conn.prepareStatement("SELECT * FROM employees");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "NewItem";
+			statement = conn.prepareStatement("INSERT INTO items (item_number, name, price, weight, current_stock, restock_threshold) " +
+											  "VALUES (?,?,?,?,?,?)");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "UpdateItemQty";
+			statement = conn.prepareStatement("UPDATE items SET current_stock = ? WHERE item_number = ?");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "ItemStock";
+			statement = conn.prepareStatement("SELECT current_stock FROM items WHERE item_number = ?");
+			statements.put(stmt_key, statement);
+			
 		} catch (SQLException e) {
 			e.printStackTrace();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}		
+		}	
 		return statements;
 	}
 	

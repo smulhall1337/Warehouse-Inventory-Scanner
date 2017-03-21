@@ -5,7 +5,10 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Label;
 
+import java.util.concurrent.TimeUnit;
+
 import java.sql.Connection;
+import java.sql.SQLException;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Text;
@@ -13,6 +16,10 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.wb.swt.SWTResourceManager;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
+import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.events.SelectionListener;
+import org.eclipse.swt.events.KeyAdapter;
+import org.eclipse.swt.events.KeyEvent;
 
 public class Login_Screen extends Dialog {
 
@@ -20,6 +27,8 @@ public class Login_Screen extends Dialog {
 	protected Shell shell;
 	private Text emp_txtBox;
 	private Text pw_txtBox;
+	private boolean isSuccessfulConnection = false;
+	private Label lblConnection;
 
 	/**
 	 * Create the dialog.
@@ -29,6 +38,7 @@ public class Login_Screen extends Dialog {
 	public Login_Screen(Shell parent, int style) {
 		super(parent, style);
 		setText("WIMS Login");
+		open();
 	}
 
 	/**
@@ -52,7 +62,7 @@ public class Login_Screen extends Dialog {
 	 * Create contents of the dialog.
 	 */
 	private void createContents() {
-		shell = new Shell(getParent(), SWT.SHELL_TRIM);
+		shell = new Shell(getParent(), SWT.TITLE);
 		shell.setTouchEnabled(true);
 		shell.setBackground(SWTResourceManager.getColor(SWT.COLOR_DARK_CYAN));
 		shell.setSize(275, 150);
@@ -67,6 +77,14 @@ public class Login_Screen extends Dialog {
 		emp_txtBox = new Text(shell, SWT.BORDER);
 		emp_txtBox.setBackground(SWTResourceManager.getColor(SWT.COLOR_GRAY));
 		emp_txtBox.setBounds(86, 7, 163, 21);
+		emp_txtBox.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyPressed(KeyEvent e) {
+				if (e.keyCode == SWT.CR || e.keyCode == SWT.LF) {
+					executeBtnSubmit();
+				}
+			}
+		});
 		
 		Label lblPassword = new Label(shell, SWT.NONE);
 		lblPassword.setAlignment(SWT.RIGHT);
@@ -77,8 +95,16 @@ public class Login_Screen extends Dialog {
 		pw_txtBox = new Text(shell, SWT.PASSWORD | SWT.BORDER);
 		pw_txtBox.setBackground(SWTResourceManager.getColor(SWT.COLOR_GRAY));
 		pw_txtBox.setBounds(86, 37, 163, 21);
+		pw_txtBox.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyPressed(KeyEvent e) {
+				if (e.keyCode == SWT.CR || e.keyCode == SWT.LF) {
+					executeBtnSubmit();
+				}
+			}
+		});
 		
-		Label lblConnection = new Label(shell, SWT.NONE);
+		lblConnection = new Label(shell, SWT.NONE);
 		lblConnection.setFont(SWTResourceManager.getFont("Segoe UI", 10, SWT.BOLD));
 		lblConnection.setAlignment(SWT.CENTER);
 		lblConnection.setForeground(SWTResourceManager.getColor(SWT.COLOR_DARK_RED));
@@ -86,30 +112,55 @@ public class Login_Screen extends Dialog {
 		lblConnection.setBounds(10, 60, 239, 15);
 		
 		Button btnLogin = new Button(shell, SWT.NONE);
-		btnLogin.setBounds(81, 81, 75, 25);
+		shell.setDefaultButton(btnLogin);
+		btnLogin.setBounds(96, 81, 75, 25);
 		btnLogin.setText("Login");
 		btnLogin.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseDown(MouseEvent e) {
-				try {
-					Connection conn = SQL_Handler.getConnection();
-					if (conn.isValid(130) && SQL_Handler.isValidUsernamePassword(getEmpIDTxt(), getPwTxt())) {
-						lblConnection.setText("Successfully Connected!");
-						//Check user privileges
-						//Open application window with correct privileges
-						//Close login screen
-					}
-					else {
-						lblConnection.setText("Invalid Employee ID or Password.");
-					}
-				} catch (Exception e1) { //What is this intended to catch? Bad connection? 
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
+				executeBtnSubmit();
 			}
-		});		
+		});
+		
+		// Since login button is default, enter key selects it -> perform action
+		btnLogin.addSelectionListener(new SelectionListener() {
+
+			@Override
+			public void widgetSelected(SelectionEvent arg0) {
+				executeBtnSubmit();
+			}
+
+			@Override
+			public void widgetDefaultSelected(SelectionEvent arg0) {}
+		});
 	}
 	
+	private void executeBtnSubmit() {
+		try {
+			Connection conn = SQL_Handler.getConnection();
+			if (conn.isValid(130) && SQL_Handler.isValidUsernamePassword(getEmpIDTxt(), getPwTxt())) {
+				isSuccessfulConnection = true;
+				lblConnection.setText("Successfully Connected!");
+				//Check user privileges
+				//Wait a couple seconds then close login screen
+				TimeUnit.SECONDS.sleep(1);
+				//Notify driver to open main window
+				shell.dispose();
+				//Open application window with correct privileges											
+			}
+			else {
+				lblConnection.setText("Invalid Employee ID or Password.");
+			}
+		} catch (SQLException exc) {  
+			exc.printStackTrace();
+		} catch (InterruptedException e1) {
+			e1.printStackTrace();
+		}
+	}
+	
+	public boolean isSuccessfulConnection() {
+		return isSuccessfulConnection;
+	}
 	public String getEmpIDTxt() {
 		return emp_txtBox.getText();
 	}
