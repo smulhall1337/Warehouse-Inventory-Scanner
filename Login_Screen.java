@@ -135,6 +135,10 @@ public class Login_Screen extends Dialog {
 		});
 	}
 	
+	/**
+	* checks if the entered credentials are valid according to the DB
+	* Performs the connection to the SQL database 
+	*/
 	private void executeBtnSubmit() {
 		try {
 			Connection conn = SQL_Handler.getConnection();
@@ -158,13 +162,26 @@ public class Login_Screen extends Dialog {
 		}
 	}
 	
+	/**
+	* returns true if the connection to the SQL DB is successful
+	* @return isSuccessfulConnection
+	*/
 	public boolean isSuccessfulConnection() {
 		return isSuccessfulConnection;
 	}
+	
+	/**
+	* returns the text currently contained in the employee ID text box
+	* @return emp_txtBox 
+	*/
 	public String getEmpIDTxt() {
 		return emp_txtBox.getText();
 	}
 	
+	/**
+	* returns the text currently contained in the password box
+	* @return pw_txtBox
+	*/
 	public String getPwTxt() {
 		return pw_txtBox.getText();
 	}
