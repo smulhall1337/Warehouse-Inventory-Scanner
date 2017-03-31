@@ -148,6 +148,15 @@ public class SQL_Handler {
 		stmt.execute();
 	}
 	
+	/**
+	 * Insert a new item to the DB
+	 * @param itemNumber the number associated with the items barcode 
+	 * @param name the full name of the new item
+	 * @param price the (optional) price of the item
+	 * @param weight the weight of the item
+	 * @param currentStock The current stock the warehouse has on hand (if any)
+	 * @param restockThreshold The point at which the warehouse needs this item to be restocked. Optional
+	 */
 	public static void insertNewItem(String itemNumber, String name, String price, 
 			int weight, int currentStock, int restockThreshold) throws SQLException
 	{
@@ -161,6 +170,11 @@ public class SQL_Handler {
 		stmt.execute();
 	}
 	
+	/**
+	 * Returns the current stock of a desired item
+	 * @param itemNumber the item number of the desired item
+	 * @return currentStock the current stock of the item
+	 */
 	public static int getItemCurrentStock(String itemNumber) throws SQLException {
 		int currentStock = 0;
 		stmt = sql_statements.get("ItemStock");
@@ -170,6 +184,11 @@ public class SQL_Handler {
 		return currentStock;
 	}
 	
+	/**
+	* Updates a desired items quantity in the DB 
+	* @param amount the amount being added to the DB
+	* @ itemNumber the number of the item being updated
+	*/
 	public static void updateItemQtyByItemNum(int amount, String itemNumber) throws SQLException {
 		stmt = sql_statements.get("UpdateItemQty");
 		int currentStock = getItemCurrentStock(itemNumber);
@@ -178,6 +197,10 @@ public class SQL_Handler {
 		stmt.execute();
 	}
 	
+	/**
+	* returns all of the employees currently in the DB
+	* @return rs the ResultSet of all the employees 
+	*/
 	public static ResultSet getAllEmp() throws SQLException {
 		stmt = sql_statements.get("AllEmp");
 		rs = stmt.executeQuery();
