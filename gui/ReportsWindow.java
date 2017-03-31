@@ -90,8 +90,10 @@ public class ReportsWindow {
 		createExportButton();
 	}
 	
-	protected void createTable()
-	{
+	/**
+	* creates the main table area
+	*/
+	protected void createTable() {
 		tableViewerReports = new TableViewer(shell, SWT.BORDER|SWT.H_SCROLL|SWT.V_SCROLL|SWT.FULL_SELECTION);
 		tableReportData = tableViewerReports.getTable();
 		tableReportData.setBounds(10, 190, 715, 357);
@@ -100,51 +102,66 @@ public class ReportsWindow {
 		tableViewerReports.setContentProvider(new ContentProvider());
 	}
 	
-	protected void createTableColumns(String[] titles, int[] bounds, String[] values)
-	{
-		
-        TableViewerColumn column = createTableViewerColumn(titles[0], bounds[0], 0);
-        column.setLabelProvider(new ColumnLabelProvider(){
-            public String getText(Object element) {
-                return super.getText(element);
-            }
-        });
-        tableViewerReports.setInput(values);
-	}
+	/**
+	* sets up the columns
+	* @param titles the column titles
+	* @param bounds the boundaries of each column
+	* @param values the values to be contained in each column
+	*/
+	protected void createTableColumns(String[] titles, int[] bounds, String[] values) {	
+        	TableViewerColumn column = createTableViewerColumn(titles[0], bounds[0], 0);
+        	column.setLabelProvider(new ColumnLabelProvider(){
+            		public String getText(Object element) {
+                		return super.getText(element);
+            		}//getText
+		});//setLabelProvider
+        	tableViewerReports.setInput(values);
+	}//createTableColumns
 	
-	private TableViewerColumn createTableViewerColumn(String header, int width, int idx) 
-    {
-        TableViewerColumn column = new TableViewerColumn(tableViewerReports, SWT.LEFT, idx);
-        column.getColumn().setText(header);
-        column.getColumn().setWidth(width);
-        column.getColumn().setResizable(true);
-        column.getColumn().setMoveable(true);
-        return column;
-    }
+	/**
+	* creates each individual column in the table 
+	* @param header the header of the column
+	* @param width the width of each column
+	* @param idx the index where the new column will be placed
+	* @return column the new column 
+	*/
+	private TableViewerColumn createTableViewerColumn(String header, int width, int idx) {
+        	TableViewerColumn column = new TableViewerColumn(tableViewerReports, SWT.LEFT, idx);
+        	column.getColumn().setText(header);
+        	column.getColumn().setWidth(width);
+        	column.getColumn().setResizable(true);
+        	column.getColumn().setMoveable(true);
+        	return column;
+    	}
 	
-	protected void createReportTypeLabel()
-	{
+	/**
+	* Create the "Report Type" label
+	*/
+	protected void createReportTypeLabel() {
 		lblReportType = new Label(shell, SWT.NONE);
 		lblReportType.setFont(SWTResourceManager.getFont("Segoe UI", 18, SWT.NORMAL));
 		lblReportType.setBounds(25, 10, 147, 34);
 		lblReportType.setText("Report Type:");
 	}
-	
-	protected void createReportTypeCombo()
-	{
+	/**
+	* Creates the combo box for selecting the report type 
+	*/
+	protected void createReportTypeCombo() {
 		comboReportType = new Combo(shell, SWT.NONE);
 		comboReportType.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
 				displayReportOptions(reportNames[comboReportType.getSelectionIndex()]);
-			}
-		});
+			}//widgetSelected
+		});//addSelectionListener
 		comboReportType.setBounds(170, 21, 156, 97);
 		comboReportType.setItems(reportNames);
-	}
+	}//createReportTypeCombo
 	
-	protected void createAgingItemsOptions()
-	{
+	/**
+	* Creates the Aging items options 
+	*/
+	protected void createAgingItemsOptions() {
 		lblDisplayItemsOlder = new Label(shell, SWT.NONE);
 		lblDisplayItemsOlder.setBounds(14, 83, 139, 23);
 		lblDisplayItemsOlder.setText("Display Items Older Than:");
@@ -159,8 +176,10 @@ public class ReportsWindow {
 		setAgingItemOptionVisibility(false);
 	}
 	
-	protected void createExportButton()
-	{
+	/**
+	* create the "Export" button
+	*/
+	protected void createExportButton() {
 		btnExport = new Button(shell, SWT.NONE);
 		btnExport.setForeground(SWTResourceManager.getColor(SWT.COLOR_WIDGET_FOREGROUND));
 		btnExport.setFont(SWTResourceManager.getFont("Segoe UI Light", 22, SWT.NORMAL));
@@ -168,8 +187,10 @@ public class ReportsWindow {
 		btnExport.setText("Export");
 	}
 	
-	protected void createGenerateButton()
-	{
+	/**
+	* create the "Generate" button
+	*/
+	protected void createGenerateButton() {
 		btnNewButton = new Button(shell, SWT.NONE);
 		createTable();
 		btnNewButton.addMouseListener(new MouseAdapter() {
@@ -179,19 +200,16 @@ public class ReportsWindow {
 				String[][] tableInfo = {{"header", "header2", "header3"}, {"value", "value2", "value3"}};
 				int[] bounds = {100, 100, 100};
 				createTableColumns(tableInfo[0], bounds, tableInfo[1]);
-			}
-
-			
-		});
+			}//mouseDown	
+		});//addMouseListener
 		btnNewButton.setFont(SWTResourceManager.getFont("Segoe UI Light", 20, SWT.NORMAL));
 		btnNewButton.setBounds(594, 128, 131, 56);
 		btnNewButton.setText("Generate");
-	}
+	}//createGenerateButton
 	
 	private void fillTable(String[][] tableInfo) {
-		for(int col = 0; col < tableInfo[0].length; col++)
-		{
-			TableColumn nextCol = new TableColumn(tableReportData, SWT.CENTER);
+		for(int col = 0; col < tableInfo[0].length; col++) {
+		    TableColumn nextCol = new TableColumn(tableReportData, SWT.CENTER);
 
 		    for (int row = 0; row < tableInfo.length; row++) {
 		        TableItem item = new TableItem(tableReportData, SWT.NONE);
@@ -201,8 +219,7 @@ public class ReportsWindow {
 		tableReportData.redraw();
 	}
 	
-	private void displayReportOptions(String type)
-	{
+	private void displayReportOptions(String type) {
 		if(type.equals(reportNames[0]))
 		{
 			displayEmployeeOptions();
