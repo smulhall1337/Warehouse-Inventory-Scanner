@@ -207,6 +207,10 @@ public class ReportsWindow {
 		btnNewButton.setText("Generate");
 	}//createGenerateButton
 	
+	/**
+	* populates the table with info from the DB
+	* @param tableInfo the info to be put into the table 
+	*/
 	private void fillTable(String[][] tableInfo) {
 		for(int col = 0; col < tableInfo[0].length; col++) {
 		    TableColumn nextCol = new TableColumn(tableReportData, SWT.CENTER);
@@ -214,11 +218,14 @@ public class ReportsWindow {
 		    for (int row = 0; row < tableInfo.length; row++) {
 		        TableItem item = new TableItem(tableReportData, SWT.NONE);
 		        item.setText(tableInfo[row]);
-		    }
-		}
+		    }//inner for
+		}//outer for
 		tableReportData.redraw();
 	}
 	
+	/**
+	* displays the options for a report 
+	*/
 	private void displayReportOptions(String type) {
 		if(type.equals(reportNames[0]))
 		{
@@ -228,27 +235,42 @@ public class ReportsWindow {
 		}
 	}
 	
+	/**
+	* displays aging items options
+	*/ 
 	private void displayAgingItemOptions() {
 		hideAllReportOptions();
 		setAgingItemOptionVisibility(true);
 	}
-
+	
+	/**
+	* sets the aging items visability t
+	*/
 	private void setAgingItemOptionVisibility(boolean visible) {
 		lblDisplayItemsOlder.setVisible(visible);
 		lblDays.setVisible(visible);
 		textDisplayItemsOlder.setVisible(visible);
 	}
-
+	
+	/**
+	* hides all report options 
+	*/
 	private void hideAllReportOptions() {
 		setAgingItemOptionVisibility(false);
 		setEmployeeOptionVisibility(false);
 	}
-
+	
+	/**
+	* sets umployee option visability
+	*/
 	private void setEmployeeOptionVisibility(boolean visible) {
 		// TODO Auto-generated method stub
 		
 	}
 
+	/**
+	* displays employee options
+	*/
 	private void displayEmployeeOptions() {
 		hideAllReportOptions();
 		setEmployeeOptionVisibility(true);
