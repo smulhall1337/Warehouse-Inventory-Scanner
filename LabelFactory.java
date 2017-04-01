@@ -12,10 +12,8 @@ import java.awt.FontMetrics;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.io.File;
 
@@ -23,8 +21,7 @@ import java.io.File;
  * Created by Jon on 3/29/2017.
  */
 public abstract class LabelFactory {
-    private static List<String> barcodeTitles = populateBarcodeTitles();
-    private static BufferedImage label ;
+    private static BufferedImage label;
 
     private static final int START_Y = 20;
     private static final int START_X = 0;
@@ -34,14 +31,6 @@ public abstract class LabelFactory {
 	private static final int QTY_BARC_START_HORIZ_OFFSET = 225;	//NEEDS TUNE
 	private static final int NO_TITLE_VERT_OFFSET = 20;
 	
-    private static List<String> populateBarcodeTitles() {
-    	barcodeTitles = new ArrayList<String>();
-    	barcodeTitles.add("Order Number:");
-    	barcodeTitles.add("Pallet ID");
-    	barcodeTitles.add("Item Number");
-    	return barcodeTitles;
-    }
-
     public static Barcode createBarcode(String text) {
         Barcode barcode = null;
         try {
