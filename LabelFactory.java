@@ -23,20 +23,20 @@ import java.io.File;
 public abstract class LabelFactory {
     private static BufferedImage label;
 
-    private static final int START_Y = 20;
     private static final int START_X = 0;
 	private static final int NEXT_BARC_TITLE_Y = 85;
-	private static final int NEXT_BARC_Y = 90;
-	private static final int QTY_BARC_START_VERT_OFFSET = 180;
-	private static final int QTY_BARC_START_HORIZ_OFFSET = 225;	//NEEDS TUNE
-	private static final int NO_TITLE_VERT_OFFSET = 20;
+	private static final int NEXT_BARC_Y = 75;
+	private static final int ITEM_BARC_START_VERT_OFFSET = 173;
+	private static final int QTY_BARC_START_VERT_OFFSET = 173;
+	private static final int QTY_BARC_START_HORIZ_OFFSET = 200;	
+	private static final int TITLE_VERT_OFFSET = 20;
 	
     public static Barcode createBarcode(String text) {
         Barcode barcode = null;
         try {
             barcode = BarcodeFactory.createCode128(text);
             barcode.setBarHeight(30);
-            barcode.setBarWidth(2);
+            barcode.setBarWidth(1);
         } catch (BarcodeException e) {
             e.printStackTrace();
         }
@@ -46,9 +46,9 @@ public abstract class LabelFactory {
     public static void createLabel(String orderNum, String palletID, Map<String, String> items) {
     	int titleCount = 0;
     	int barcodeCount = 0;
-    	int qtyBarcCount = 0;
+    	int itemBarcCount = 0;
     	
-        label = new BufferedImage(390, 576, BufferedImage.TYPE_INT_RGB);
+        label = new BufferedImage(385, 575, BufferedImage.TYPE_INT_RGB);
         
         Font font = new Font("Times New Roman", Font.BOLD, 16);
         Graphics2D g = label.createGraphics();
@@ -69,13 +69,13 @@ public abstract class LabelFactory {
             g.drawString("Order Number:", START_X, fm.getAscent());
             //Create and draw barcode
             barcode = createBarcode(orderNum);
-            barcode.draw(g, START_X, START_Y);
+            barcode.draw(g, START_X, (NEXT_BARC_Y * barcodeCount++) + TITLE_VERT_OFFSET);
 
             //Draw Pallet ID barcode title
             g.drawString("Pallet ID:", START_X, (NEXT_BARC_TITLE_Y * ++titleCount));
             //Create and draw barcode
             barcode = createBarcode(palletID);
-            barcode.draw(g, START_X, (NEXT_BARC_Y * ++barcodeCount));
+            barcode.draw(g, START_X, (NEXT_BARC_Y * barcodeCount++) + TITLE_VERT_OFFSET);
             
             //Draw Item barcodes and title
             g.drawString("Item Numbers:", START_X, (NEXT_BARC_TITLE_Y * ++titleCount));
@@ -88,12 +88,12 @@ public abstract class LabelFactory {
             	String itemQty = entry.getValue();
             	barcode = createBarcode(itemNumber);
             	if (!firstBarcode) {
-            		barcode.draw(g, START_X, (NEXT_BARC_Y * ++barcodeCount - NO_TITLE_VERT_OFFSET));
+            		barcode.draw(g, START_X, ITEM_BARC_START_VERT_OFFSET + (NEXT_BARC_Y * ++itemBarcCount));
             		barcode = createBarcode(itemQty);
-            		barcode.draw(g, QTY_BARC_START_HORIZ_OFFSET, (QTY_BARC_START_VERT_OFFSET + NEXT_BARC_Y * ++qtyBarcCount - NO_TITLE_VERT_OFFSET));
+            		barcode.draw(g, QTY_BARC_START_HORIZ_OFFSET, QTY_BARC_START_VERT_OFFSET + (NEXT_BARC_Y * itemBarcCount));
             	}
             	else {
-            		barcode.draw(g, START_X, (NEXT_BARC_Y * ++barcodeCount));
+            		barcode.draw(g, START_X, ITEM_BARC_START_VERT_OFFSET);
             		barcode = createBarcode(itemQty);
             		barcode.draw(g, QTY_BARC_START_HORIZ_OFFSET, QTY_BARC_START_VERT_OFFSET);
             		firstBarcode = false;
