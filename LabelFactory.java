@@ -65,7 +65,7 @@ public abstract class LabelFactory {
         Barcode barcode = null;
         try {
             barcode = BarcodeFactory.createCode128(text);
-            barcode.setBarHeight(60);
+            barcode.setBarHeight(30);
             barcode.setBarWidth(2);
             //Graphics2D g = (Graphics2D) img.getGraphics();
             //barcode.draw(g, 0, 0);
@@ -75,14 +75,44 @@ public abstract class LabelFactory {
         return barcode;
     }
 
-    public static void createLabel(String orderNum) {
+    public static void createLabel(String orderNum, String palletID) {
+        final int ORDER_NUM_LBL_X = 0;
+        final int ORDER_NUM_BARC_X = 0;
+        final int ORDER_NUM_BARC_Y = 20;
+
+        final int PALLET_ID_LBL_X = 0;
+        final int PALLET_ID_LBL_Y = 85;
+        final int PALLET_ID_BARC_X = 0;
+        final int PALLET_ID_BARC_Y = 90;
+
+        int x_position= 0;
+        int y_position = 0;
         label = new BufferedImage(384, 576, BufferedImage.TYPE_INT_RGB);
+
+        Font font = new Font("Times New Roman", Font.PLAIN, 16);
         Graphics2D g = label.createGraphics();
+        FontMetrics fm;
+        Barcode barcode;
+
         try {
-            // CAN'T GET LABEL TO DRAW
-            g.drawImage(barcodeLabels.get("OrderNum"), 0, 0, null);
-            // BARCODE IS DRAWING
-            createBarcode(orderNum).draw(g, 0,40);
+            //Set graphics properties
+            g.setFont(font);
+            fm = g.getFontMetrics();
+            System.out.print(fm.getHeight());
+
+            //Draw Order Number barcode title
+            g.drawString("Order Number:", ORDER_NUM_LBL_X, fm.getAscent());
+            //Create and draw barcode
+            barcode = createBarcode(orderNum);
+            barcode.draw(g, ORDER_NUM_BARC_X, ORDER_NUM_BARC_Y);
+
+            //Draw Pallet ID barcode title
+            g.drawString("Pallet ID:", PALLET_ID_LBL_X, PALLET_ID_LBL_Y);
+            //Create and draw barcode
+            createBarcode("123456").draw(g, PALLET_ID_BARC_X, PALLET_ID_BARC_Y);
+
+
+            //Write label to file
             ImageIO.write(label, "png", new File("result.png"));
         } catch (OutputException e) {
             e.printStackTrace();
