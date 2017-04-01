@@ -1,20 +1,23 @@
-package wims_v1;
+package controller;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 /**
  * This class is used to handle common SQL operations for the WIMS application
  * @author Jon Spratt
  * @version WIMS_v1
  */
-public class SQL_Handler {
+public abstract class SQL_Handler {
 	
 	/**
 	 * A collection of prepared SQL statements
 	 */
-	private static HashMap<String, PreparedStatement> sql_statements = populatePreparedStatements();
+	private static Map<String, PreparedStatement> sql_statements = populatePreparedStatements();
 	/**
 	 * Holds a prepared SQL statement
 	 */
@@ -85,12 +88,13 @@ public class SQL_Handler {
 	 * @param pw the inputed password
 	 * @return returns true if the employee_id/password combination is valid, false otherwise
 	 */
-	public static boolean isValidUsernamePassword(String employee_id, String pw) throws SQLException {
+	public static boolean isValidUsernamePassword(String employee_id, char[] pw) throws SQLException {
 		String sql_salt = "";
+		String password = String.valueOf(pw);
 		rs = getEmpRowByID(employee_id);
 		if (rs.next()) {			// Returns true if the current row is not past the last row
 			sql_salt = rs.getString("salt");
-			if (sql_salt.equals(md5_hash(pw+salt))) {
+			if (sql_salt.equals(md5_hash(password+salt))) {
 				// employee_id found with matching salted pw
 				return true;
 			}
@@ -148,15 +152,6 @@ public class SQL_Handler {
 		stmt.execute();
 	}
 	
-	/**
-	 * Insert a new item to the DB
-	 * @param itemNumber the number associated with the items barcode 
-	 * @param name the full name of the new item
-	 * @param price the (optional) price of the item
-	 * @param weight the weight of the item
-	 * @param currentStock The current stock the warehouse has on hand (if any)
-	 * @param restockThreshold The point at which the warehouse needs this item to be restocked. Optional
-	 */
 	public static void insertNewItem(String itemNumber, String name, String price, 
 			int weight, int currentStock, int restockThreshold) throws SQLException
 	{
@@ -170,11 +165,6 @@ public class SQL_Handler {
 		stmt.execute();
 	}
 	
-	/**
-	 * Returns the current stock of a desired item
-	 * @param itemNumber the item number of the desired item
-	 * @return currentStock the current stock of the item
-	 */
 	public static int getItemCurrentStock(String itemNumber) throws SQLException {
 		int currentStock = 0;
 		stmt = sql_statements.get("ItemStock");
@@ -184,11 +174,6 @@ public class SQL_Handler {
 		return currentStock;
 	}
 	
-	/**
-	* Updates a desired items quantity in the DB 
-	* @param amount the amount being added to the DB
-	* @ itemNumber the number of the item being updated
-	*/
 	public static void updateItemQtyByItemNum(int amount, String itemNumber) throws SQLException {
 		stmt = sql_statements.get("UpdateItemQty");
 		int currentStock = getItemCurrentStock(itemNumber);
@@ -197,10 +182,6 @@ public class SQL_Handler {
 		stmt.execute();
 	}
 	
-	/**
-	* returns all of the employees currently in the DB
-	* @return rs the ResultSet of all the employees 
-	*/
 	public static ResultSet getAllEmp() throws SQLException {
 		stmt = sql_statements.get("AllEmp");
 		rs = stmt.executeQuery();
@@ -211,7 +192,7 @@ public class SQL_Handler {
 	 * Populate a hash map of prepared SQL statements
 	 * @return returns a collection of key - prepared SQL statement pairs
 	 */
-	private static HashMap<String, PreparedStatement> populatePreparedStatements() {
+	private static Map<String, PreparedStatement> populatePreparedStatements() {
 		String stmt_key = "";
 		PreparedStatement statement;
 		HashMap<String, PreparedStatement> statements = new HashMap<String, PreparedStatement>();
@@ -272,7 +253,42 @@ public class SQL_Handler {
 	 * Standard Accessor - for the collection of prepared SQL statements 
 	 * @return returns the collection of prepared SQL statements
 	 */
-	public static HashMap<String, PreparedStatement> getSQLStatements() {
+	public static Map<String, PreparedStatement> getSQLStatements() {
 		return sql_statements;
+	}
+	
+	/**
+	 * 
+	 * @param result the result set to convert to a list of arrays
+	 * @return a list containing String arrays, where every index in the list is a row,
+	 * where the String arrays each represent a row
+	 * @throws SQLException
+	 */
+	public static List<String[]> getResultSetAsListOfArrays(ResultSet result) throws SQLException
+	{
+		int nCol = result.getMetaData().getColumnCount();
+		List<String[]> table = new ArrayList<>();
+		while( result.next()) {
+		    String[] row = new String[nCol];
+		    for( int iCol = 1; iCol <= nCol; iCol++ ){
+		            Object obj = result.getObject( iCol );
+		            row[iCol-1] = (obj == null) ?null:obj.toString();
+		    }
+		    table.add( row );
+		}
+	
+		return table;
+	}
+	
+	public static String[] getColumnNamesFromResultSet(ResultSet result) throws SQLException
+	{
+		 ResultSetMetaData rsmd = result.getMetaData();
+		 int nCol = rsmd.getColumnCount();
+		 String[] columnNames = new String[nCol];
+		 for(int i = 0; i<nCol; i++)
+		 {
+			 columnNames[i] = rsmd.getColumnName(i+1);
+		 }
+		 return columnNames;
 	}
 }

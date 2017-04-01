@@ -1,156 +1,138 @@
 package wims_v1;
 
-import org.eclipse.swt.widgets.Dialog;
-import org.eclipse.swt.widgets.Display;
-import org.eclipse.swt.widgets.Shell;
-import org.eclipse.swt.widgets.Label;
-
-import java.util.concurrent.TimeUnit;
+import controller.SQL_Handler;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 
-import org.eclipse.swt.SWT;
-import org.eclipse.swt.widgets.Text;
-import org.eclipse.swt.widgets.Button;
-import org.eclipse.wb.swt.SWTResourceManager;
-import org.eclipse.swt.events.MouseAdapter;
-import org.eclipse.swt.events.MouseEvent;
-import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.events.SelectionListener;
-import org.eclipse.swt.events.KeyAdapter;
-import org.eclipse.swt.events.KeyEvent;
+import java.awt.BorderLayout;
+import java.awt.FlowLayout;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
-public class Login_Screen extends Dialog {
+import javax.swing.JTextField;
+import javax.swing.JLabel;
+import javax.swing.JButton;
+import javax.swing.JDialog;
+import javax.swing.JPanel;
+import javax.swing.JPasswordField;
+import javax.swing.border.EmptyBorder;
+import javax.swing.SwingConstants;
 
-	protected Object result;
-	protected Shell shell;
-	private Text emp_txtBox;
-	private Text pw_txtBox;
+import java.util.concurrent.TimeUnit;
+
+
+@SuppressWarnings("serial")
+public class Login_Screen extends JDialog {
+
+	private final JPanel contentPanel = new JPanel();
+	private JTextField txtEmpID;
+	private JPasswordField txtPassword;
+	private JLabel lblConnection;
 	private boolean isSuccessfulConnection = false;
-	private Label lblConnection;
+
+	/**
+	 * Launch the application.
+	 */
+	public static void main(String[] args) {
+		try {
+			Login_Screen dialog = new Login_Screen();
+			dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+			dialog.setVisible(true);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 
 	/**
 	 * Create the dialog.
-	 * @param parent
-	 * @param style
 	 */
-	public Login_Screen(Shell parent, int style) {
-		super(parent, style);
-		setText("WIMS Login");
-		open();
+	public Login_Screen() {
+		this.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+		this.setVisible(true);
+		setResizable(false);
+		
+		//Set window properties
+		setTitle("WIMS Login");
+		setBounds(100, 100, 277, 145);
+		getContentPane().setLayout(new BorderLayout());
+		contentPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
+		getContentPane().add(contentPanel, BorderLayout.CENTER);
+		contentPanel.setLayout(null);
+		
+		createLabels();
+		createTxtBoxes();
+		createButtons();
+		this.validate();
 	}
-
-	/**
-	 * Open the dialog.
-	 * @return the result
-	 */
-	public Object open() {
-		createContents();
-		shell.open();
-		shell.layout();
-		Display display = getParent().getDisplay();
-		while (!shell.isDisposed()) {
-			if (!display.readAndDispatch()) {
-				display.sleep();
-			}
-		}
-		return result;
+	
+	public void createLabels() {
+		JLabel lblEmployeeID = new JLabel("Employee ID:");
+		lblEmployeeID.setHorizontalAlignment(SwingConstants.RIGHT);
+		lblEmployeeID.setBounds(10, 11, 82, 14);
+		contentPanel.add(lblEmployeeID);
+		
+		JLabel lblPassword = new JLabel("Password:");
+		lblPassword.setHorizontalAlignment(SwingConstants.RIGHT);
+		lblPassword.setBounds(10, 36, 82, 14);
+		contentPanel.add(lblPassword);
+		
+		lblConnection = new JLabel("");
+		lblConnection.setFont(new Font("Arial Unicode MS", Font.BOLD, 12));
+		lblConnection.setForeground(new Color(165, 42, 42));
+		lblConnection.setHorizontalAlignment(SwingConstants.CENTER);
+		lblConnection.setBounds(10, 61, 241, 20);
+		contentPanel.add(lblConnection);		
 	}
-
-	/**
-	 * Create contents of the dialog.
-	 */
-	private void createContents() {
-		shell = new Shell(getParent(), SWT.TITLE);
-		shell.setTouchEnabled(true);
-		shell.setBackground(SWTResourceManager.getColor(SWT.COLOR_DARK_CYAN));
-		shell.setSize(275, 150);
-		shell.setText(getText());
+	
+	public void createButtons() {
+		JPanel buttonPane = new JPanel();
+		buttonPane.setLayout(new FlowLayout(FlowLayout.CENTER));
+		getContentPane().add(buttonPane, BorderLayout.SOUTH);
 		
-		Label lblEmpID = new Label(shell, SWT.NONE);
-		lblEmpID.setAlignment(SWT.RIGHT);
-		lblEmpID.setBackground(SWTResourceManager.getColor(SWT.COLOR_DARK_CYAN));
-		lblEmpID.setBounds(10, 10, 70, 15);
-		lblEmpID.setText("Employee ID:");
+		JButton btnSubmit = new JButton("Submit");
+		btnSubmit.setActionCommand("OK");
+		buttonPane.add(btnSubmit);
+		getRootPane().setDefaultButton(btnSubmit);
 		
-		emp_txtBox = new Text(shell, SWT.BORDER);
-		emp_txtBox.setBackground(SWTResourceManager.getColor(SWT.COLOR_GRAY));
-		emp_txtBox.setBounds(86, 7, 163, 21);
-		emp_txtBox.addKeyListener(new KeyAdapter() {
+		btnSubmit.addActionListener(new ActionListener() {
 			@Override
-			public void keyPressed(KeyEvent e) {
-				if (e.keyCode == SWT.CR || e.keyCode == SWT.LF) {
-					executeBtnSubmit();
-				}
-			}
-		});
-		
-		Label lblPassword = new Label(shell, SWT.NONE);
-		lblPassword.setAlignment(SWT.RIGHT);
-		lblPassword.setBackground(SWTResourceManager.getColor(SWT.COLOR_DARK_CYAN));
-		lblPassword.setBounds(10, 40, 70, 15);
-		lblPassword.setText("Password:");
-		
-		pw_txtBox = new Text(shell, SWT.PASSWORD | SWT.BORDER);
-		pw_txtBox.setBackground(SWTResourceManager.getColor(SWT.COLOR_GRAY));
-		pw_txtBox.setBounds(86, 37, 163, 21);
-		pw_txtBox.addKeyListener(new KeyAdapter() {
-			@Override
-			public void keyPressed(KeyEvent e) {
-				if (e.keyCode == SWT.CR || e.keyCode == SWT.LF) {
-					executeBtnSubmit();
-				}
-			}
-		});
-		
-		lblConnection = new Label(shell, SWT.NONE);
-		lblConnection.setFont(SWTResourceManager.getFont("Segoe UI", 10, SWT.BOLD));
-		lblConnection.setAlignment(SWT.CENTER);
-		lblConnection.setForeground(SWTResourceManager.getColor(SWT.COLOR_DARK_RED));
-		lblConnection.setBackground(SWTResourceManager.getColor(SWT.COLOR_DARK_CYAN));
-		lblConnection.setBounds(10, 60, 239, 15);
-		
-		Button btnLogin = new Button(shell, SWT.NONE);
-		shell.setDefaultButton(btnLogin);
-		btnLogin.setBounds(96, 81, 75, 25);
-		btnLogin.setText("Login");
-		btnLogin.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseDown(MouseEvent e) {
+			public void actionPerformed(ActionEvent e) {
 				executeBtnSubmit();
-			}
-		});
-		
-		// Since login button is default, enter key selects it -> perform action
-		btnLogin.addSelectionListener(new SelectionListener() {
-
-			@Override
-			public void widgetSelected(SelectionEvent arg0) {
-				executeBtnSubmit();
-			}
-
-			@Override
-			public void widgetDefaultSelected(SelectionEvent arg0) {}
+			}			
 		});
 	}
 	
+	public void createTxtBoxes() {
+		txtEmpID = new JTextField();
+		txtEmpID.setBounds(112, 8, 116, 20);
+		contentPanel.add(txtEmpID);
+		txtEmpID.setColumns(10);
+		
+		txtPassword = new JPasswordField();
+		txtPassword.setBounds(112, 33, 116, 20);
+		txtPassword.setEchoChar('*');
+		contentPanel.add(txtPassword);
+		txtPassword.setColumns(10);
+	}
+	
 	/**
-	* checks if the entered credentials are valid according to the DB
-	* Performs the connection to the SQL database 
-	*/
+	 * Execute the tasks assigned to the submit button
+	 */
 	private void executeBtnSubmit() {
 		try {
 			Connection conn = SQL_Handler.getConnection();
-			if (conn.isValid(130) && SQL_Handler.isValidUsernamePassword(getEmpIDTxt(), getPwTxt())) {
+			if (conn.isValid(130) && SQL_Handler.isValidUsernamePassword(txtEmpID.getText(), txtPassword.getPassword())) {
 				isSuccessfulConnection = true;
 				lblConnection.setText("Successfully Connected!");
 				//Check user privileges
 				//Wait a couple seconds then close login screen
 				TimeUnit.SECONDS.sleep(1);
 				//Notify driver to open main window
-				shell.dispose();
-				//Open application window with correct privileges											
+				//Open application window with correct privileges
+				this.dispose();
 			}
 			else {
 				lblConnection.setText("Invalid Employee ID or Password.");
@@ -162,27 +144,7 @@ public class Login_Screen extends Dialog {
 		}
 	}
 	
-	/**
-	* returns true if the connection to the SQL DB is successful
-	* @return isSuccessfulConnection
-	*/
 	public boolean isSuccessfulConnection() {
 		return isSuccessfulConnection;
-	}
-	
-	/**
-	* returns the text currently contained in the employee ID text box
-	* @return emp_txtBox 
-	*/
-	public String getEmpIDTxt() {
-		return emp_txtBox.getText();
-	}
-	
-	/**
-	* returns the text currently contained in the password box
-	* @return pw_txtBox
-	*/
-	public String getPwTxt() {
-		return pw_txtBox.getText();
 	}
 }
