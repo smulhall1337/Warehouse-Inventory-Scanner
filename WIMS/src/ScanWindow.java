@@ -328,10 +328,13 @@ public class ScanWindow {
 						try {
 							itemAdd = Integer.parseInt(txtAdd.getText());
 							SQL_Handler.updateItemQtyByItemNum(itemAdd, Integer.toString(itemNumber));
+							JOptionPane.showMessageDialog(frame, "Updated item " + itemNumber + ": " + itemName + ", increased Current Stock by " + itemAdd);
+							itemStock = SQL_Handler.getItemCurrentStock(Integer.toString(itemNumber));
+							txtCurrentStock.setText(Integer.toString(itemStock));
 						}catch (SQLException e2) {
 							JOptionPane.showMessageDialog(frame, "Failed to update item " + itemNumber + ": " + itemName);							
-							System.exit(0);
 							e2.printStackTrace();
+							System.exit(0);
 						}//trycatch end
 					}//if theres anything to add to stock end
 					

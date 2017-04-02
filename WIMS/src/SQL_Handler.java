@@ -222,8 +222,8 @@ public class SQL_Handler {
 	
 	
 	public static void updateItemQtyByItemNum(int amount, String itemNumber) throws SQLException {
-		stmt = sql_statements.get("UpdateItemQty");
 		int currentStock = getItemCurrentStock(itemNumber);
+		stmt = sql_statements.get("UpdateItemQty");
 		stmt.setInt(1, currentStock + amount);
 		stmt.setString(2, itemNumber);
 		stmt.execute();
@@ -280,7 +280,7 @@ public class SQL_Handler {
 			statements.put(stmt_key, statement);
 			
 			stmt_key = "UpdateItemQty";
-			statement = conn.prepareStatement("UPDATE swengdb.items SET current_stock = ? WHERE item_number = ?");
+			statement = conn.prepareStatement("UPDATE swenggdb.items SET current_stock = ? WHERE item_number = ?");
 			statements.put(stmt_key, statement);			
 			
 			stmt_key = "ItemInfo";
