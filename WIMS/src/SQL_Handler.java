@@ -319,4 +319,39 @@ public abstract class SQL_Handler {
 	public static HashMap<String, PreparedStatement> getSQLStatements() {
 		return sql_statements;
 	}
+	
+	/**
+	 * 
+	 * @param result the result set to convert to a list of arrays
+	 * @return a list containing String arrays, where every index in the list is a row,
+	 * where the String arrays each represent a row
+	 * @throws SQLException
+	 */
+	public static List<String[]> getResultSetAsListOfArrays(ResultSet result) throws SQLException
+	{
+		int nCol = result.getMetaData().getColumnCount();
+		List<String[]> table = new ArrayList<>();
+		while( result.next()) {
+		    String[] row = new String[nCol];
+		    for( int iCol = 1; iCol <= nCol; iCol++ ){
+		            Object obj = result.getObject( iCol );
+		            row[iCol-1] = (obj == null) ?null:obj.toString();
+		    }
+		    table.add( row );
+		}
+	
+		return table;
+	}
+	
+	public static String[] getColumnNamesFromResultSet(ResultSet result) throws SQLException
+	{
+		 ResultSetMetaData rsmd = result.getMetaData();
+		 int nCol = rsmd.getColumnCount();
+		 String[] columnNames = new String[nCol];
+		 for(int i = 0; i<nCol; i++)
+		 {
+			 columnNames[i] = rsmd.getColumnName(i+1);
+		 }
+		 return columnNames;
+	}
 }
