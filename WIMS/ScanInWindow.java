@@ -115,8 +115,8 @@ public class ScanInWindow {
 		Text txtItemRestock = new Text(shell, SWT.BORDER);
 		txtItemRestock.setEnabled(false);
 		txtItemRestock.setBounds(135, 239, 175, 21);
-		txtItemRestock.addListener(SWT.Verify, new Listener()
-		{
+		
+		txtItemRestock.addListener(SWT.Verify, new Listener(){
 			public void handleEvent(Event e)
 				{	
 					e.doit = validOnlyNumber(e.text);	//checks if the input is only a digit				
@@ -126,8 +126,8 @@ public class ScanInWindow {
 		Text txtCurrentStock = new Text(shell, SWT.BORDER);
 		txtCurrentStock.setEnabled(false);
 		txtCurrentStock.setBounds(135, 266, 175, 21);
-		txtCurrentStock.addListener(SWT.Verify, new Listener()
-		{
+		
+		txtCurrentStock.addListener(SWT.Verify, new Listener(){
 			public void handleEvent(Event e)
 				{	
 					e.doit = validOnlyNumber(e.text);	//checks if the input is only a digit				
@@ -137,8 +137,8 @@ public class ScanInWindow {
 		Text txtPrice = new Text(shell, SWT.BORDER);
 		txtPrice.setEnabled(false);
 		txtPrice.setBounds(135, 293, 175, 21);
-		txtPrice.addListener(SWT.Verify, new Listener()
-		{
+		
+		txtPrice.addListener(SWT.Verify, new Listener(){
 			public void handleEvent(Event e)
 				{	
 					e.doit = validWithDecimal(e.text);	//checks if the input is only a digit or decimal point				
@@ -150,6 +150,7 @@ public class ScanInWindow {
 		btnRestockThreshold.setBounds(10, 241, 118, 16);
 		btnRestockThreshold.setText("Restock Threshold");
 		btnRestockThreshold.setBackground(SWTResourceManager.getColor(SWT.COLOR_DARK_CYAN));
+		
 		btnRestockThreshold.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
@@ -163,6 +164,7 @@ public class ScanInWindow {
 		btnCurrentStock.setBounds(10, 268, 119, 16);
 		btnCurrentStock.setText("Current Stock");
 		btnCurrentStock.setBackground(SWTResourceManager.getColor(SWT.COLOR_DARK_CYAN));
+		
 		btnCurrentStock.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
@@ -177,6 +179,7 @@ public class ScanInWindow {
 		btnPrice.setBounds(10, 295, 93, 16);
 		btnPrice.setText("Price");
 		btnPrice.setBackground(SWTResourceManager.getColor(SWT.COLOR_DARK_CYAN));
+		
 		btnPrice.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
@@ -221,9 +224,6 @@ public class ScanInWindow {
 						e1.printStackTrace();
 					}//trycatch end
 				}//if 1st boxes valid end	
-				
-				
-				
 			}//widgetSelected end
 		});//Listener end
 		btnSubmit.setBounds(235, 356, 75, 25);
@@ -234,8 +234,7 @@ public class ScanInWindow {
 		HazardCombo.setBounds(135, 146, 175, 23);
 			//generically populate combobox, can add querey to populate the HazardOptions array later if preferred
 		String[] HazardOptions = new String[]{"None", "Flammable", "Fragile", "Corrosive", "Radioactive", "Other"};
-		for(int i = 0; i < HazardOptions.length; i++)
-		{
+		for(int i = 0; i < HazardOptions.length; i++){
 			HazardCombo.add(HazardOptions[i]);
 		}
 		HazardCombo.select(0); //set default option to none	
@@ -248,8 +247,7 @@ public class ScanInWindow {
 	 * @param s
 	 * @return boolean
 	 */
-	private boolean stringIsNotEmpty(String s)
-	{
+	private boolean stringIsNotEmpty(String s){
 		if (!(s.equals("")))
 		{
 			return true;
@@ -266,14 +264,11 @@ public class ScanInWindow {
 	 * @param s
 	 * @return boolean
 	 */
-	private boolean stringIsDouble(String s)
-	{
-		try 
-		{
+	private boolean stringIsDouble(String s){
+		try {
 			Double.parseDouble(s);
 			return true;
-		} catch (Exception ee)
-		{
+		} catch (Exception ee){
 			System.out.println("Error in String to Double conversion");
 			return false;
 		}
@@ -284,14 +279,11 @@ public class ScanInWindow {
 	 * @param myString
 	 * @return boolean
 	 */
-	private boolean validOnlyNumber(String myString)
-	{
+	private boolean validOnlyNumber(String myString){
 		char[] chars = new char[myString.length()];
 		myString.getChars(0,  chars.length, chars, 0);
-		for (int i = 0; i < chars.length; i++)
-		{
-			if (!('0' <= chars[i] && chars[i] <= '9'))
-			{
+		for (int i = 0; i < chars.length; i++){
+			if (!('0' <= chars[i] && chars[i] <= '9')){
 				return false;  //if the input is not a digit from 0-9 return false for invalid input
 			}//if end
 		}//for end
@@ -305,23 +297,16 @@ public class ScanInWindow {
 	 * @param myString
 	 * @return
 	 */
-	private boolean validWithDecimal(String myString)
-	{
+	private boolean validWithDecimal(String myString){
 		char[] chars = new char[myString.length()];
 		myString.getChars(0,  chars.length, chars, 0);		
-		for (int i = 0; i < chars.length; i++)
-		{
-			if (!(('0' <= chars[i] && chars[i] <= '9') || chars[i] == '.') )
-			{
+		for (int i = 0; i < chars.length; i++){
+			if (!(('0' <= chars[i] && chars[i] <= '9') || chars[i] == '.') ){
 				return false; //if the input is not a digit from 0-9 or a '.' return false for invalid input
 			}//if end
 		}//for end
 		return true;
-		
 	}//validWithDecimal end
-
-	
-	
 }//class end
 
 
