@@ -224,6 +224,7 @@ public abstract class SQL_Handler {
 		stmt = sql_statements.get("ItemStock");
 		stmt.setString(1, itemNumber);
 		rs = stmt.executeQuery();
+		rs.next();
 		currentStock = rs.getInt("current_stock");
 		return currentStock;
 	}
