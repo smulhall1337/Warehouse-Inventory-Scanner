@@ -203,6 +203,16 @@ public abstract class SQL_Handler {
 		stmt.execute();
 	}
 	
+	public static boolean itemInDB(String itemNumber) throws SQLException {
+			stmt = sql_statements.get("InDB");
+			stmt.setString(1, itemNumber);
+			rs = stmt.executeQuery();
+			if (rs.next())
+				return true;
+			else
+				return false;
+	}
+	
 	/**
 	 * Get the current stock for an item specified by the item number
 	 * @param itemNumber the item number of the item to get current stock for
@@ -217,6 +227,47 @@ public abstract class SQL_Handler {
 		currentStock = rs.getInt("current_stock");
 		return currentStock;
 	}
+	
+	public static int getItemRestock(String itemNumber) throws SQLException {
+		int reStock = 0;
+		stmt = sql_statements.get("ItemInfo");
+		stmt.setString(1, itemNumber);
+		rs = stmt.executeQuery();
+		rs.next();
+		reStock = rs.getInt("restock_threshold");
+		return reStock;
+	}
+	
+	public static int getItemWeight(String itemNumber) throws SQLException {
+		int weight = 0;
+		stmt = sql_statements.get("ItemInfo");
+		stmt.setString(1, itemNumber);
+		rs = stmt.executeQuery();
+		rs.next();
+		weight = rs.getInt("weight");
+		return weight;
+	}	
+	
+	public static String getItemPrice(String itemNumber) throws SQLException {
+		String price;
+		stmt = sql_statements.get("ItemInfo");
+		stmt.setString(1, itemNumber);
+		rs = stmt.executeQuery();
+		rs.next();
+		price = rs.getString("price");
+		return price;
+	}
+	
+	public static String getItemName(String itemNumber) throws SQLException {
+		String name;
+		stmt = sql_statements.get("ItemInfo");
+		stmt.setString(1, itemNumber);
+		rs = stmt.executeQuery();
+		rs.next();
+		name = rs.getString("name");
+		return name;
+	}
+	
 	
 	/**
 	 * Update the item quantity for an item specified by the item number
@@ -260,6 +311,10 @@ public abstract class SQL_Handler {
 			//Prepared SQL statement with wildcard (?)
 			statement = conn.prepareStatement("SELECT * FROM employees " +
 					  						  "WHERE employee_id = ?");
+			stmt_key = "InDB";
+			statement = conn.prepareStatement("SELECT * from items " +
+												"WHERE item_number = ?");
+			
 			//Add the prepared statement to the HashMap
 			statements.put(stmt_key, statement);
 			
@@ -283,7 +338,11 @@ public abstract class SQL_Handler {
 			statements.put(stmt_key, statement);
 			
 			stmt_key = "UpdateItemQty";
-			statement = conn.prepareStatement("UPDATE items SET current_stock = ? WHERE item_number = ?");
+			statement = conn.prepareStatement("UPDATE swenggdb.items SET current_stock = ? WHERE item_number = ?");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "ItemInfo";
+			statement = conn.prepareStatement("SELECT * FROM swenggdb.items WHERE item_number = ?");
 			statements.put(stmt_key, statement);
 			
 			stmt_key = "ItemStock";
