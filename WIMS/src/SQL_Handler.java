@@ -203,6 +203,46 @@ public abstract class SQL_Handler {
 		stmt.execute();
 	}
 	
+	public static void fullItemUpdate(String name, String price, 
+			int weight, int currentStock, int restockThreshold, String itemNumber) throws SQLException
+	{
+		stmt = sql_statements.get("FullUpdate");		
+		stmt.setString(1, name);
+		stmt.setString(2, price);
+		stmt.setInt(3, weight);
+		stmt.setInt(4, currentStock);
+		stmt.setInt(5, restockThreshold);
+		stmt.setString(6, itemNumber);
+		stmt.execute();
+	}
+	
+	public static void insertItemType(String itemNumber, String itemType) throws SQLException {
+		stmt = sql_statements.get("ItemType");
+		stmt.setString(1, itemNumber);
+		stmt.setString(2, itemType);
+		stmt.execute();
+	}
+	
+	/**
+	 * Get the itemTypes from the database and return them as a list
+	 * @param itemNumber
+	 * @return a list of all the items types of itemNumber as strings
+	 * @throws SQLException
+	 */
+	public static List getItemTypes(String itemNumber) throws SQLException {
+		List itemTypeList = new ArrayList<String>();
+		stmt = sql_statements.get("GetItemTypes");
+		stmt.setString(1, itemNumber);
+		rs = stmt.executeQuery();				//execute
+		if (rs.next()){							//if theres something there
+			for (int i = 0; i <= MAX; i++){
+				itemTypeList.add(rs.getString(i));	//add it to the list
+			}
+			rs.next();  						//move up one in rs
+		}		
+		return itemTypeList;
+	}
+	
 	public static boolean itemInDB(String itemNumber) throws SQLException {
 			stmt = sql_statements.get("InDB");
 			stmt.setString(1, itemNumber);
@@ -337,6 +377,18 @@ public abstract class SQL_Handler {
 			statement = conn.prepareStatement("INSERT INTO items (item_number, name, price, weight, current_stock, restock_threshold) " +
 											  "VALUES (?,?,?,?,?,?)");
 			statements.put(stmt_key, statement);
+			
+			stmt_key = "FullUpdate";
+			statement = conn.prepareStatement("UPDATE swenggdb.items SET name = ?, price = ?, weight = ?, current_stock = ?, restock_threshold = ? WHERE item_number = ?");
+			statements.put(stmt_key, statement); 
+			
+			stmt_key = "ItemType";
+			statement = conn.prepareStatement("INSERT INTO swenggdb.items_item_category (item_number, type) VALUES (?, ?)");
+			statements.put(stmt_key, statement); 
+			
+			stmt_key = "GetItemTypes";
+			statement = conn.prepareStatement("SELECT * FROM swenggdb.items_item_category WHERE item_number = ?");
+			statements.put(stmt_key, statement); 
 			
 			stmt_key = "UpdateItemQty";
 			statement = conn.prepareStatement("UPDATE swenggdb.items SET current_stock = ? WHERE item_number = ?");
