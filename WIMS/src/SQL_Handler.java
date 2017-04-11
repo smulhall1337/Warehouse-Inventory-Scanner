@@ -1,10 +1,12 @@
-package wims_v1;
+package controller;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 /**
  * This class is used to handle common SQL operations for the WIMS application
  * @author Jon Spratt
@@ -12,10 +14,11 @@ import java.util.HashMap;
  */
 public abstract class SQL_Handler {
 	
+	private static final int MAX = 7;
 	/**
 	 * A collection of prepared SQL statements
 	 */
-	private static HashMap<String, PreparedStatement> sql_statements = populatePreparedStatements();
+	private static Map<String, PreparedStatement> sql_statements = populatePreparedStatements();
 	/**
 	 * Holds a prepared SQL statement
 	 */
@@ -86,50 +89,19 @@ public abstract class SQL_Handler {
 	 * @param pw the inputed password
 	 * @return returns true if the employee_id/password combination is valid, false otherwise
 	 */
-	public static boolean isValidUsernamePassword(String employee_id, String pw) throws SQLException {
+	public static boolean isValidUsernamePassword(String employee_id, char[] pw) throws SQLException {
 		String sql_salt = "";
+		String password = String.valueOf(pw);
 		rs = getEmpRowByID(employee_id);
 		if (rs.next()) {			// Returns true if the current row is not past the last row
 			sql_salt = rs.getString("salt");
-			if (sql_salt.equals(md5_hash(pw+salt))) {
+			if (sql_salt.equals(md5_hash(password+salt))) {
 				// employee_id found with matching salted pw
 				return true;
 			}
 		}
 		// Employee ID not found or Invalid username/password combo
 		return false;
-	}
-	
-	/**
-	 * Get a list of column names from a specified table
-	 * @param table the table name to get column names from
-	 * @return returns a list of column names for the specified table
-	 * @throws SQLException when the SQL statement cannot be executed
-	 */
-	public static ArrayList<String> getTableColumnNames(String table) throws SQLException {
-		ArrayList<String> result = new ArrayList<String>();
-		stmt = sql_statements.get("TableColNames");
-		stmt.setString(1, table);
-		rs = stmt.executeQuery();
-		while (rs.next()) {
-			result.add(rs.getString("COLUMN_NAME"));
-		}
-		return result;
-	}
-	
-	/**
-	 * Get a list of table names from the database
-	 * @return returns a list of table names from the database
-	 * @throws SQLException when the SQL statement cannot be executed
-	 */
-	public static ArrayList<String> getTableNames() throws SQLException {
-		ArrayList<String> result = new ArrayList<String>();
-		stmt = sql_statements.get("TableNames");
-		rs = stmt.executeQuery();
-		while (rs.next()) {
-			result.add(rs.getString("TABLE_NAME"));
-		}
-		return result;
 	}
 	
 	/**
@@ -151,6 +123,7 @@ public abstract class SQL_Handler {
 	 * @param employee_id the in-bound employee_id to match
 	 * @return returns the result set of the executed query
 	 */
+	//MIGHT NOT EVEN NEED THIS
 	public static ResultSet getEmpSalt(String employee_id) throws SQLException {
 		// The prepared statement to be executed
 		stmt = sql_statements.get("EmpSalt");
@@ -180,16 +153,8 @@ public abstract class SQL_Handler {
 		stmt.execute();
 	}
 	
-	/**
-	 * Insert a new item into the database
-	 * @param itemNumber item number to insert
-	 * @param name	name of item to insert
-	 * @param price price of item to insert
-	 * @param weight weight of item to insert
-	 * @param currentStock current stock of item to insert
-	 * @param restockThreshold restock threshold of item to insert
-	 * @throws SQLException when the SQL statement fails to execute
-	 */
+	
+	
 	public static void insertNewItem(String itemNumber, String name, String price, 
 			int weight, int currentStock, int restockThreshold) throws SQLException
 	{
@@ -203,62 +168,6 @@ public abstract class SQL_Handler {
 		stmt.execute();
 	}
 	
-	public static void fullItemUpdate(String name, String price, 
-			int weight, int currentStock, int restockThreshold, String itemNumber) throws SQLException
-	{
-		stmt = sql_statements.get("FullUpdate");		
-		stmt.setString(1, name);
-		stmt.setString(2, price);
-		stmt.setInt(3, weight);
-		stmt.setInt(4, currentStock);
-		stmt.setInt(5, restockThreshold);
-		stmt.setString(6, itemNumber);
-		stmt.execute();
-	}
-	
-	public static void insertItemType(String itemNumber, String itemType) throws SQLException {
-		stmt = sql_statements.get("ItemType");
-		stmt.setString(1, itemNumber);
-		stmt.setString(2, itemType);
-		stmt.execute();
-	}
-	
-	/**
-	 * Get the itemTypes from the database and return them as a list
-	 * @param itemNumber
-	 * @return a list of all the items types of itemNumber as strings
-	 * @throws SQLException
-	 */
-	public static List getItemTypes(String itemNumber) throws SQLException {
-		List itemTypeList = new ArrayList<String>();
-		stmt = sql_statements.get("GetItemTypes");
-		stmt.setString(1, itemNumber);
-		rs = stmt.executeQuery();				//execute
-		if (rs.next()){							//if theres something there
-			for (int i = 0; i <= MAX; i++){
-				itemTypeList.add(rs.getString(i));	//add it to the list
-			}
-			rs.next();  						//move up one in rs
-		}		
-		return itemTypeList;
-	}
-	
-	public static boolean itemInDB(String itemNumber) throws SQLException {
-			stmt = sql_statements.get("InDB");
-			stmt.setString(1, itemNumber);
-			rs = stmt.executeQuery();
-			if (rs.next())
-				return true;
-			else
-				return false;
-	}
-	
-	/**
-	 * Get the current stock for an item specified by the item number
-	 * @param itemNumber the item number of the item to get current stock for
-	 * @return returns the current amount of an item listed in the database
-	 * @throws SQLException when the SQL statement cannot be executed
-	 */
 	public static int getItemCurrentStock(String itemNumber) throws SQLException {
 		int currentStock = 0;
 		stmt = sql_statements.get("ItemStock");
@@ -269,16 +178,21 @@ public abstract class SQL_Handler {
 		return currentStock;
 	}
 	
-	public static int getItemRestock(String itemNumber) throws SQLException {
-		int reStock = 0;
-		stmt = sql_statements.get("ItemInfo");
-		stmt.setString(1, itemNumber);
-		rs = stmt.executeQuery();
-		rs.next();
-		reStock = rs.getInt("restock_threshold");
-		return reStock;
+	public static void updateItemQtyByItemNum(int amount, String itemNumber) throws SQLException {
+		int currentStock = getItemCurrentStock(itemNumber);
+		stmt = sql_statements.get("UpdateItemQty");		
+		stmt.setInt(1, currentStock + amount);
+		stmt.setString(2, itemNumber);
+		stmt.execute();
 	}
 	
+	public static ResultSet getAllEmp() throws SQLException {
+		stmt = sql_statements.get("AllEmp");
+		rs = stmt.executeQuery();
+		return rs;
+	}
+	
+
 	public static int getItemWeight(String itemNumber) throws SQLException {
 		int weight = 0;
 		stmt = sql_statements.get("ItemInfo");
@@ -309,37 +223,79 @@ public abstract class SQL_Handler {
 		return name;
 	}
 	
+	/**
+	 * 
+	 * @param itemNumber
+	 * @return
+	 * @throws SQLException
+	 */
+	public static boolean itemInDB(String itemNumber) throws SQLException {
+		stmt = sql_statements.get("InDB");
+		stmt.setString(1, itemNumber);
+		rs = stmt.executeQuery();
+		if (rs.next())
+			return true;
+		else
+			return false;
+	}
 	
 	/**
-	 * Update the item quantity for an item specified by the item number
-	 * @param amount the amount to adjust the item quantity by
-	 * @param itemNumber the item number of the item to adjust quantity for 
-	 * @throws SQLException when the SQL statement cannot be executed
+	 * Get the itemTypes from the database and return them as a list
+	 * @param itemNumber
+	 * @return a list of all the items types of itemNumber as strings
+	 * @throws SQLException
 	 */
-	public static void updateItemQtyByItemNum(int amount, String itemNumber) throws SQLException {
-		stmt = sql_statements.get("UpdateItemQty");
-		int currentStock = getItemCurrentStock(itemNumber);
-		stmt.setInt(1, currentStock + amount);
-		stmt.setString(2, itemNumber);
+	public static List getItemTypes(String itemNumber) throws SQLException {
+		List itemTypeList = new ArrayList<String>();
+		stmt = sql_statements.get("GetItemTypes");
+		stmt.setString(1, itemNumber);
+		rs = stmt.executeQuery();				//execute
+		if (rs.next()){							//if theres something there
+			for (int i = 0; i <= MAX; i++){
+				itemTypeList.add(rs.getString(i));	//add it to the list
+			}
+			rs.next();  						//move up one in rs
+		}		
+		return itemTypeList;
+	}
+	
+	public static void fullItemUpdate(String name, String price, 
+			int weight, int currentStock, int restockThreshold, String itemNumber) throws SQLException
+	{
+		stmt = sql_statements.get("FullUpdate");		
+		stmt.setString(1, name);
+		stmt.setString(2, price);
+		stmt.setInt(3, weight);
+		stmt.setInt(4, currentStock);
+		stmt.setInt(5, restockThreshold);
+		stmt.setString(6, itemNumber);
 		stmt.execute();
 	}
 	
-	/**
-	 * Execute a SQL query to retrieve all employees
-	 * @return returns the result set of the executed query
-	 * @throws SQLException when the SQL statement cannot be executed
-	 */
-	public static ResultSet getAllEmp() throws SQLException {
-		stmt = sql_statements.get("AllEmp");
-		rs = stmt.executeQuery();
-		return rs;
+	public static void insertItemType(String itemNumber, String itemType) throws SQLException {
+		stmt = sql_statements.get("ItemType");
+		stmt.setString(1, itemNumber);
+		stmt.setString(2, itemType);
+		stmt.execute();
 	}
+	
+	public static int getItemRestock(String itemNumber) throws SQLException {
+		int reStock = 0;
+		stmt = sql_statements.get("ItemInfo");
+		stmt.setString(1, itemNumber);
+		rs = stmt.executeQuery();
+		rs.next();
+		reStock = rs.getInt("restock_threshold");
+		return reStock;
+	}
+	
+	
 		
 	/**
 	 * Populate a hash map of prepared SQL statements
 	 * @return returns a collection of key - prepared SQL statement pairs
 	 */
-	private static HashMap<String, PreparedStatement> populatePreparedStatements() {
+	private static Map<String, PreparedStatement> populatePreparedStatements() {
 		String stmt_key = "";
 		PreparedStatement statement;
 		HashMap<String, PreparedStatement> statements = new HashMap<String, PreparedStatement>();
@@ -352,10 +308,6 @@ public abstract class SQL_Handler {
 			//Prepared SQL statement with wildcard (?)
 			statement = conn.prepareStatement("SELECT * FROM employees " +
 					  						  "WHERE employee_id = ?");
-			stmt_key = "InDB";
-			statement = conn.prepareStatement("SELECT * from items " +
-												"WHERE item_number = ?");
-			
 			//Add the prepared statement to the HashMap
 			statements.put(stmt_key, statement);
 			
@@ -378,6 +330,14 @@ public abstract class SQL_Handler {
 											  "VALUES (?,?,?,?,?,?)");
 			statements.put(stmt_key, statement);
 			
+			stmt_key = "UpdateItemQty";
+			statement = conn.prepareStatement("UPDATE items SET current_stock = ? WHERE item_number = ?");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "ItemStock";
+			statement = conn.prepareStatement("SELECT current_stock FROM items WHERE item_number = ?");
+			statements.put(stmt_key, statement);
+			
 			stmt_key = "FullUpdate";
 			statement = conn.prepareStatement("UPDATE swenggdb.items SET name = ?, price = ?, weight = ?, current_stock = ?, restock_threshold = ? WHERE item_number = ?");
 			statements.put(stmt_key, statement); 
@@ -388,10 +348,15 @@ public abstract class SQL_Handler {
 			
 			stmt_key = "GetItemTypes";
 			statement = conn.prepareStatement("SELECT * FROM swenggdb.items_item_category WHERE item_number = ?");
-			statements.put(stmt_key, statement); 
+			statements.put(stmt_key, statement);
 			
-			stmt_key = "UpdateItemQty";
-			statement = conn.prepareStatement("UPDATE swenggdb.items SET current_stock = ? WHERE item_number = ?");
+			//Prepared SQL statement with wildcard (?)
+			statement = conn.prepareStatement("SELECT * FROM employees " +
+					  						  "WHERE employee_id = ?");
+			
+			stmt_key = "InDB";
+			statement = conn.prepareStatement("SELECT * from items " +
+											  "WHERE item_number = ?");
 			statements.put(stmt_key, statement);
 			
 			stmt_key = "ItemInfo";
@@ -400,14 +365,6 @@ public abstract class SQL_Handler {
 			
 			stmt_key = "ItemStock";
 			statement = conn.prepareStatement("SELECT current_stock FROM items WHERE item_number = ?");
-			statements.put(stmt_key, statement);
-			
-			stmt_key = "TableColNames";
-			statement = conn.prepareStatement("SELECT COLUMN_NAME FROM information_schema.columns WHERE table_name=?");
-			statements.put(stmt_key, statement);
-			
-			stmt_key = "TableNames";
-			statement = conn.prepareStatement("SELECT table_name FROM information_schema.tables WHERE table_schema = 'swenggdb'");
 			statements.put(stmt_key, statement);
 			
 		} catch (SQLException e) {
@@ -428,7 +385,7 @@ public abstract class SQL_Handler {
 	 * Standard Accessor - for the collection of prepared SQL statements 
 	 * @return returns the collection of prepared SQL statements
 	 */
-	public static HashMap<String, PreparedStatement> getSQLStatements() {
+	public static Map<String, PreparedStatement> getSQLStatements() {
 		return sql_statements;
 	}
 	
@@ -466,4 +423,6 @@ public abstract class SQL_Handler {
 		 }
 		 return columnNames;
 	}
+	
+	
 }
