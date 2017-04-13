@@ -168,6 +168,43 @@ public abstract class SQL_Handler {
 		stmt.execute();
 	}
 	
+	public static void fullItemUpdate(String name, String price, 
+			int weight, int currentStock, int restockThreshold, String itemNumber) throws SQLException
+	{
+		stmt = sql_statements.get("FullUpdate");		
+		stmt.setString(1, name);
+		stmt.setString(2, price);
+		stmt.setInt(3, weight);
+		stmt.setInt(4, currentStock);
+		stmt.setInt(5, restockThreshold);
+		stmt.setString(6, itemNumber);
+		stmt.execute();
+	} 
+	
+	public static void insertItemType(String itemNumber, String itemType) throws SQLException {
+		stmt = sql_statements.get("ItemType");
+		stmt.setString(1, itemNumber);
+		stmt.setString(2, itemType);
+		stmt.execute();
+	}
+	
+	/**
+	 * Get the itemTypes from the database and return them as a list
+	 * @param itemNumber
+	 * @return a list of all the items types of itemNumber as strings
+	 * @throws SQLException
+	 */
+	public static ArrayList<String> getItemTypes(String itemNumber) throws SQLException {
+		ArrayList<String> result = new ArrayList<String>();
+		stmt = sql_statements.get("GetItemTypes");
+		stmt.setString(1, itemNumber);
+		rs = stmt.executeQuery();				//execute
+		while (rs.next()){
+				result.add(rs.getString("type"));	//add it to the list
+		}			
+		return result;
+	}
+	
 	public static int getItemCurrentStock(String itemNumber) throws SQLException {
 		int currentStock = 0;
 		stmt = sql_statements.get("ItemStock");
@@ -304,16 +341,13 @@ public abstract class SQL_Handler {
 		try {			
 			//Key for storage in HashMap
 			stmt_key = "EmpByID";
-			
 			//Prepared SQL statement with wildcard (?)
-			statement = conn.prepareStatement("SELECT * FROM employees " +
-					  						  "WHERE employee_id = ?");
+			statement = conn.prepareStatement("SELECT * FROM employees WHERE employee_id = ?");
 			//Add the prepared statement to the HashMap
 			statements.put(stmt_key, statement);
 			
 			stmt_key = "EmpSalt";
-			statement = conn.prepareStatement("SELECT salt FROM employees " +
-											  "WHERE employee_id = ?");
+			statement = conn.prepareStatement("SELECT salt FROM employees WHERE employee_id = ?");
 			statements.put(stmt_key, statement);
 			
 			stmt_key = "NewEmp";
@@ -350,13 +384,8 @@ public abstract class SQL_Handler {
 			statement = conn.prepareStatement("SELECT * FROM swenggdb.items_item_category WHERE item_number = ?");
 			statements.put(stmt_key, statement);
 			
-			//Prepared SQL statement with wildcard (?)
-			statement = conn.prepareStatement("SELECT * FROM employees " +
-					  						  "WHERE employee_id = ?");
-			
 			stmt_key = "InDB";
-			statement = conn.prepareStatement("SELECT * from items " +
-											  "WHERE item_number = ?");
+			statement = conn.prepareStatement("SELECT * from items WHERE item_number = ?");
 			statements.put(stmt_key, statement);
 			
 			stmt_key = "ItemInfo";
