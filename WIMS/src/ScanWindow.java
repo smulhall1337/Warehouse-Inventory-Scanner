@@ -24,12 +24,13 @@ import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 
 public class ScanWindow {
-	private static final String NUMREGEX = "\\d+", PRICEREGEX = "[0-9]+([,.][0-9]{1,2})?";
+	private static final String NUMREGEX = "\\d+", PRICEREGEX = "[0-9]+([.][0-9]{1,2})?";
 	private final static int MAX = 7;
 	private int itemWeight = 1, itemStock = 0, itemRestock = 0, itemAdd = 0;
 	private String itemNumber, itemName, itemPrice = "0.00", input = ""; 	
 	private boolean found, isM;
-	public List itemTypeList = new ArrayList<JCheckBox>();
+	public ArrayList<JCheckBox> itemTypeList = new ArrayList<JCheckBox>();
+	private ArrayList<String> selectedTypes = new ArrayList<String>();
 	
 	private JFrame frame;
 	private JLabel lblRequiredInformation, lblItemNumber, lblItemName, lblItemWeight, lblItemTypeselect, lblAdditionalItemInformation, lblFirstSeen;
@@ -62,7 +63,7 @@ public class ScanWindow {
 	 */
 	public ScanWindow(/**boolean isManagement*/) {
 		//isM = isManagement
-		isM = false;
+		isM = true;
 		initialize();
 	}//ScanWindow end
 
@@ -386,6 +387,7 @@ public class ScanWindow {
 				setTextFieldsInfo();
 				setInfoCheckBoxes();
 				setItemTypeCheckBoxes();
+				getItemTypes();
 				setButtons();
 				btnSearch.setVisible(false);
 				lblFirstSeen.setVisible(false);
@@ -659,8 +661,7 @@ public class ScanWindow {
 		chckbxFurniture = new JCheckBox("Furniture");
 		chckbxFurniture.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		frame.getContentPane().add(chckbxFurniture);
-		
-		//add combobox Feature				
+						
 		itemTypeList.add(chckbxCorrosive);
 		itemTypeList.add(chckbxFlammable);
 		itemTypeList.add(chckbxFragile);
@@ -668,6 +669,12 @@ public class ScanWindow {
 		itemTypeList.add(chckbxGlass);
 		itemTypeList.add(chckbxRadioActive);
 		itemTypeList.add(chckbxOther);		
+		
+		if (found) {
+			for (JCheckBox temp : itemTypeList) {
+				temp.setEnabled(false);
+			}
+		}
 		
 		//from vid
 		Vector v = new Vector();
@@ -679,7 +686,7 @@ public class ScanWindow {
 		v.add(chckbxRadioActive);
 		v.add(chckbxOther);
 		//frame.getContentPane().add(new CustomComboCheck(v));
-		cbItemTypes = new CustomComboCheck(v);
+		cbItemTypes = new CustomComboCheck(v, found);
 		cbItemTypes.setBounds(35, 195, 308, 20);		
 		frame.getContentPane().add(cbItemTypes);
 	}
@@ -698,6 +705,9 @@ public class ScanWindow {
 		btnSubmit.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {			
 				if (found) { //if the item is already in the data base
+					if (isM) {
+						fullItemUpdate();
+					}
 					addStock();					
 				}//if found end
 				else {
@@ -710,32 +720,6 @@ public class ScanWindow {
 	}//setButtons end
 	
 	private void newSubmit() {
-		/**
-		if (validInt(txtItemWeight.getText()) && //if the item is NOT in the database already and first boxes inputs are valid
-						validString(txtItemNumber.getText()) && validString(txtItemName.getText())) {
-					if (chckbxRestockThreshold.isSelected() && validString(txtItemRestock.getText())) { //if restock threshold button is checked and its not empty
-						itemRestock = Integer.parseInt(txtItemRestock.getText()); //set the reStock
-					}
-					if (chckbxCurrentStock.isSelected() && validString(txtCurrentStock.getText())) {//if current stock button is checked and its not empty
-						itemStock = Integer.parseInt(txtCurrentStock.getText());  //set the currentStock
-					}
-					if (chckbxItemPrice.isSelected() && validDouble(txtPrice.getText())) {//if price button is checked and it has a double
-						itemPrice = txtPrice.getText();  //set the price
-					}
-					itemWeight = Integer.parseInt(txtItemWeight.getText()); 
-					
-					try { //try connecting and inserting a new item using the info on screen, notify user of success
-						Connection conn = SQL_Handler.getConnection();
-						SQL_Handler.insertNewItem(txtItemNumber.getText(), txtItemName.getText(), itemPrice, itemWeight, itemStock, itemRestock);
-						JOptionPane.showMessageDialog(frame, "Item " + itemNumber + ": " + itemName + " Added to inventory");
-					} catch (SQLException e1) { //otherwise let the user know the item wasnt added and close without crashing
-						JOptionPane.showMessageDialog(frame, "Failed to add item " + itemNumber + ": " + itemName + " to inventory");
-						System.exit(0);
-						e1.printStackTrace();
-					}//trycatch end
-				}//if 1st boxes valid end */
-		
-		
 		if (allEntriesValid()){
 			if (chckbxRestockThreshold.isSelected()) {
 				itemRestock = Integer.parseInt(txtRestock.getText()); //set the reStock
@@ -755,15 +739,14 @@ public class ScanWindow {
 			else {
 				itemPrice = "0.00";
 			}
-			//itemNumber = Integer.parseInt(txtItemNumber.getText());
+			itemNumber = txtItemNumber.getText();
 			itemName = txtItemName.getText();
 			itemWeight = Integer.parseInt(txtItemWeight.getText()); 
 			
 			try { //try connecting and inserting a new item using the info on screen, notify user of success
 				Connection conn = SQL_Handler.getConnection();
 				SQL_Handler.insertNewItem(txtItemNumber.getText(), txtItemName.getText(), itemPrice, itemWeight, itemStock, itemRestock);
-				for()
-				
+				setItemTypes();
 				JOptionPane.showMessageDialog(frame, "Item Number " + itemNumber + ": " + itemName + " Added to inventory");
 				updateTextBoxes();
 			} catch (SQLException e1) { //otherwise let the user know the item wasnt added and close without crashing
@@ -774,13 +757,50 @@ public class ScanWindow {
 		}//if allEntriesValid end
 	}//newSubmit end
 	
-	private List addItemTypes() {
-		for (int i = 0; i <= MAX; i++) {
-			if (!(itemTypeList[i].isSelected())) {
-				
+	/**
+	 * this method calls SQL_Handler.insertItemType() passing itemNumber and each box checked in the itemTypeList
+	 */
+	private void setItemTypes() {
+		for (JCheckBox temp : itemTypeList) {
+			if (temp.isSelected()) {
+				try {
+					SQL_Handler.insertItemType(txtItemNumber.getText(), temp.getText());
+				} catch (SQLException e) {
+					
+					e.printStackTrace();
+				}
 			}
 		}
-		return itemTypeList;
+	}//setItemTypes end
+	
+	/**
+	 * This method calls SQL_Handler.getItemTypes() passing the itemNumber, then with the resulting list it checks off
+	 * the checkboxes that apply to that specific item
+	 */
+	private void getItemTypes() {
+		try {
+			ArrayList<String> result = SQL_Handler.getItemTypes(txtItemNumber.getText()); //get all occurances of itemType in the db
+			for (String temp : result) { //for each string in the results
+				for (JCheckBox chckbxTemp : itemTypeList){ //for each checkbox in itemTypeList
+					if (chckbxTemp.getText().equals(temp)) { //if the text of the checkbox is in the result list
+						chckbxTemp.setSelected(true); //check that box
+					}
+				}
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}//setItemTypes
+	
+	private void fullItemUpdate() {
+		try {
+			SQL_Handler.fullItemUpdate(itemName, itemPrice, itemWeight, itemStock, itemRestock, itemNumber);
+			JOptionPane.showMessageDialog(frame, "Updated item number: " + itemNumber);
+
+		} catch (SQLException e) {
+			JOptionPane.showMessageDialog(frame, "Failed to update item number: " + itemNumber);
+			e.printStackTrace();
+		}
 	}
 	
 	private void addStock() {
@@ -803,7 +823,7 @@ public class ScanWindow {
 				itemAdd = 0;
 				itemNumber = txtItemNumber.getText();
 				SQL_Handler.updateItemQtyByItemNum(itemAdd, itemNumber);
-				JOptionPane.showMessageDialog(frame, "Updated Item Number " + itemNumber + ": " + itemName + ", increased Current Stock by " + itemAdd);
+				//JOptionPane.showMessageDialog(frame, "Updated Item Number " + itemNumber + ": " + itemName + ", increased Current Stock by " + itemAdd);
 				itemStock = SQL_Handler.getItemCurrentStock(itemNumber);
 				updateTextBoxes();
 			}catch (SQLException e2) {
@@ -813,14 +833,12 @@ public class ScanWindow {
 			}//trycatch end
 		}
 					
-					//this is where the management section goes
-					//if the user is a manager, check all the fields are properly filled out and update the item
 	}//addStock end
 }//ScanWindow end
 
 //COMBOBOX STUFF~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 class CustomComboCheck extends JComboBox {
-	public CustomComboCheck(Vector v) {
+	public CustomComboCheck(Vector v, boolean f) {
 		super(v);
 	
 		//set renderer
@@ -830,7 +848,8 @@ class CustomComboCheck extends JComboBox {
 		addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent ae) {
-				ourItemSelected();
+				if (f == false)  //the check box should only change if item is not in db
+					ourItemSelected();
 			}
 		});//listener end	
 	}//constructor end
@@ -845,7 +864,7 @@ class CustomComboCheck extends JComboBox {
 			Object[] selections = chk.getSelectedObjects();
 			if (selections != null) {
 				for(Object lastItem: selections) {
-					//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~add lastItem to a list that the ScanWindow can use
+				
 				}//for end
 			}//if not null
 		}//instanceof end
