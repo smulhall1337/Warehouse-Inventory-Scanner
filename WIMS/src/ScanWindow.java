@@ -551,6 +551,21 @@ public class ScanWindow {
 					IntInput(evt.getKeyChar(), evt);
 				}
 			});//txtAdd Listener end
+			txtAdd.addFocusListener(new FocusListener() {
+			    @Override
+				public void focusGained(FocusEvent e) {
+					if (txtAdd.getText().equals("0"))
+						txtAdd.setText("");
+					
+				}
+
+				@Override
+				public void focusLost(FocusEvent e) {
+					if (txtAdd.getText().equals(""))
+						txtAdd.setText("0");
+				}
+
+			    });//txtAdd FocusListener end
 			
 			//if the item was in the db populate the text fields with its info
 			txtItemName.setText(itemName);
