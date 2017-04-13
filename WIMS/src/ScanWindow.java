@@ -21,6 +21,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 import java.awt.event.ActionListener;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
 import java.awt.event.ActionEvent;
 
 public class ScanWindow {
@@ -550,7 +552,7 @@ public class ScanWindow {
 				public void keyTyped(KeyEvent evt) {
 					IntInput(evt.getKeyChar(), evt);
 				}
-			});//txtAdd Listener end
+			});//txtAdd KeyListener end
 			txtAdd.addFocusListener(new FocusListener() {
 			    @Override
 				public void focusGained(FocusEvent e) {
@@ -736,27 +738,7 @@ public class ScanWindow {
 	
 	private void newSubmit() {
 		if (allEntriesValid()){
-			if (chckbxRestockThreshold.isSelected()) {
-				itemRestock = Integer.parseInt(txtRestock.getText()); //set the reStock
-			}
-			else {
-				itemRestock = 0;
-			}
-			if (chckbxCurrentStock.isSelected()) {
-				itemStock = Integer.parseInt(txtCurrentStock.getText());  //set the currentStock
-			}
-			else {
-				itemStock = 0;
-			}
-			if (chckbxItemPrice.isSelected()) {
-				itemPrice = txtPrice.getText();  //set the price
-			}
-			else {
-				itemPrice = "0.00";
-			}
-			itemNumber = txtItemNumber.getText();
-			itemName = txtItemName.getText();
-			itemWeight = Integer.parseInt(txtItemWeight.getText()); 
+			updateVariables();
 			
 			try { //try connecting and inserting a new item using the info on screen, notify user of success
 				Connection conn = SQL_Handler.getConnection();
@@ -794,7 +776,7 @@ public class ScanWindow {
 	 */
 	private void getItemTypes() {
 		try {
-			ArrayList<String> result = SQL_Handler.getItemTypes(txtItemNumber.getText()); //get all occurances of itemType in the db
+			ArrayList<String> result = (ArrayList<String>) SQL_Handler.getItemTypes(txtItemNumber.getText()); //get all occurances of itemType in the db
 			for (String temp : result) { //for each string in the results
 				for (JCheckBox chckbxTemp : itemTypeList){ //for each checkbox in itemTypeList
 					if (chckbxTemp.getText().equals(temp)) { //if the text of the checkbox is in the result list
@@ -807,8 +789,33 @@ public class ScanWindow {
 		}
 	}//setItemTypes
 	
+	private void updateVariables() {
+		if (chckbxRestockThreshold.isSelected()) {
+			itemRestock = Integer.parseInt(txtRestock.getText()); //set the reStock
+		}
+		else {
+			itemRestock = 0;
+		}
+		if (chckbxCurrentStock.isSelected()) {
+			itemStock = Integer.parseInt(txtCurrentStock.getText());  //set the currentStock
+		}
+		else {
+			itemStock = 0;
+		}
+		if (chckbxItemPrice.isSelected()) {
+			itemPrice = txtPrice.getText();  //set the price
+		}
+		else {
+			itemPrice = "0.00";
+		}
+		itemNumber = txtItemNumber.getText();
+		itemName = txtItemName.getText();
+		itemWeight = Integer.parseInt(txtItemWeight.getText()); 
+	}
+	
 	private void fullItemUpdate() {
 		try {
+			updateVariables();
 			SQL_Handler.fullItemUpdate(itemName, itemPrice, itemWeight, itemStock, itemRestock, itemNumber);
 			JOptionPane.showMessageDialog(frame, "Updated item number: " + itemNumber);
 
