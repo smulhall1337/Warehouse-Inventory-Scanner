@@ -277,7 +277,7 @@ public class ScanWindow {
 	
 	public void updateTextBoxes()
 	{
-		//txtItemNumber.setText(Integer.toString(itemNumber));
+		txtItemNumber.setText(itemNumber);
 		txtItemName.setText(itemName);
 		txtItemWeight.setText(Integer.toString(itemWeight));
 		txtPrice.setText(itemPrice);
@@ -776,7 +776,7 @@ public class ScanWindow {
 	 */
 	private void getItemTypes() {
 		try {
-			ArrayList<String> result = (ArrayList<String>) SQL_Handler.getItemTypes(txtItemNumber.getText()); //get all occurances of itemType in the db
+			ArrayList<String> result = (ArrayList<String>) SQL_Handler.getItemTypes(itemNumber); //get all occurances of itemType in the db
 			for (String temp : result) { //for each string in the results
 				for (JCheckBox chckbxTemp : itemTypeList){ //for each checkbox in itemTypeList
 					if (chckbxTemp.getText().equals(temp)) { //if the text of the checkbox is in the result list
