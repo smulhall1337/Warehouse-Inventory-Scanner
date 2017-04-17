@@ -1,7 +1,9 @@
 package gui;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.FlowLayout;
 import java.awt.Font;
@@ -19,10 +21,14 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JFormattedTextField;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
@@ -34,16 +40,6 @@ import javax.swing.table.DefaultTableModel;
 import org.jdatepicker.impl.JDatePanelImpl;
 import org.jdatepicker.impl.JDatePickerImpl;
 import org.jdatepicker.impl.UtilDateModel;
-
-import controller.SQL_Handler;
-import javax.swing.JMenuBar;
-import javax.swing.JMenuItem;
-import java.awt.Color;
-import javax.swing.JPopupMenu;
-import javax.swing.JMenu;
-import javax.swing.JSeparator;
-import java.awt.Dimension;
-import javax.swing.JCheckBox;
 
 public class MainWindow {
 
@@ -211,13 +207,13 @@ public class MainWindow {
 	
 	private void addItemFieldTypesToMap()
 	{
-		fieldOptionsMap.put(ITEM_NUMBER_FIELD, NUMERIC_FIELD_TYPE_NAME);
 		fieldOptionsMap.put(ITEM_PRICE_FIELD, NUMERIC_FIELD_TYPE_NAME);
 		fieldOptionsMap.put(ITEM_WEIGHT_FIELD, NUMERIC_FIELD_TYPE_NAME);
 		fieldOptionsMap.put(ITEM_CURR_STOCK_FIELD, NUMERIC_FIELD_TYPE_NAME);
 		fieldOptionsMap.put(ITEM_RESTOCK_FIELD, NUMERIC_FIELD_TYPE_NAME);
 
 		fieldOptionsMap.put(ITEM_NAME_FIELD, STRING_FIELD_TYPE_NAME);
+		fieldOptionsMap.put(ITEM_NUMBER_FIELD, STRING_FIELD_TYPE_NAME);
 	}
 	
 	private void addPalletFieldTypesToMap()
