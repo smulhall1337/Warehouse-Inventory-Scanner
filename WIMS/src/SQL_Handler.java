@@ -84,6 +84,125 @@ public abstract class SQL_Handler {
 	}
 	
 	/**
+	 * Populate a hash map of prepared SQL statements
+	 * @return returns a collection of key - prepared SQL statement pairs
+	 */
+	private static Map<String, PreparedStatement> populatePreparedStatements() {
+		String stmt_key = "";
+		PreparedStatement statement;
+		HashMap<String, PreparedStatement> statements = new HashMap<String, PreparedStatement>();
+		Connection conn = getConnection();
+		
+		try {			
+			//#############################################Employees
+			//Key for storage in HashMap
+			stmt_key = "EmpByID";
+			//Prepared SQL statement with wildcard (?)
+			statement = conn.prepareStatement("SELECT * FROM employees WHERE employee_id = ?");
+			//Add the prepared statement to the HashMap
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "EmpSalt";
+			statement = conn.prepareStatement("SELECT salt FROM employees WHERE employee_id = ?");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "NewEmp";
+			statement = conn.prepareStatement("INSERT INTO employees (employee_id, name, is_management, salt, warehouse_id) " + 
+											  "VALUES (?,?,?,?,?)");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "AllEmp";
+			statement = conn.prepareStatement("SELECT * FROM employees");
+			statements.put(stmt_key, statement);
+			
+			//#############################################Items
+			stmt_key = "InDB";
+			statement = conn.prepareStatement("SELECT * from items WHERE item_number = ?");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "NewItem";
+			statement = conn.prepareStatement("INSERT INTO items (item_number, name, price, weight, current_stock, restock_threshold) " +
+											  "VALUES (?,?,?,?,?,?)");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "FullUpdate";
+			statement = conn.prepareStatement("UPDATE swenggdb.items SET name = ?, price = ?, weight = ?, current_stock = ?, restock_threshold = ? WHERE item_number = ?");
+			statements.put(stmt_key, statement); 
+			
+			stmt_key = "ItemType";
+			statement = conn.prepareStatement("INSERT INTO swenggdb.items_item_category (item_number, type) VALUES (?, ?)");
+			statements.put(stmt_key, statement); 
+			
+			stmt_key = "GetItemTypes";
+			statement = conn.prepareStatement("SELECT * FROM swenggdb.items_item_category WHERE item_number = ?");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "UpdateItemQty";
+			statement = conn.prepareStatement("UPDATE items SET current_stock = ? WHERE item_number = ?");
+			statements.put(stmt_key, statement);				
+			
+			stmt_key = "ItemInfo";
+			statement = conn.prepareStatement("SELECT * FROM swenggdb.items WHERE item_number = ?");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "ItemStock";
+			statement = conn.prepareStatement("SELECT current_stock FROM items WHERE item_number = ?");
+			statements.put(stmt_key, statement);
+			
+			//#############################################Pallets
+			stmt_key = "PalletInDB";
+			statement = conn.prepareStatement("SELECT * FROM pallets WHERE pallet_id = ?");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "NewPallet";
+			statement = conn.prepareStatement("INSERT INTO pallets (pallet_id, piece_cound, weight, length, width, height, receival_date, ship_date, notes, order_number, Location_coordinate" + 
+												"VALUES (?,?,?,?,?,?,?,?,?,?,?)");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "GetItemsOnPallet";
+			statement = conn.prepareStatement("SELECT * FROM swenggdb.pallets_items WHERE pallet_id = ?");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "GetItemCountOnPallet";
+			statement = conn.prepareStatement("SELECT * FROM swenggdb.pallets_items WHERE pallet_id = ? AND item_number = ?");
+			statements.put(stmt_key, statement); 
+			
+			stmt_key = "UpdatePieceCount";
+			statement = conn.prepareStatement("UPDATE swenggdb.pallets SET piece_count = ? WHERE pallet_id = ?");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "UpdateItemOnPallet";
+			statement = conn.prepareStatement("UPDATE swenggdb.pallets_items SET item_quantity = ? WHERE pallet_id = ? AND item_number = ?");
+			statements.put(stmt_key, statement);
+			
+			//#############################################Orders
+			
+			//#############################################Display		
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}	
+		return statements;
+	}
+	
+	/**
+	 * Standard Accessor - for the current result set
+	 * @return returns the current result set
+	 */
+	public ResultSet getResultSet() {
+		return rs;
+	}
+	
+	/**
+	 * Standard Accessor - for the collection of prepared SQL statements 
+	 * @return returns the collection of prepared SQL statements
+	 */
+	public static Map<String, PreparedStatement> getSQLStatements() {
+		return sql_statements;
+	}
+	
+	//#############################################Employees
+	/**
 	 * Check whether the entered employee_id/password combination is valid
 	 * @param employee_id the in-bound unique employee_id
 	 * @param pw the inputed password
@@ -142,7 +261,7 @@ public abstract class SQL_Handler {
 	 * @param warehouse_id the warehouse id that the new employee will be employed
 	 */
 	public static void insertNewEmployee(String employee_id, String name, boolean isManagement, 
-										 String salt, String warehouse_id) throws SQLException
+								 String salt, String warehouse_id) throws SQLException
 	{
 		stmt = sql_statements.get("NewEmp");
 		stmt.setString(1, employee_id);
@@ -153,8 +272,13 @@ public abstract class SQL_Handler {
 		stmt.execute();
 	}
 	
+	public static ResultSet getAllEmp() throws SQLException {
+		stmt = sql_statements.get("AllEmp");
+		rs = stmt.executeQuery();
+		return rs;
+	}
 	
-	
+	//#############################################Items
 	public static void insertNewItem(String itemNumber, String name, String price, 
 			int weight, int currentStock, int restockThreshold) throws SQLException
 	{
@@ -221,12 +345,6 @@ public abstract class SQL_Handler {
 		stmt.setInt(1, currentStock + amount);
 		stmt.setString(2, itemNumber);
 		stmt.execute();
-	}
-	
-	public static ResultSet getAllEmp() throws SQLException {
-		stmt = sql_statements.get("AllEmp");
-		rs = stmt.executeQuery();
-		return rs;
 	}
 	
 
@@ -327,99 +445,60 @@ public abstract class SQL_Handler {
 	}
 	
 	
-		
-	/**
-	 * Populate a hash map of prepared SQL statements
-	 * @return returns a collection of key - prepared SQL statement pairs
-	 */
-	private static Map<String, PreparedStatement> populatePreparedStatements() {
-		String stmt_key = "";
-		PreparedStatement statement;
-		HashMap<String, PreparedStatement> statements = new HashMap<String, PreparedStatement>();
-		Connection conn = getConnection();
-		
-		try {			
-			//Key for storage in HashMap
-			stmt_key = "EmpByID";
-			//Prepared SQL statement with wildcard (?)
-			statement = conn.prepareStatement("SELECT * FROM employees WHERE employee_id = ?");
-			//Add the prepared statement to the HashMap
-			statements.put(stmt_key, statement);
-			
-			stmt_key = "EmpSalt";
-			statement = conn.prepareStatement("SELECT salt FROM employees WHERE employee_id = ?");
-			statements.put(stmt_key, statement);
-			
-			stmt_key = "NewEmp";
-			statement = conn.prepareStatement("INSERT INTO employees (employee_id, name, is_management, salt, warehouse_id) " + 
-											  "VALUES (?,?,?,?,?)");
-			statements.put(stmt_key, statement);
-			
-			stmt_key = "AllEmp";
-			statement = conn.prepareStatement("SELECT * FROM employees");
-			statements.put(stmt_key, statement);
-			
-			stmt_key = "NewItem";
-			statement = conn.prepareStatement("INSERT INTO items (item_number, name, price, weight, current_stock, restock_threshold) " +
-											  "VALUES (?,?,?,?,?,?)");
-			statements.put(stmt_key, statement);
-			
-			stmt_key = "UpdateItemQty";
-			statement = conn.prepareStatement("UPDATE items SET current_stock = ? WHERE item_number = ?");
-			statements.put(stmt_key, statement);
-			
-			stmt_key = "ItemStock";
-			statement = conn.prepareStatement("SELECT current_stock FROM items WHERE item_number = ?");
-			statements.put(stmt_key, statement);
-			
-			stmt_key = "FullUpdate";
-			statement = conn.prepareStatement("UPDATE swenggdb.items SET name = ?, price = ?, weight = ?, current_stock = ?, restock_threshold = ? WHERE item_number = ?");
-			statements.put(stmt_key, statement); 
-			
-			stmt_key = "ItemType";
-			statement = conn.prepareStatement("INSERT INTO swenggdb.items_item_category (item_number, type) VALUES (?, ?)");
-			statements.put(stmt_key, statement); 
-			
-			stmt_key = "GetItemTypes";
-			statement = conn.prepareStatement("SELECT * FROM swenggdb.items_item_category WHERE item_number = ?");
-			statements.put(stmt_key, statement);
-			
-			stmt_key = "InDB";
-			statement = conn.prepareStatement("SELECT * from items WHERE item_number = ?");
-			statements.put(stmt_key, statement);
-			
-			stmt_key = "ItemInfo";
-			statement = conn.prepareStatement("SELECT * FROM swenggdb.items WHERE item_number = ?");
-			statements.put(stmt_key, statement);
-			
-			stmt_key = "ItemStock";
-			statement = conn.prepareStatement("SELECT current_stock FROM items WHERE item_number = ?");
-			statements.put(stmt_key, statement);
-			
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}	
-		return statements;
+	//#############################################Pallets
+		public static boolean palletInDB(String palletID) throws SQLException {
+		stmt = sql_statements.get("PalletInDB");
+		stmt.setString(1, palletID);
+		rs = stmt.executeQuery();
+		if (rs.next())
+			return true;
+		else
+			return false;
 	}
 	
-	/**
-	 * Standard Accessor - for the current result set
-	 * @return returns the current result set
-	 */
-	public ResultSet getResultSet() {
-		return rs;
+	public static int getItemCountOnPallet(String palletID, String itemNumber) throws SQLException {
+		int result = 0;
+		stmt = sql_statements.get("GetItemCountOnPallet");
+		stmt.setString(1, palletID);
+		stmt.setString(2, itemNumber);
+		rs = stmt.executeQuery();
+		rs.next();
+		result = rs.getInt("item_quantity");		
+		return result;
+	}
+
+	public static ArrayList<String> getItemsOnPallet(String palletID) throws SQLException {
+		ArrayList<String> result = new ArrayList<String>();
+		stmt = sql_statements.get("GetItemsOnPallet");
+		stmt.setString(1, palletID);
+		rs = stmt.executeQuery();
+		while (rs.next()) {
+			result.add(rs.getString("item_number"));
+		}
+		return result;
 	}
 	
-	/**
-	 * Standard Accessor - for the collection of prepared SQL statements 
-	 * @return returns the collection of prepared SQL statements
-	 */
-	public static Map<String, PreparedStatement> getSQLStatements() {
-		return sql_statements;
+	public static void updateItemOnPallet(String palletID, String itemNumber, int count) throws SQLException {
+		stmt = sql_statements.get("UpdateItemOnPallet");
+		stmt.setInt(1, count);
+		stmt.setString(2, palletID);
+		stmt.setString(3, itemNumber);
+		stmt.execute();
 	}
 	
+	public static void updatePieceCount(String palletID, int count) throws SQLException {
+		stmt = sql_statements.get("UpdatePieceCount");
+		stmt.setInt(1, count);
+		stmt.setString(2, palletID);
+		stmt.execute();
+	}
+	
+	//#############################################Orders
+	
+	
+	
+	//#############################################Display	
 	/**
-	 * 
 	 * @param result the result set to convert to a list of arrays
 	 * @return a list containing String arrays, where every index in the list is a row,
 	 * where the String arrays each represent a row
