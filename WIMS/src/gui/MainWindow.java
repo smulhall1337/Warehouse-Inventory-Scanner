@@ -166,7 +166,7 @@ public class MainWindow {
 	//How many pixels will be between the table panel and the edge of the window
 	private static final int TABLE_PANEL_MARGIN = 20;
 	//the margin in each column after resizing
-	private static final int TABLE_COLUMN_MARGIN = 10; 
+	private static final int TABLE_COLUMN_MARGIN = 25; 
 	
 	//HashMaps that map each field to a checkbox, used for the "show columns for" checkboxes
 	//Maps are <Key, Value> = <FieldName, CheckBoxForFieldName>
@@ -963,10 +963,13 @@ public class MainWindow {
 		mainTableScrollPane.setViewportView(mainTable);
 		for(int i =0; i <mainTable.getColumnCount(); i++)
 		{
-			//TODO sort this out
+			//TODO sort this out, maybe check the difference between column header and data widths and do margins from that
+			//TODO maybe make a method that lets you right click to change whether data is centered, etc.
 			int headerWidth = this.getColumnHeaderWidth(i);
 			int dataWidth = this.getColumnDataWidth(i);
-			int columnWidth = headerWidth;
+			//double column margin to not have any hidden text when the black arrow appears
+			//after double clicking to sort. this leaves room for the arrow
+			int columnWidth = headerWidth; 
 			if(dataWidth > headerWidth)
 				columnWidth = dataWidth;
 			else
@@ -1084,6 +1087,7 @@ public class MainWindow {
     	return datePicker;
 	}
 	
+	//TODO all of the stuff beneath this should be in some type of controller class
 	public static Object[][] getTestTableData(){
 		String[] testStringDates = {"4-18-2017", "4-18-2016", "3-25-2014", "7-23-1996", "1-1-2000", "12-25-2005", "10-31-2005"};
 		java.util.Date[] testDates = new java.util.Date[testStringDates.length];
