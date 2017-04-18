@@ -279,21 +279,26 @@ public abstract class SQL_Handler {
 	}
 	
 	//#############################################Items
-	/**
-	 * @param itemNumber as STRING
-	 * @return True if item is found in database
-	 * @throws SQLException
-	 */
 	public static boolean itemInDB(String itemNumber) throws SQLException {
-		stmt = sql_statements.get("InDB");
-		stmt.setString(1, itemNumber);
-		rs = stmt.executeQuery();
-		if (rs.next())
-			return true;
-		else
-			return false;
+			stmt = sql_statements.get("InDB");
+			stmt.setString(1, itemNumber);
+			rs = stmt.executeQuery();
+			if (rs.next())
+				return true;
+			else
+				return false;
 	}
 	
+	/**
+	 * Insert a new item into the database
+	 * @param itemNumber item number to insert
+	 * @param name	name of item to insert
+	 * @param price price of item to insert
+	 * @param weight weight of item to insert
+	 * @param currentStock current stock of item to insert
+	 * @param restockThreshold restock threshold of item to insert
+	 * @throws SQLException when the SQL statement fails to execute
+	 */
 	public static void insertNewItem(String itemNumber, String name, String price, 
 			int weight, int currentStock, int restockThreshold) throws SQLException
 	{
@@ -317,16 +322,6 @@ public abstract class SQL_Handler {
 		return name;
 	}
 	
-	public static String getItemPrice(String itemNumber) throws SQLException {
-		String price;
-		stmt = sql_statements.get("ItemInfo");
-		stmt.setString(1, itemNumber);
-		rs = stmt.executeQuery();
-		rs.next();
-		price = rs.getString("price");
-		return price;
-	}
-	
 	public static int getItemWeight(String itemNumber) throws SQLException {
 		int weight = 0;
 		stmt = sql_statements.get("ItemInfo");
@@ -337,6 +332,22 @@ public abstract class SQL_Handler {
 		return weight;
 	}
 	
+	public static String getItemPrice(String itemNumber) throws SQLException {
+		String price;
+		stmt = sql_statements.get("ItemInfo");
+		stmt.setString(1, itemNumber);
+		rs = stmt.executeQuery();
+		rs.next();
+		price = rs.getString("price");
+		return price;
+	}
+	
+	/**
+	 * Get the current stock for an item specified by the item number
+	 * @param itemNumber the item number of the item to get current stock for
+	 * @return returns the current amount of an item listed in the database
+	 * @throws SQLException when the SQL statement cannot be executed
+	 */
 	public static int getItemCurrentStock(String itemNumber) throws SQLException {
 		int currentStock = 0;
 		stmt = sql_statements.get("ItemStock");
@@ -368,11 +379,17 @@ public abstract class SQL_Handler {
 		stmt.setInt(5, restockThreshold);
 		stmt.setString(6, itemNumber);
 		stmt.execute();
-	} 
+	}
 	
+	/**
+	 * Update the item quantity for an item specified by the item number
+	 * @param amount the amount to adjust the item quantity by
+	 * @param itemNumber the item number of the item to adjust quantity for 
+	 * @throws SQLException when the SQL statement cannot be executed
+	 */
 	public static void updateItemQtyByItemNum(int amount, String itemNumber) throws SQLException {
 		int currentStock = getItemCurrentStock(itemNumber);
-		stmt = sql_statements.get("UpdateItemQty");		
+		stmt = sql_statements.get("UpdateItemQty");
 		stmt.setInt(1, currentStock + amount);
 		stmt.setString(2, itemNumber);
 		stmt.execute();
@@ -392,15 +409,16 @@ public abstract class SQL_Handler {
 	 * @throws SQLException
 	 */
 	public static ArrayList<String> getItemTypes(String itemNumber) throws SQLException {
-		ArrayList<String> result = new ArrayList<String>();
+		ArrayList<String> itemTypeList = new ArrayList<String>();
 		stmt = sql_statements.get("GetItemTypes");
 		stmt.setString(1, itemNumber);
 		rs = stmt.executeQuery();				//execute
-		while (rs.next()){
-				result.add(rs.getString("type"));	//add it to the list
-		}			
-		return result;
-	}	
+		while (rs.next()) {
+			itemTypeList.add(rs.getString("type"));
+		}
+		return itemTypeList;
+	}
+	
 	
 	//#############################################Pallets
 		public static boolean palletInDB(String palletID) throws SQLException {
