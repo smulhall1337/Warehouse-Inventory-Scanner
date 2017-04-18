@@ -1,20 +1,19 @@
 import java.awt.Component;
 import java.awt.EventQueue;
-
+import java.awt.Font;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
-
-import java.awt.Font;
 import javax.swing.JTextField;
 import javax.swing.ListCellRenderer;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
+
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -25,6 +24,11 @@ import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.awt.event.ActionEvent;
 
+/**
+ * This window handles entering and editing single items
+ * @author Brian Krick
+ *
+ */
 public class ScanWindow {
 	private static final String NUMREGEX = "\\d+", PRICEREGEX = "[0-9]+([.][0-9]{1,2})?";
 	private final static int MAX = 7;
@@ -82,10 +86,7 @@ public class ScanWindow {
 		firstScreen();	
 	}//initialize end
 	
-	
-	
-	
-	//Validation~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	//#############################################Validation
 	/**
 	 * True if the string is not empty, false if the string is ""
 	 * @param s
@@ -271,10 +272,9 @@ public class ScanWindow {
 			evt.consume();
 		}
 	}//DblInput end
-	
-	//Validation end~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	//#############################################Validation end
 
-	
+	//#############################################Display Methods
 	public void updateTextBoxes()
 	{
 		txtItemNumber.setText(itemNumber);
@@ -286,7 +286,88 @@ public class ScanWindow {
 		if (found)
 			txtAdd.setText("0");
 	}
+	private void updateVariables() {
+		if (chckbxRestockThreshold.isSelected()) {
+			itemRestock = Integer.parseInt(txtRestock.getText()); //set the reStock
+		}
+		else {
+			itemRestock = 0;
+		}
+		if (chckbxCurrentStock.isSelected()) {
+			itemStock = Integer.parseInt(txtCurrentStock.getText());  //set the currentStock
+		}
+		else {
+			itemStock = 0;
+		}
+		if (chckbxItemPrice.isSelected()) {
+			itemPrice = txtPrice.getText();  //set the price
+		}
+		else {
+			itemPrice = "0.00";
+		}
+		itemNumber = txtItemNumber.getText();
+		itemName = txtItemName.getText();
+		itemWeight = Integer.parseInt(txtItemWeight.getText()); 
+	}
+	//##################Frame Creation Methods
+	/**
+	 * This method creates and sets lblFirstSeen, lblItemNumber, txtItemNumber, btnExit, and btnSearch onto the frame so the user can search the database for the item they want
+	 */
+	private void firstScreen() {
+		lblFirstSeen = new JLabel("Please Scan the BarCode or Enter the ItemNumber");
+		lblFirstSeen.setFont(new Font("Tahoma", Font.PLAIN, 16));
+		lblFirstSeen.setBounds(17, 0, 357, 20);
+		frame.getContentPane().add(lblFirstSeen);
+		
+		lblItemNumber = new JLabel("Item Number");
+		lblItemNumber.setToolTipText("Please enter the Item Number using a barcode scanner or numeric keypad.");
+		lblItemNumber.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		lblItemNumber.setBounds(35, 60, 73, 15);
+		frame.getContentPane().add(lblItemNumber);
+		
+		txtItemNumber = new JTextField();
+		txtItemNumber.setBounds(168, 58, 175, 20);
+		frame.getContentPane().add(txtItemNumber);
+		txtItemNumber.setColumns(10);
+		txtItemNumber.setText("");
+		txtItemNumber.setTransferHandler(null); //prevent copy paste into the field
+		txtItemNumber.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyTyped(KeyEvent evt) {
+				IntInput(evt.getKeyChar(), evt);
+			}
+		});//txtItemNumber Listener end
+		
+		btnExit = new JButton("Exit");		
+		btnExit.setBounds(25, 456, 89, 23);
+		frame.getContentPane().add(btnExit);
+		btnExit.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				frame.dispose();;
+			}
+		});//btnExit Listener end
+		
+		btnSearch = new JButton("Search");
+		btnSearch.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				searchDB(txtItemNumber.getText());
+				setLabels();
+				setTextFieldsInfo();
+				setInfoCheckBoxes();
+				setItemTypeCheckBoxes();
+				getItemTypes();
+				setButtons();
+				btnSearch.setVisible(false);
+				lblFirstSeen.setVisible(false);
+			}
+		});
+		btnSearch.setBounds(141, 456, 89, 23);
+		frame.getContentPane().add(btnSearch);
+		frame.getRootPane().setDefaultButton(btnSearch);
+	}//firstScreen end	
+	//#############################################Display Methods end
 	
+	//#############################################SQL Calls
 	/**
 	 * This method calls on the SQL_Handler to search the database for the input by item_number, the boolean "found" is set by the results of itemInDB() and
 	 * the TextFields are populated by the database if found returns true, otherwise the fields are left blank 
@@ -314,7 +395,89 @@ public class ScanWindow {
 		}
 	}//searchDB end
 	
-	//Getters and Setters~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	/**
+	 * This method calls SQL_Handler.getItemTypes() passing the itemNumber, then with the resulting list it checks off
+	 * the checkboxes that apply to that specific item
+	 */
+	private void getItemTypes() {
+		try {
+			ArrayList<String> result = (ArrayList<String>) SQL_Handler.getItemTypes(itemNumber); //get all occurances of itemType in the db
+			for (String temp : result) { //for each string in the results
+				for (JCheckBox chckbxTemp : itemTypeList){ //for each checkbox in itemTypeList
+					if (chckbxTemp.getText().equals(temp)) { //if the text of the checkbox is in the result list
+						chckbxTemp.setSelected(true); //check that box
+					}
+				}
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}//setItemTypes
+
+	private void newSubmit() {
+		if (allEntriesValid()){
+			updateVariables();
+			
+			try { //try connecting and inserting a new item using the info on screen, notify user of success
+				Connection conn = SQL_Handler.getConnection();
+				SQL_Handler.insertNewItem(txtItemNumber.getText(), txtItemName.getText(), itemPrice, itemWeight, itemStock, itemRestock);
+				setItemTypes();
+				JOptionPane.showMessageDialog(frame, "Item Number " + itemNumber + ": " + itemName + " Added to inventory");
+				updateTextBoxes();
+			} catch (SQLException e1) { //otherwise let the user know the item wasnt added and close without crashing
+				JOptionPane.showMessageDialog(frame, "Failed to add Item Number " + itemNumber + ": " + itemName + " to inventory");
+				System.exit(0);
+				e1.printStackTrace();
+			}//trycatch end			
+		}//if allEntriesValid end
+	}//newSubmit end
+	
+	private void fullItemUpdate() {
+		try {
+			updateVariables();
+			SQL_Handler.fullItemUpdate(itemName, itemPrice, itemWeight, itemStock, itemRestock, itemNumber);
+			JOptionPane.showMessageDialog(frame, "Updated item number: " + itemNumber);
+
+		} catch (SQLException e) {
+			JOptionPane.showMessageDialog(frame, "Failed to update item number: " + itemNumber);
+			e.printStackTrace();
+		}
+	}
+	
+	private void addStock() {
+		if (chckbxAdd.isSelected() && validInt(txtAdd.getText())) { //if the user is trying to add to an item stock
+						try {
+							itemAdd = Integer.parseInt(txtAdd.getText());
+							itemNumber = txtItemNumber.getText();
+							SQL_Handler.updateItemQtyByItemNum(itemAdd, itemNumber);
+							JOptionPane.showMessageDialog(frame, "Updated Item Number " + itemNumber + ": " + itemName + ", increased Current Stock by " + itemAdd);
+							itemStock = SQL_Handler.getItemCurrentStock(itemNumber);
+							updateTextBoxes();
+						}catch (SQLException e2) {
+							JOptionPane.showMessageDialog(frame, "Failed to update item " + itemNumber + ": " + itemName);							
+							e2.printStackTrace();
+							System.exit(0);
+						}//trycatch end
+					}//if theres anything to add to stock end
+		else {
+			try {
+				itemAdd = 0;
+				itemNumber = txtItemNumber.getText();
+				SQL_Handler.updateItemQtyByItemNum(itemAdd, itemNumber);
+				//JOptionPane.showMessageDialog(frame, "Updated Item Number " + itemNumber + ": " + itemName + ", increased Current Stock by " + itemAdd);
+				itemStock = SQL_Handler.getItemCurrentStock(itemNumber);
+				updateTextBoxes();
+			}catch (SQLException e2) {
+				JOptionPane.showMessageDialog(frame, "Failed to update item " + itemNumber + ": " + itemName);							
+				e2.printStackTrace();
+				System.exit(0);
+			}//trycatch end
+		}
+					
+	}//addStock end
+	//#############################################SQL Calls end
+	
+	//#############################################Setters
 	public void setTxtItemNumber(String S) {
 		if (validInt(S))
 			txtItemNumber.setText(S);
@@ -344,112 +507,41 @@ public class ScanWindow {
 			txtRestock.setText(S);
 	}
 	
-	//Frame Creation Methods~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	/**
-	 * This method creates and sets lblFirstSeen, lblItemNumber, txtItemNumber, btnExit, and btnSearch onto the frame so the user can search the database for the item they want
-	 */
-	private void firstScreen() {
-		lblFirstSeen = new JLabel("Please Scan the BarCode or Enter the ItemNumber");
-		lblFirstSeen.setFont(new Font("Tahoma", Font.PLAIN, 16));
-		lblFirstSeen.setBounds(17, 0, 357, 20);
-		frame.getContentPane().add(lblFirstSeen);
-		
-		lblItemNumber = new JLabel("Item Number");
-		lblItemNumber.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		lblItemNumber.setBounds(35, 60, 73, 15);
-		frame.getContentPane().add(lblItemNumber);
-		
-		txtItemNumber = new JTextField();
-		txtItemNumber.setBounds(168, 58, 175, 20);
-		frame.getContentPane().add(txtItemNumber);
-		txtItemNumber.setColumns(10);
-		txtItemNumber.setText("");
-		txtItemNumber.setTransferHandler(null); //prevent copy paste into the field
-		txtItemNumber.addKeyListener(new KeyAdapter() {
-			@Override
-			public void keyTyped(KeyEvent evt) {
-				IntInput(evt.getKeyChar(), evt);
-			}
-		});//txtItemNumber Listener end
-		
-		btnExit = new JButton("Exit");		
-		btnExit.setBounds(25, 456, 89, 23);
-		frame.getContentPane().add(btnExit);
-		btnExit.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				System.exit(0);
-			}
-		});//btnExit Listener end
-		
-		btnSearch = new JButton("Search");
-		btnSearch.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				searchDB(txtItemNumber.getText());
-				setLabels();
-				setTextFieldsInfo();
-				setInfoCheckBoxes();
-				setItemTypeCheckBoxes();
-				getItemTypes();
-				setButtons();
-				btnSearch.setVisible(false);
-				lblFirstSeen.setVisible(false);
-			}
-		});
-		btnSearch.setBounds(141, 456, 89, 23);
-		frame.getContentPane().add(btnSearch);
-		frame.getRootPane().setDefaultButton(btnSearch);
-		
-		//TEST BUTTON
-		JButton btnTest = new JButton("TEST");
-		btnTest.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				
-				JOptionPane.showMessageDialog(frame, chckbxFlammable.getText());
-				
-			}
-		});
-		btnTest.setBounds(0, 499, 89, 23);
-		frame.getContentPane().add(btnTest);
-		
-		
-	}//firstScreen end
-	
-	//add a reset to the first screen for multiple consecutive searches
-	
-	
-	
 	/**
 	 * This method creates and sets all the labels to their intended values and places them onto the frame
 	 */
 	private void setLabels() {
 		//always make the following Labels
 		lblRequiredInformation = new JLabel("Required Item Information");
-		lblRequiredInformation.setToolTipText("This information must be filled out properly to insert an item to the inventory");
+		lblRequiredInformation.setToolTipText("This information must be filled out properly to insert an item to the inventory.");
 		lblRequiredInformation.setFont(new Font("Tahoma", Font.PLAIN, 15));
 		lblRequiredInformation.setBounds(25, 30, 174, 19);
 		frame.getContentPane().add(lblRequiredInformation);
 		
 		String IT = "Item Types";
 		if (!found)
-			IT = IT + " (Select All That Apply)";
+			IT = IT + " (Select All That Apply)";  //modify label to let user know if they need to add item types or not
 		
 		lblItemTypeselect = new JLabel(IT);
+		lblItemTypeselect.setToolTipText("Check each Item Type that applies to the Item you are currently adding.");
 		lblItemTypeselect.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		lblItemTypeselect.setBounds(35, 180, 195, 15);
 		frame.getContentPane().add(lblItemTypeselect);
 		
 		lblAdditionalItemInformation = new JLabel("Additional Item Information");
-		lblAdditionalItemInformation.setToolTipText("This information is not required to insert the item to the inventory");
+		lblAdditionalItemInformation.setToolTipText("This information is not required to insert the item to the inventory.");
 		lblAdditionalItemInformation.setFont(new Font("Tahoma", Font.PLAIN, 15));
 		lblAdditionalItemInformation.setBounds(25, 275, 180, 19);
 		frame.getContentPane().add(lblAdditionalItemInformation);	
 		
 		lblItemName = new JLabel("Item Name");
+		lblItemName.setToolTipText("Please enter the name of the Item as you would like it to be recorded in your inventory.");
 		lblItemName.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		lblItemName.setBounds(35, 100, 61, 15);
 		frame.getContentPane().add(lblItemName);
 		
 		lblItemWeight = new JLabel("Item Weight");
+		lblItemWeight.setToolTipText("Please enter the weight of the Item in pounds (lbs).");
 		lblItemWeight.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		lblItemWeight.setBounds(35, 140, 70, 15);
 		frame.getContentPane().add(lblItemWeight);
@@ -457,16 +549,19 @@ public class ScanWindow {
 		//if the user is not a manager they should not be able to modify this information so they cannot see checkboxes
 		if (found && !isM) { //so labels are placed instead
 			lblPrice = new JLabel("Item Price");
+			lblPrice.setToolTipText("Please enter the price of the Item in Dollar format \"0.00\""); 
 			lblPrice.setFont(new Font("Tahoma", Font.PLAIN, 12));
 			lblPrice.setBounds(35, 296, 97, 23);
 			frame.getContentPane().add(lblPrice);
 			
 			lblCurrentStock = new JLabel("Current Stock");
+			lblCurrentStock.setToolTipText("Please enter the current stock of the Item.");
 			lblCurrentStock.setFont(new Font("Tahoma", Font.PLAIN, 12));
 			lblCurrentStock.setBounds(35, 336, 101, 23);
 			frame.getContentPane().add(lblCurrentStock);
 			
 			lblRestock = new JLabel("Restock Threshold");
+			lblRestock.setToolTipText("Please enter the stock level which someone should be notified if the current stock goes under.");
 			lblRestock.setFont(new Font("Tahoma", Font.PLAIN, 12));
 			lblRestock.setBounds(35, 376, 127, 23);
 			frame.getContentPane().add(lblRestock);
@@ -594,6 +689,7 @@ public class ScanWindow {
 	private void setInfoCheckBoxes() {
 		if (found && isM || !found) {//check boxes are only for managers or new items
 			chckbxItemPrice = new JCheckBox("Item Price");
+			chckbxItemPrice.setToolTipText("Please enter the price of the Item in Dollar format \"0.00\""); 
 			chckbxItemPrice.setFont(new Font("Tahoma", Font.PLAIN, 12));
 			chckbxItemPrice.setBounds(35, 296, 97, 23);
 			frame.getContentPane().add(chckbxItemPrice);
@@ -605,6 +701,7 @@ public class ScanWindow {
 				}
 			});//chckbxItemPrice Listener end
 			chckbxCurrentStock = new JCheckBox("Current Stock");
+			chckbxCurrentStock.setToolTipText("Please enter the current stock of the Item."); 
 			chckbxCurrentStock.setFont(new Font("Tahoma", Font.PLAIN, 12));
 			chckbxCurrentStock.setBounds(35, 336, 101, 23);
 			frame.getContentPane().add(chckbxCurrentStock);
@@ -616,6 +713,7 @@ public class ScanWindow {
 				}
 			});//chckbxItemPrice Listener end
 			chckbxRestockThreshold = new JCheckBox("Restock Threshold");
+			chckbxRestockThreshold.setToolTipText("Please enter the stock level which someone should be notified if the current stock goes under.");
 			chckbxRestockThreshold.setFont(new Font("Tahoma", Font.PLAIN, 12));
 			chckbxRestockThreshold.setBounds(35, 376, 127, 23);
 			frame.getContentPane().add(chckbxRestockThreshold);
@@ -631,6 +729,7 @@ public class ScanWindow {
 		//if the item is already in the db let user addstock, if item isnt in db theres no reason to addstock because it would be set by the user
 		if (found) { 
 			chckbxAdd = new JCheckBox("Add to Stock");
+			chckbxAdd.setToolTipText("Please enter the amount of stock you are increasing the current stock by");
 			chckbxAdd.setFont(new Font("Tahoma", Font.PLAIN, 12));
 			chckbxAdd.setBounds(35, 414, 99, 23);
 			chckbxAdd.setSelected(true);
@@ -735,25 +834,7 @@ public class ScanWindow {
 		});//btnSubmit end	
 		frame.getRootPane().setDefaultButton(btnSubmit);
 	}//setButtons end
-	
-	private void newSubmit() {
-		if (allEntriesValid()){
-			updateVariables();
-			
-			try { //try connecting and inserting a new item using the info on screen, notify user of success
-				Connection conn = SQL_Handler.getConnection();
-				SQL_Handler.insertNewItem(txtItemNumber.getText(), txtItemName.getText(), itemPrice, itemWeight, itemStock, itemRestock);
-				setItemTypes();
-				JOptionPane.showMessageDialog(frame, "Item Number " + itemNumber + ": " + itemName + " Added to inventory");
-				updateTextBoxes();
-			} catch (SQLException e1) { //otherwise let the user know the item wasnt added and close without crashing
-				JOptionPane.showMessageDialog(frame, "Failed to add Item Number " + itemNumber + ": " + itemName + " to inventory");
-				System.exit(0);
-				e1.printStackTrace();
-			}//trycatch end			
-		}//if allEntriesValid end
-	}//newSubmit end
-	
+		
 	/**
 	 * this method calls SQL_Handler.insertItemType() passing itemNumber and each box checked in the itemTypeList
 	 */
@@ -769,93 +850,9 @@ public class ScanWindow {
 			}
 		}
 	}//setItemTypes end
-	
-	/**
-	 * This method calls SQL_Handler.getItemTypes() passing the itemNumber, then with the resulting list it checks off
-	 * the checkboxes that apply to that specific item
-	 */
-	private void getItemTypes() {
-		try {
-			ArrayList<String> result = (ArrayList<String>) SQL_Handler.getItemTypes(itemNumber); //get all occurances of itemType in the db
-			for (String temp : result) { //for each string in the results
-				for (JCheckBox chckbxTemp : itemTypeList){ //for each checkbox in itemTypeList
-					if (chckbxTemp.getText().equals(temp)) { //if the text of the checkbox is in the result list
-						chckbxTemp.setSelected(true); //check that box
-					}
-				}
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-	}//setItemTypes
-	
-	private void updateVariables() {
-		if (chckbxRestockThreshold.isSelected()) {
-			itemRestock = Integer.parseInt(txtRestock.getText()); //set the reStock
-		}
-		else {
-			itemRestock = 0;
-		}
-		if (chckbxCurrentStock.isSelected()) {
-			itemStock = Integer.parseInt(txtCurrentStock.getText());  //set the currentStock
-		}
-		else {
-			itemStock = 0;
-		}
-		if (chckbxItemPrice.isSelected()) {
-			itemPrice = txtPrice.getText();  //set the price
-		}
-		else {
-			itemPrice = "0.00";
-		}
-		itemNumber = txtItemNumber.getText();
-		itemName = txtItemName.getText();
-		itemWeight = Integer.parseInt(txtItemWeight.getText()); 
-	}
-	
-	private void fullItemUpdate() {
-		try {
-			updateVariables();
-			SQL_Handler.fullItemUpdate(itemName, itemPrice, itemWeight, itemStock, itemRestock, itemNumber);
-			JOptionPane.showMessageDialog(frame, "Updated item number: " + itemNumber);
+	//#############################################Setters end
 
-		} catch (SQLException e) {
-			JOptionPane.showMessageDialog(frame, "Failed to update item number: " + itemNumber);
-			e.printStackTrace();
-		}
-	}
 	
-	private void addStock() {
-		if (chckbxAdd.isSelected() && validInt(txtAdd.getText())) { //if the user is trying to add to an item stock
-						try {
-							itemAdd = Integer.parseInt(txtAdd.getText());
-							itemNumber = txtItemNumber.getText();
-							SQL_Handler.updateItemQtyByItemNum(itemAdd, itemNumber);
-							JOptionPane.showMessageDialog(frame, "Updated Item Number " + itemNumber + ": " + itemName + ", increased Current Stock by " + itemAdd);
-							itemStock = SQL_Handler.getItemCurrentStock(itemNumber);
-							updateTextBoxes();
-						}catch (SQLException e2) {
-							JOptionPane.showMessageDialog(frame, "Failed to update item " + itemNumber + ": " + itemName);							
-							e2.printStackTrace();
-							System.exit(0);
-						}//trycatch end
-					}//if theres anything to add to stock end
-		else {
-			try {
-				itemAdd = 0;
-				itemNumber = txtItemNumber.getText();
-				SQL_Handler.updateItemQtyByItemNum(itemAdd, itemNumber);
-				//JOptionPane.showMessageDialog(frame, "Updated Item Number " + itemNumber + ": " + itemName + ", increased Current Stock by " + itemAdd);
-				itemStock = SQL_Handler.getItemCurrentStock(itemNumber);
-				updateTextBoxes();
-			}catch (SQLException e2) {
-				JOptionPane.showMessageDialog(frame, "Failed to update item " + itemNumber + ": " + itemName);							
-				e2.printStackTrace();
-				System.exit(0);
-			}//trycatch end
-		}
-					
-	}//addStock end
 }//ScanWindow end
 
 //COMBOBOX STUFF~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -924,5 +921,3 @@ class ComboRenderer implements ListCellRenderer {
 	}//getListCellRendererComponent end
 	
 }//comboRenderer end
-
-
