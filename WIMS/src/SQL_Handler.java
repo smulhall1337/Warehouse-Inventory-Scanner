@@ -279,6 +279,21 @@ public abstract class SQL_Handler {
 	}
 	
 	//#############################################Items
+	/**
+	 * @param itemNumber as STRING
+	 * @return True if item is found in database
+	 * @throws SQLException
+	 */
+	public static boolean itemInDB(String itemNumber) throws SQLException {
+		stmt = sql_statements.get("InDB");
+		stmt.setString(1, itemNumber);
+		rs = stmt.executeQuery();
+		if (rs.next())
+			return true;
+		else
+			return false;
+	}
+	
 	public static void insertNewItem(String itemNumber, String name, String price, 
 			int weight, int currentStock, int restockThreshold) throws SQLException
 	{
@@ -290,6 +305,56 @@ public abstract class SQL_Handler {
 		stmt.setInt(5, currentStock);
 		stmt.setInt(6, restockThreshold);
 		stmt.execute();
+	}
+	
+	public static String getItemName(String itemNumber) throws SQLException {
+		String name;
+		stmt = sql_statements.get("ItemInfo");
+		stmt.setString(1, itemNumber);
+		rs = stmt.executeQuery();
+		rs.next();
+		name = rs.getString("name");
+		return name;
+	}
+	
+	public static String getItemPrice(String itemNumber) throws SQLException {
+		String price;
+		stmt = sql_statements.get("ItemInfo");
+		stmt.setString(1, itemNumber);
+		rs = stmt.executeQuery();
+		rs.next();
+		price = rs.getString("price");
+		return price;
+	}
+	
+	public static int getItemWeight(String itemNumber) throws SQLException {
+		int weight = 0;
+		stmt = sql_statements.get("ItemInfo");
+		stmt.setString(1, itemNumber);
+		rs = stmt.executeQuery();
+		rs.next();
+		weight = rs.getInt("weight");
+		return weight;
+	}
+	
+	public static int getItemCurrentStock(String itemNumber) throws SQLException {
+		int currentStock = 0;
+		stmt = sql_statements.get("ItemStock");
+		stmt.setString(1, itemNumber);
+		rs = stmt.executeQuery();
+		rs.next();
+		currentStock = rs.getInt("current_stock");
+		return currentStock;
+	}
+	
+	public static int getItemRestock(String itemNumber) throws SQLException {
+		int reStock = 0;
+		stmt = sql_statements.get("ItemInfo");
+		stmt.setString(1, itemNumber);
+		rs = stmt.executeQuery();
+		rs.next();
+		reStock = rs.getInt("restock_threshold");
+		return reStock;
 	}
 	
 	public static void fullItemUpdate(String name, String price, 
@@ -304,6 +369,14 @@ public abstract class SQL_Handler {
 		stmt.setString(6, itemNumber);
 		stmt.execute();
 	} 
+	
+	public static void updateItemQtyByItemNum(int amount, String itemNumber) throws SQLException {
+		int currentStock = getItemCurrentStock(itemNumber);
+		stmt = sql_statements.get("UpdateItemQty");		
+		stmt.setInt(1, currentStock + amount);
+		stmt.setString(2, itemNumber);
+		stmt.execute();
+	}
 	
 	public static void insertItemType(String itemNumber, String itemType) throws SQLException {
 		stmt = sql_statements.get("ItemType");
@@ -327,123 +400,7 @@ public abstract class SQL_Handler {
 				result.add(rs.getString("type"));	//add it to the list
 		}			
 		return result;
-	}
-	
-	public static int getItemCurrentStock(String itemNumber) throws SQLException {
-		int currentStock = 0;
-		stmt = sql_statements.get("ItemStock");
-		stmt.setString(1, itemNumber);
-		rs = stmt.executeQuery();
-		rs.next();
-		currentStock = rs.getInt("current_stock");
-		return currentStock;
-	}
-	
-	public static void updateItemQtyByItemNum(int amount, String itemNumber) throws SQLException {
-		int currentStock = getItemCurrentStock(itemNumber);
-		stmt = sql_statements.get("UpdateItemQty");		
-		stmt.setInt(1, currentStock + amount);
-		stmt.setString(2, itemNumber);
-		stmt.execute();
-	}
-	
-
-	public static int getItemWeight(String itemNumber) throws SQLException {
-		int weight = 0;
-		stmt = sql_statements.get("ItemInfo");
-		stmt.setString(1, itemNumber);
-		rs = stmt.executeQuery();
-		rs.next();
-		weight = rs.getInt("weight");
-		return weight;
 	}	
-	
-	public static String getItemPrice(String itemNumber) throws SQLException {
-		String price;
-		stmt = sql_statements.get("ItemInfo");
-		stmt.setString(1, itemNumber);
-		rs = stmt.executeQuery();
-		rs.next();
-		price = rs.getString("price");
-		return price;
-	}
-	
-	public static String getItemName(String itemNumber) throws SQLException {
-		String name;
-		stmt = sql_statements.get("ItemInfo");
-		stmt.setString(1, itemNumber);
-		rs = stmt.executeQuery();
-		rs.next();
-		name = rs.getString("name");
-		return name;
-	}
-	
-	/**
-	 * 
-	 * @param itemNumber
-	 * @return
-	 * @throws SQLException
-	 */
-	public static boolean itemInDB(String itemNumber) throws SQLException {
-		stmt = sql_statements.get("InDB");
-		stmt.setString(1, itemNumber);
-		rs = stmt.executeQuery();
-		if (rs.next())
-			return true;
-		else
-			return false;
-	}
-	
-	/**
-	 * Get the itemTypes from the database and return them as a list
-	 * @param itemNumber
-	 * @return a list of all the items types of itemNumber as strings
-	 * @throws SQLException
-	 */
-	public static List getItemTypes(String itemNumber) throws SQLException {
-		List itemTypeList = new ArrayList<String>();
-		stmt = sql_statements.get("GetItemTypes");
-		stmt.setString(1, itemNumber);
-		rs = stmt.executeQuery();				//execute
-		if (rs.next()){							//if theres something there
-			for (int i = 0; i <= MAX; i++){
-				itemTypeList.add(rs.getString(i));	//add it to the list
-			}
-			rs.next();  						//move up one in rs
-		}		
-		return itemTypeList;
-	}
-	
-	public static void fullItemUpdate(String name, String price, 
-			int weight, int currentStock, int restockThreshold, String itemNumber) throws SQLException
-	{
-		stmt = sql_statements.get("FullUpdate");		
-		stmt.setString(1, name);
-		stmt.setString(2, price);
-		stmt.setInt(3, weight);
-		stmt.setInt(4, currentStock);
-		stmt.setInt(5, restockThreshold);
-		stmt.setString(6, itemNumber);
-		stmt.execute();
-	}
-	
-	public static void insertItemType(String itemNumber, String itemType) throws SQLException {
-		stmt = sql_statements.get("ItemType");
-		stmt.setString(1, itemNumber);
-		stmt.setString(2, itemType);
-		stmt.execute();
-	}
-	
-	public static int getItemRestock(String itemNumber) throws SQLException {
-		int reStock = 0;
-		stmt = sql_statements.get("ItemInfo");
-		stmt.setString(1, itemNumber);
-		rs = stmt.executeQuery();
-		rs.next();
-		reStock = rs.getInt("restock_threshold");
-		return reStock;
-	}
-	
 	
 	//#############################################Pallets
 		public static boolean palletInDB(String palletID) throws SQLException {
