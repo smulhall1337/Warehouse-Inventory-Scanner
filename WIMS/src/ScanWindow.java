@@ -343,7 +343,7 @@ public class ScanWindow {
 		frame.getContentPane().add(btnExit);
 		btnExit.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				frame.dispose();;
+				frame.dispose();
 			}
 		});//btnExit Listener end
 		
