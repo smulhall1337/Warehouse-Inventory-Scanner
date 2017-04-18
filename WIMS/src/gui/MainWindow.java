@@ -34,12 +34,15 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
+import javax.swing.UIManager;
 import javax.swing.border.Border;
 import javax.swing.table.DefaultTableModel;
 
 import org.jdatepicker.impl.JDatePanelImpl;
 import org.jdatepicker.impl.JDatePickerImpl;
 import org.jdatepicker.impl.UtilDateModel;
+
+import controller.DateLabelFormatter;
 
 public class MainWindow {
 
@@ -108,6 +111,29 @@ public class MainWindow {
 	private static final String DATE_FIELD_ON = "on";
 	private static final String[] DATE_FIELD_DESCRIPTIONS = {DATE_FIELD_BEFORE, DATE_FIELD_AFTER, DATE_FIELD_ON};
 	
+	private static final Font MENUBAR_FONT = new Font("Tahoma", Font.PLAIN, 14);
+	private static final Font LABEL_FONT = new Font("Tahoma", Font.PLAIN, 18);
+	private static final Font CHECKBOX_FONT = new Font("Tahoma", Font.PLAIN, 14);
+	
+	private static final int IRRELEVANT_MAX_WIDTH = Integer.MAX_VALUE;
+	private static final int DEFAULT_WINDOW_WIDTH = 800;
+	private static final int DEFAULT_WINDOW_HEIGHT = 700;
+	private static final int MIN_WINDOW_WIDTH = 750;
+	private static final int MIN_WINDOW_HEIGHT = 675;
+	
+	private static final int MIN_MENUBAR_PANEL_WIDTH = MIN_WINDOW_WIDTH;
+	private static final int MIN_MENUBAR_PANEL_HEIGHT = 25;
+	private static final int MAX_MENUBAR_PANEL_WIDTH = IRRELEVANT_MAX_WIDTH;
+	private static final int MAX_MENUBAR_PANEL_HEIGHT = 25;
+	
+	private static final int MAX_OPTIONS_PANEL_HEIGHT = 265;
+	private static final int MAX_OPTIONS_PANEL_WIDTH = 750;
+	
+//	private static final int MIN_TABLE_PANEL_WIDTH = MIN_WINDOW_WIDTH;
+//	private static final int MIN_TABLE_PANEL_HEIGHT = MIN_WINDOW_HEIGHT - MAX_OPTIONS_PANEL_HEIGHT - 50;
+//	private static final int MAX_TABLE_PANEL_HEIGHT = 2000;
+//	private static final int MAX_TABLE_PANEL_WIDTH = 2000; 
+	
 	private HashMap<String, JCheckBox> palletCheckboxesMap;
 	private HashMap<String, JCheckBox> itemCheckboxesMap;
 	private HashMap<String, JCheckBox> orderCheckboxesMap;
@@ -127,11 +153,11 @@ public class MainWindow {
 	private JComboBox comboBoxEntityType;
 	private JPanel entityOptionsPanel;
 	private JPanel tablePanel;
-	private JMenuBar menuBar;
+	private JMenuBar menubar;
 	private JMenu manageItemsMenu;
 	private JMenu ordersMenu;
 	private JMenu manageEmployeesMenu;
-	private JPanel menuBarPanel;
+	private JPanel menubarPanel;
 	private JMenuItem addItem;
 	private JMenuItem updateItem;
 	private JMenuItem createNewOrderMenuItem;
@@ -253,6 +279,7 @@ public class MainWindow {
 			String nextField = fields[i];
 			JCheckBox nextBox = new JCheckBox(nextField);
 			nextBox.setSelected(true);
+			nextBox.setFont(CHECKBOX_FONT);
 			map.put(nextField, nextBox);
 		}
 		return map;
@@ -262,19 +289,25 @@ public class MainWindow {
 	{
 		frame = new JFrame();
 		frame.setTitle("WIMS - Main Window");
-		frame.setBounds(100, 100, 735, 625);
-		frame.setMinimumSize(new Dimension(735, 625));
+		frame.setBounds(100, 100, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
+		frame.setMinimumSize(new Dimension(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT));
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame.getContentPane().setLayout(new BoxLayout(frame.getContentPane(), BoxLayout.Y_AXIS));
 	}
 	
 	private void initializeMenuBar()
 	{
-		menuBarPanel = new JPanel();
-		frame.getContentPane().add(menuBarPanel);
-		menuBarPanel.setLayout(new BorderLayout(0, 5));
-		menuBar = new JMenuBar();
-		menuBarPanel.add(menuBar, BorderLayout.NORTH);
-		menuBar.setBackground(Color.WHITE);
+		menubarPanel = new JPanel();
+		Dimension minMenubarPanelDim = new Dimension(MIN_MENUBAR_PANEL_WIDTH, MIN_MENUBAR_PANEL_HEIGHT);
+		Dimension maxMenubarPanelDim = new Dimension(MAX_MENUBAR_PANEL_WIDTH, MAX_MENUBAR_PANEL_HEIGHT);
+		menubarPanel.setMinimumSize(minMenubarPanelDim);
+		menubarPanel.setMaximumSize(maxMenubarPanelDim);
+		frame.getContentPane().add(menubarPanel);
+		menubarPanel.setLayout(new BorderLayout(0, 5));
+		menubar = new JMenuBar();
+		menubarPanel.add(menubar, BorderLayout.NORTH);
+		menubar.setBackground(Color.WHITE);
+		
 		
 		initializeItemsMenu();
 		initializeOrdersMenu();
@@ -285,7 +318,8 @@ public class MainWindow {
 	private void initializeItemsMenu()
 	{
 		manageItemsMenu = new JMenu("Manage Items");
-		menuBar.add(manageItemsMenu);
+		manageItemsMenu.setFont(MENUBAR_FONT);
+		menubar.add(manageItemsMenu);
 		
 		addItem = new JMenuItem("Add Item to Database");
 		manageItemsMenu.add(addItem);
@@ -297,7 +331,8 @@ public class MainWindow {
 	private void initializeOrdersMenu()
 	{
 		ordersMenu = new JMenu("Orders");
-		menuBar.add(ordersMenu);
+		ordersMenu.setFont(MENUBAR_FONT);
+		menubar.add(ordersMenu);
 		
 		createNewOrderMenuItem = new JMenuItem("Create New Order");
 		ordersMenu.add(createNewOrderMenuItem);
@@ -309,7 +344,8 @@ public class MainWindow {
 	private void initializeEmployeesMenu()
 	{
 		manageEmployeesMenu = new JMenu("Employees");
-		menuBar.add(manageEmployeesMenu);
+		manageEmployeesMenu.setFont(MENUBAR_FONT);
+		menubar.add(manageEmployeesMenu);
 		
 		manageEmployeesItem = new JMenuItem("Manage Employees");
 		manageEmployeesMenu.add(manageEmployeesItem);
@@ -329,7 +365,8 @@ public class MainWindow {
 	private void initializeReportsMenu()
 	{
 		reportsMenu = new JMenu("Reports");
-		menuBar.add(reportsMenu);
+		reportsMenu.setFont(MENUBAR_FONT);
+		menubar.add(reportsMenu);
 		
 		reportMenu = new JMenuItem("Create Reports");
 		reportsMenu.add(reportMenu);
@@ -339,34 +376,49 @@ public class MainWindow {
 	}
 	
 	private void initializeEntitySelectionOptionsPanel() {
-		frame.getContentPane().setLayout(new BoxLayout(frame.getContentPane(), BoxLayout.Y_AXIS));
-		entitySelectionOptionsPanel = new JPanel();
-		frame.getContentPane().add(entitySelectionOptionsPanel);
-		entitySelectionOptionsPanel.setLayout(new BorderLayout(0, 0));
-		optionHeaderPanel = new JPanel();
+		JPanel resizingPanelForOptions = new JPanel();
+		BoxLayout resizingPanelLayout = new BoxLayout(resizingPanelForOptions, BoxLayout.X_AXIS);
+		resizingPanelForOptions.setLayout(resizingPanelLayout);
+		resizingPanelForOptions.add(new JPanel());
 		
-		entitySelectionOptionsPanel.add(optionHeaderPanel, BorderLayout.WEST);
-		JLabel showColumnHeaders = new JLabel("Show columns for:");
-		showColumnHeaders.setFont(new Font("Tahoma", Font.PLAIN, 18));
-		optionHeaderPanel.add(showColumnHeaders);
-	}
-
-	private void initializeEntitySelectPanel()
-	{
+		frame.getContentPane().add(resizingPanelForOptions);
+		entitySelectionOptionsPanel = new JPanel();
+		entitySelectionOptionsPanel.setMaximumSize(new Dimension(MAX_OPTIONS_PANEL_WIDTH, MAX_OPTIONS_PANEL_HEIGHT));
+		entitySelectionOptionsPanel.setAlignmentX(Component.RIGHT_ALIGNMENT);
+		entitySelectionOptionsPanel.setAlignmentY(Component.TOP_ALIGNMENT);
+		frame.getContentPane().add(entitySelectionOptionsPanel);
+		
+		entitySelectionOptionsPanel.setLayout(new BorderLayout(0, 0));
 		entitySelectPanel = new JPanel();
 		FlowLayout fl_entitySelectPanel = (FlowLayout) entitySelectPanel.getLayout();
 		fl_entitySelectPanel.setVgap(10);
 		fl_entitySelectPanel.setAlignment(FlowLayout.LEFT);
 		entitySelectionOptionsPanel.add(entitySelectPanel, BorderLayout.NORTH);
 		
+		Border borderEtched = BorderFactory.createEtchedBorder();
+		entitySelectionOptionsPanel.setBorder(borderEtched);
+		
+		resizingPanelForOptions.add(entitySelectionOptionsPanel);
+		resizingPanelForOptions.add(new JPanel());
+		
+		
+		optionHeaderPanel = new JPanel();
+		entitySelectionOptionsPanel.add(optionHeaderPanel, BorderLayout.WEST);
+		JLabel showColumnHeaders = new JLabel("Show columns for:");
+		showColumnHeaders.setFont(LABEL_FONT);
+		optionHeaderPanel.add(showColumnHeaders);
+	}
+
+	private void initializeEntitySelectPanel()
+	{
 		JLabel lblDisplayInfoFor = new JLabel("Display info for");
-		lblDisplayInfoFor.setFont(new Font("Tahoma", Font.PLAIN, 18));
+		lblDisplayInfoFor.setFont(LABEL_FONT);
 		entitySelectPanel.add(lblDisplayInfoFor);
 		
 		initializeEntityComboBox();
 		
 		JLabel lblField = new JLabel("with");
-		lblField.setFont(new Font("Tahoma", Font.PLAIN, 18));
+		lblField.setFont(LABEL_FONT);
 		entitySelectPanel.add(lblField);
 		
 		initializeFieldsComboBox();
@@ -385,7 +437,7 @@ public class MainWindow {
 				updateFieldsComboBox(currentEntity);
 			}
 		});
-		comboBoxEntityType.setFont(new Font("Tahoma", Font.PLAIN, 18));
+		comboBoxEntityType.setFont(LABEL_FONT);
 		comboBoxEntityType.setModel(new DefaultComboBoxModel(ENTITIES));
 		entitySelectPanel.add(comboBoxEntityType);
 	}
@@ -404,10 +456,10 @@ public class MainWindow {
 				updateFieldOption(currentField);
 			}
 		});
-		comboBoxField.setFont(new Font("Tahoma", Font.PLAIN, 18));
+		comboBoxField.setFont(LABEL_FONT);
+		entitySelectPanel.add(comboBoxField);
 		String currentEntity = (String) comboBoxEntityType.getSelectedItem();
 		updateFieldsComboBox(currentEntity);
-		entitySelectPanel.add(comboBoxField);
 	}
 	
 	private void updateFieldsComboBox(String currentEntity) {
@@ -421,14 +473,21 @@ public class MainWindow {
 		case ORDER_ENTITY_NAME:
 			comboBoxField.setModel(new DefaultComboBoxModel(ORDER_FIELDS));
 			break;
+		}if(comboBoxFieldOptions != null)
+		{
+			String currentField = (String) comboBoxField.getSelectedItem();
+			updateFieldOptionsComboBox(currentField);
+			updateFieldOption(currentField);
 		}
 	}
 
 	private void initializeFieldOptionsComboBox() {
 		comboBoxFieldOptions = new JComboBox();		
-		comboBoxFieldOptions.setFont(new Font("Tahoma", Font.PLAIN, 18));
-		String currentField = (String) comboBoxField.getSelectedItem();
+		comboBoxFieldOptions.setFont(LABEL_FONT);
 		entitySelectPanel.add(comboBoxFieldOptions);
+
+		String currentField = (String) comboBoxField.getSelectedItem();
+		
 		initializeFieldOptionComponents();
 		updateFieldOption(currentField);
 		updateFieldOptionsComboBox(currentField);
@@ -484,6 +543,19 @@ public class MainWindow {
 			entitySelectPanel.remove(fieldOptionStringField);
 		if(fieldOptionDateField.getParent() != null)
 			entitySelectPanel.remove(fieldOptionDateField);
+	}
+	
+	private String getFieldOptionValue(String currentField) {
+		String fieldType = fieldOptionsMap.get(currentField);
+		switch (fieldType){
+		case NUMERIC_FIELD_TYPE_NAME: 
+			return fieldOptionNumericField.getText();
+		case STRING_FIELD_TYPE_NAME: 
+			return fieldOptionStringField.getText();
+		case DATE_FIELD_TYPE_NAME:
+			return fieldOptionDateField.getJFormattedTextField().getText();
+		}
+		return null; //should never happen
 	}
 
 	private void initializeEntityOptionsPanel()
@@ -551,27 +623,41 @@ public class MainWindow {
 	private void initializeUpdateButton(){
 	
 		JPanel updateButtonPanel = new JPanel();
-		FlowLayout fl_updateButtonPanel = (FlowLayout) updateButtonPanel.getLayout();
-		fl_updateButtonPanel.setAlignment(FlowLayout.RIGHT);
 		entitySelectionOptionsPanel.add(updateButtonPanel, BorderLayout.SOUTH);
+		updateButtonPanel.setLayout(new FlowLayout(FlowLayout.RIGHT, 5, 5));
 
 		
 		JButton updateButton = new JButton("Update");
+		updateButton.setAlignmentX(Component.RIGHT_ALIGNMENT);
 		updateButton.setFont(new Font("Tahoma", Font.PLAIN, 22));
 		updateButtonPanel.add(updateButton);
 		updateButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent ae) {
-					//TODO method to update table based on selected items
+				String entityName = (String) comboBoxEntityType.getSelectedItem();
+				String fieldName = (String) comboBoxField.getSelectedItem();
+				String fieldOption = (String) comboBoxFieldOptions.getSelectedItem();
+				String fieldOptionValue = getFieldOptionValue(fieldName);
+				updateTableBasedOnSelection(entityName, fieldName, fieldOption, fieldOptionValue);
 			}
 		});
 		updateButton.setHorizontalAlignment(SwingConstants.RIGHT);
 	}
 	
+	private void updateTableBasedOnSelection(String entityName, String fieldName, String fieldOption, String fieldOptionValue){
+		//TODO
+	}
+	
 	private void initializeTable()
 	{
+		JPanel resizingPanelForTable = new JPanel();
+		BoxLayout resizingPanelLayout = new BoxLayout(resizingPanelForTable, BoxLayout.X_AXIS);
+		resizingPanelForTable.setLayout(resizingPanelLayout);
+		frame.getContentPane().add(resizingPanelForTable);
 		tablePanel = new JPanel();
-		frame.getContentPane().add(tablePanel);
+//		Dimension minTablePanelDim = new Dimension(MIN_TABLE_PANEL_WIDTH, MIN_TABLE_PANEL_HEIGHT);
+//		tablePanel.setMinimumSize(minTablePanelDim);
+		resizingPanelForTable.add(tablePanel);
 		tablePanel.setLayout(new BorderLayout(0, 0));
 		
 		mainTableScrollPane = new JScrollPane(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
@@ -580,7 +666,7 @@ public class MainWindow {
 		mainTable = new JTable();
 		TableWidthAdjuster = new WidthAdjuster(mainTable);
 		
-		Object[][] defaultData = new Object[25][25]; 
+		Object[][] defaultData = new Object[50][25]; 
 		String[] defaultColNames = new String[25];
 		//mainTable.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
 		mainTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
@@ -668,6 +754,7 @@ public class MainWindow {
     	JDatePanelImpl datePanel = new JDatePanelImpl(model, p);
     	// Don't know about the formatter, but there it is...
     	JDatePickerImpl datePicker = new JDatePickerImpl(datePanel, new DateLabelFormatter());
+    	datePicker.setTextEditable(true);
     	return datePicker;
 	}
 
