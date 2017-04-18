@@ -1,111 +1,96 @@
 package gui;
 
-import gui.MyTableModel.ColumnListener;
-
-import java.awt.EventQueue;
-
-import javax.swing.JFrame;
-
-import java.awt.GridBagLayout;
-
-import javax.swing.JPanel;
-
-import java.awt.GridBagConstraints;
-
-import javax.swing.BoxLayout;
-import javax.swing.ButtonGroup;
-import javax.swing.JFormattedTextField;
-import javax.swing.JLabel;
-import javax.swing.GroupLayout;
-import javax.swing.GroupLayout.Alignment;
-import javax.swing.JOptionPane;
-import javax.swing.JRadioButton;
-
-import java.awt.GridLayout;
-
-import javax.swing.JComboBox;
-
-import net.miginfocom.swing.MigLayout;
-
 import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.EventQueue;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.sql.SQLException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-import com.jgoodies.forms.layout.FormLayout;
-import com.jgoodies.forms.layout.ColumnSpec;
-import com.jgoodies.forms.layout.RowSpec;
-import com.jgoodies.forms.factories.FormFactory;
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.DefaultComboBoxModel;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
+import javax.swing.JFormattedTextField;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JPasswordField;
+import javax.swing.JTextField;
+import javax.swing.SwingConstants;
+import javax.swing.border.Border;
 
+import controller.EmployeeIDDocument;
+import controller.NameDocument;
 import controller.SQL_Handler;
 
-import java.awt.FlowLayout;
+public class ManageEmployees extends JFrame{
 
-import javax.swing.JTextField;
-import javax.swing.JTable;
-
-import java.awt.Component;
-
-import javax.swing.Box;
-import javax.swing.table.DefaultTableModel;
-import javax.swing.table.JTableHeader;
-import javax.swing.table.TableCellRenderer;
-import javax.swing.table.TableColumn;
-import javax.swing.text.NumberFormatter;
-import javax.swing.text.PlainDocument;
-import javax.swing.JScrollPane;
-
-import java.awt.Dimension;
-
-import javax.swing.JButton;
-import javax.swing.SwingConstants;
-
-import java.awt.event.ActionListener;
-import java.awt.event.ActionEvent;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-
-import javax.swing.DefaultComboBoxModel;
-
-import java.awt.Font;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.text.NumberFormat;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.List;
-import java.util.Properties;
-
-import javax.swing.JSeparator;
-import javax.swing.JCheckBox;
-
-import org.jdatepicker.graphics.*;
-import org.jdatepicker.util.*;
-import org.jdatepicker.impl.*;
-
-public class ReportsWindow {
-
-	private JFrame frmWimsReports;
-	private JTable table;
-	private JPanel reportSelectionOptionsPanel;
-	private JPanel reportSelectPanel;
-	private JPanel reportOptionsPanel;
-	private JComboBox comboBoxReportType;
-	private JComboBox comboBoxShippedReceivedBeforeAfter;
-	private JScrollPane reportTableScrollPane;
-	private WidthAdjuster TableWidthAdjuster;
-	private Connection DBConnection;
-	private SQL_Handler SQLHandler;
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -1917137272419519085L;
 	
-	private static final int MIN_AGING_ITEMS_DAYS = 0;
-	private static final int MAX_AGING_ITEMS_DAYS = 9999;
-	private static final String AGING_ITEMS_REPORTNAME = "Aging Items";
-	private static final String EMPLOYEES_REPORTNAME = "Employees";
-	private static final String ITEM_OVERVIEW_REPORTNAME = "Item Overview";
-	private static final String SHIPPED_BY_DATE_REPORTNAME = "Shipped by Date";
-	private static final String RECEIVED_BY_DATE_REPORTNAME = "Received by Date";
-	private static final String[] REPORT_TYPES = {AGING_ITEMS_REPORTNAME, EMPLOYEES_REPORTNAME, ITEM_OVERVIEW_REPORTNAME,
-												 SHIPPED_BY_DATE_REPORTNAME, RECEIVED_BY_DATE_REPORTNAME};
+	private static final String ADD_EMPLOYEE_ACTION_NAME = "Add Employee";
+	private static final String CHANGE_EMPLOYEE_PASS_ACTION_NAME = "Change Employee Password";
+	private static final String DELETE_EMPLOYEE_ACTION_NAME = "Delete Employee";
+	private static final String UPDATE_EMPLOYEE_ACTION_NAME = "Update Employee Info";
+	private static final String[] ACTIONS = {ADD_EMPLOYEE_ACTION_NAME, 
+			CHANGE_EMPLOYEE_PASS_ACTION_NAME, DELETE_EMPLOYEE_ACTION_NAME, UPDATE_EMPLOYEE_ACTION_NAME};
+	
+	private static final String ADD_EMPLOYEE_BUTTON_TEXT = "Add Employee";
+	private static final String CHANGE_EMPLOYEE_PASS_BUTTON_TEXT = "Change Password";
+	private static final String DELETE_EMPLOYEE_BUTTON_TEXT = "Delete Employee";
+	private static final String UPDATE_EMPLOYEE_BUTTON_TEXT = "Update";
+	private static final String DEFAULT_BUTTON_TEXT = "Perform";
+	
+	private static final int EMPLOYEE_NAME_TEXTFIELD_COLUMNS = 25;
+	private static final int EMPLOYEE_ID_TEXTFIELD_COLUMNS = 25;
+	private static final int PASSWORD_FIELD_COLUMNS = 25;
+	private static final int OPTIONS_LEFT_MARGIN = 10;
+	private static final int STARTING_OPTION_ROW = 0;
+	
+	private Pattern passwordPattern;
+	private Matcher passwordMatcher;
+
+	private static final String PASSWORD_PATTERN =
+          "((?=.*\\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%]).{8,20})";
+	private static final String PASSWORD_REQUIREMENT_DESCRIPTION = 
+			"Passwords must be 8-20 characters with at least one digit,"
+			+ "\n" + "one upper case letter, one lower case letter,"
+	 		+ "\n" + "and one special symbol (“@#$%”)";
+	
+	private boolean isManager;
+	
+	private JFrame frame;
+	private JTextField textFieldTempPassword;
+	private JPanel panelSelectAction;
+	private JPanel panelActionOptions;
+	private JComboBox comboBoxSelectAction;
+	private JLabel labelEmployeeID;
+	private JLabel labelEmployeeName;
+	private JFormattedTextField formattedTextFieldEmployeeName;
+	private JFormattedTextField formattedTextFieldEmployeeID;
+	private JLabel labelCurrentPassword;
+	private JLabel labelNewPassword;
+	private JLabel labelTempPassword;
+	private JPasswordField passFieldCurrentPass;
+	private JPasswordField passFieldNewPass;
+	private JCheckBox checkBoxIsManager;
+	private JPanel panelPerformAction;
+	private int nextOptionRow; //the index of the next option row in the gridbaglayout
 	
 	/**
 	 * Launch the application.
@@ -114,8 +99,8 @@ public class ReportsWindow {
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
-					ReportsWindow window = new ReportsWindow();
-					window.frmWimsReports.setVisible(true);
+					ManageEmployees window = new ManageEmployees();
+					window.frame.setVisible(true);
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -126,355 +111,363 @@ public class ReportsWindow {
 	/**
 	 * Create the application.
 	 */
-	public ReportsWindow() {
-		initialize();
+	//public ManageEmployees(String loggedInEmployeeID, boolean isManager)
+	public ManageEmployees() {
+		isManager = true;
+		initialize(isManager);
 	}
 
 	/**
 	 * Initialize the contents of the frame.
 	 */
-	private void initialize() {
-		
-		DBConnection = SQL_Handler.getConnection();
-		SQLHandler = new SQL_Handler();
-		initializeReportFrame();
-		
-		initializeReportSelectionOptionsPanel();
-		initializeReportSelectPanel();
-		
-		initializeReportComboBox();
-		initializeGenerateButton();
-		
-		initializeReportOptionsPanel();
-		
-		initializeTable();
-		initializeExport();
-		initializeBorderStruts();
+	private void initialize(boolean isManager) {
+		frame = new JFrame("WIMS - Manage Employees");
+		frame.setBounds(700, 400, 450, 260);
+		frame.setResizable(false);
+		frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		frame.getContentPane().setLayout(new BoxLayout(frame.getContentPane(), BoxLayout.Y_AXIS));
+		passwordPattern = Pattern.compile(PASSWORD_PATTERN);
+		nextOptionRow = STARTING_OPTION_ROW;
+		initializeLabels();
+		if(isManager)
+		{
+			initializeActionSelection();
+			initializeActionOptionsPanel();
+			initializePerformActionPanel();
+			initializePerfomActionButton((String) comboBoxSelectAction.getSelectedItem());
+		}else{
+			initializeActionOptionsPanel(CHANGE_EMPLOYEE_PASS_ACTION_NAME);
+			initializePerformActionPanel();
+			initializePerfomActionButton(CHANGE_EMPLOYEE_PASS_ACTION_NAME);
+		}
 	}
 	
-	private void initializeReportFrame()
-	{
-		frmWimsReports = new JFrame();
-		frmWimsReports.setTitle("WIMS - Reports");
-		frmWimsReports.setBounds(100, 100, 718, 534);
-		frmWimsReports.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frmWimsReports.getContentPane().setLayout(new BorderLayout(0, 0));
-	}
-	
-	private void initializeReportSelectionOptionsPanel() {
-		reportSelectionOptionsPanel = new JPanel();
-		frmWimsReports.getContentPane().add(reportSelectionOptionsPanel, BorderLayout.NORTH);
-		reportSelectionOptionsPanel.setLayout(new BorderLayout(0, 0));
+	private void initializeLabels() {
+		labelEmployeeID = new JLabel("Employee ID:");
+		labelEmployeeName = new JLabel("Name:");
+		labelCurrentPassword = new JLabel("Current Password:");
+		labelTempPassword = new JLabel("Temporary Password:");
+		labelNewPassword = new JLabel("New Password:");
 	}
 
-	private void initializeReportSelectPanel()
+	private void initializeActionSelection()
 	{
-		reportSelectPanel = new JPanel();
-		FlowLayout fl_reportSelectPanel = (FlowLayout) reportSelectPanel.getLayout();
-		fl_reportSelectPanel.setVgap(10);
-		fl_reportSelectPanel.setAlignment(FlowLayout.LEFT);
-		reportSelectionOptionsPanel.add(reportSelectPanel, BorderLayout.NORTH);
-		
-		JLabel lblNewLabel = new JLabel("Report Type:");
-		lblNewLabel.setFont(new Font("Tahoma", Font.PLAIN, 18));
-		reportSelectPanel.add(lblNewLabel);
+		initializeActionSelectPanel();
+		initializeActionSelectCombo();
 	}
 	
-	private void initializeReportComboBox()
-		{
-			comboBoxReportType = new JComboBox();
-			comboBoxReportType.addActionListener(new ActionListener() {
-				public void actionPerformed(ActionEvent ae) {
-					String itemSelected = (String) comboBoxReportType.getSelectedItem();
-					displayOptionsForReport(itemSelected);
-				}
-			});
-			comboBoxReportType.setFont(new Font("Tahoma", Font.PLAIN, 18));
-			comboBoxReportType.setModel(new DefaultComboBoxModel(REPORT_TYPES));
-			reportSelectPanel.add(comboBoxReportType);
-		}
+	private void initializeActionSelectPanel()
+	{
+		panelSelectAction = new JPanel();
+		frame.getContentPane().add(panelSelectAction);
+		panelSelectAction.setLayout(new FlowLayout(FlowLayout.LEFT, 5, 5));
+	}
 	
-	private void displayOptionsForReport(String reportName)
+	private void initializePerformActionPanel()
+	{
+		panelPerformAction = new JPanel();
+		frame.getContentPane().add(panelPerformAction);
+		panelPerformAction.setLayout(new FlowLayout(FlowLayout.RIGHT, 5, 5));
+	}
+	
+	private void initializePerfomActionButton(String actionName)
+	{
+		clearPerformActionPanel();
+		JButton btnPerformAction;
+		switch (actionName){
+		case ADD_EMPLOYEE_ACTION_NAME: 
+			btnPerformAction = new JButton(ADD_EMPLOYEE_BUTTON_TEXT);
+			break;
+		case CHANGE_EMPLOYEE_PASS_ACTION_NAME: 
+			btnPerformAction = new JButton(CHANGE_EMPLOYEE_PASS_BUTTON_TEXT);
+			break;
+		case DELETE_EMPLOYEE_ACTION_NAME:
+			btnPerformAction = new JButton(DELETE_EMPLOYEE_BUTTON_TEXT);
+			break;
+		case UPDATE_EMPLOYEE_ACTION_NAME:
+			btnPerformAction = new JButton(UPDATE_EMPLOYEE_BUTTON_TEXT);
+			break;
+		default: 
+			btnPerformAction = new JButton(DEFAULT_BUTTON_TEXT);
+			break;
+		}
+		
+		btnPerformAction.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent ae) {
+				performEmployeeChange(actionName);
+			}
+		});
+		
+		btnPerformAction.setFont(new Font("Tahoma", Font.PLAIN, 18));
+		btnPerformAction.setHorizontalAlignment(SwingConstants.RIGHT);
+		btnPerformAction.setVisible(true);
+		panelPerformAction.add(btnPerformAction);
+	}
+	
+	private void performEmployeeChange(String actionName)
+	{
+		switch (actionName){
+		case ADD_EMPLOYEE_ACTION_NAME: 
+			addEnteredEmployee();
+			break;
+		case CHANGE_EMPLOYEE_PASS_ACTION_NAME: 
+			changeEnteredPassword();
+			break;
+		case DELETE_EMPLOYEE_ACTION_NAME:
+			deleteEnteredEmployee();
+			break;
+		case UPDATE_EMPLOYEE_ACTION_NAME:
+			updateEnteredEmployee();
+			break;
+		}
+	}
+	
+	private void updateEnteredEmployee() {
+		// TODO Auto-generated method stub
+	}
+
+	private void deleteEnteredEmployee() {
+		// TODO Auto-generated method stub
+	}
+
+	private void changeEnteredPassword() {
+		final String currentPass = String.valueOf(passFieldCurrentPass.getPassword());
+		final String newPass = String.valueOf(passFieldNewPass.getPassword());
+		try{
+		//TODO check if employee ID exists, check 
+		String currentID = formattedTextFieldEmployeeID.getText();
+		//boolean employeeExists = 
+		boolean validCurrentPass = SQL_Handler.isValidUsernamePassword(currentID, currentPass);
+		boolean validNewPass = validatePassword(newPass);
+		if(!validCurrentPass){
+			JOptionPane.showMessageDialog(frame, "The entered password is incorrect.", 
+			 		"Incorrect Password", JOptionPane.ERROR_MESSAGE);
+		}else if(!validNewPass)
+		{
+			 JOptionPane.showMessageDialog(frame, "The newly entered password is invalid."
+			 		+ PASSWORD_REQUIREMENT_DESCRIPTION, 
+			 		"Invalid Password", JOptionPane.ERROR_MESSAGE);
+		}
+		}catch(SQLException ex)
+		{
+			//TODO what if the current employee has been removed
+			JOptionPane.showMessageDialog(frame, "There was a problem reaching the database.", 
+			 		"Database Error", JOptionPane.ERROR_MESSAGE);
+		}
+	}
+
+	private void addEnteredEmployee() {
+		//TODO check if employee already exists
+		String currentID = formattedTextFieldEmployeeID.getText();
+		String currentName = formattedTextFieldEmployeeName.getText();
+		boolean isManager = checkBoxIsManager.isSelected();
+		// TODO Auto-generated method stub
+	}
+
+	private void clearPerformActionPanel()
+	{
+		panelPerformAction.removeAll();
+		panelPerformAction.revalidate();
+		panelPerformAction.repaint();
+	}
+	
+	private void initializeActionSelectCombo()
+	{
+		comboBoxSelectAction = new JComboBox();
+		comboBoxSelectAction.setFont(new Font("Tahoma", Font.PLAIN, 18));
+		comboBoxSelectAction.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent ae) {
+				String itemSelected = (String) comboBoxSelectAction.getSelectedItem();
+				displayOptionsForAction(itemSelected);
+				initializePerfomActionButton(itemSelected);
+			}
+		});
+		comboBoxSelectAction.setModel(new DefaultComboBoxModel(ACTIONS));
+		panelSelectAction.add(comboBoxSelectAction);
+	}
+	
+	private void initializeActionOptionsPanel()
+	{
+		initializeActionOptionsPanel((String) comboBoxSelectAction.getSelectedItem());
+	}
+	
+	private void initializeActionOptionsPanel(String Action)
+	{
+		panelActionOptions = new JPanel();
+		checkBoxIsManager = new JCheckBox("Employee is a manager");
+		Border borderLoweredBevel = BorderFactory.createLoweredBevelBorder();
+		panelActionOptions.setBorder(borderLoweredBevel);
+		frame.getContentPane().add(panelActionOptions, BorderLayout.SOUTH);
+		GridBagLayout gbl_panelActionOptions = new GridBagLayout();
+		gbl_panelActionOptions.columnWidths = new int[] {20, 100, 50, 0};
+		gbl_panelActionOptions.rowHeights = new int[] {30, 30, 30, 30};
+		gbl_panelActionOptions.columnWeights = new double[]{0.0, 0.0, 0.0, Double.MIN_VALUE};
+		gbl_panelActionOptions.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0};
+		panelActionOptions.setLayout(gbl_panelActionOptions);
+		displayOptionsForAction(Action);
+	}
+	
+	private void clearCurrentOptions()
+	{
+		panelActionOptions.removeAll();
+		panelActionOptions.revalidate();
+		panelActionOptions.repaint();
+		nextOptionRow = STARTING_OPTION_ROW;
+	}
+	
+	private void displayOptionsForAction(String reportName)
 	{
 		clearCurrentOptions();
 		switch (reportName){
-		case AGING_ITEMS_REPORTNAME: 
-			displayAgingItemsOptions();
+		case ADD_EMPLOYEE_ACTION_NAME: 
+			displayAddEmployeeOptions();
 			break;
-		case EMPLOYEES_REPORTNAME: 
-			displayEmployeeOptions();
+		case CHANGE_EMPLOYEE_PASS_ACTION_NAME: 
+			displayChangeEmployeePassOptions();
 			break;
-		case ITEM_OVERVIEW_REPORTNAME:
-			displayItemOverviewOptions();
+		case DELETE_EMPLOYEE_ACTION_NAME:
+			displayDeleteEmployeeOptions();
 			break;
-		case SHIPPED_BY_DATE_REPORTNAME: 
-			displayShippedByDateOptions();
-			break;
-		case RECEIVED_BY_DATE_REPORTNAME: 
-			displayReceivedByDateOptions();
+		case UPDATE_EMPLOYEE_ACTION_NAME:
+			displayUpdateEmployeeOptions();
 			break;
 		}
 	}
-
-	private void clearCurrentOptions()
+	
+	private JFormattedTextField getEmployeeIDTextField()
 	{
-		reportOptionsPanel.removeAll();
-		reportOptionsPanel.revalidate();
-		reportOptionsPanel.repaint();
+		formattedTextFieldEmployeeID = new JFormattedTextField();
+		EmployeeIDDocument idDoc = new EmployeeIDDocument();
+		formattedTextFieldEmployeeID.setDocument(idDoc);
+		formattedTextFieldEmployeeID.setColumns(EMPLOYEE_ID_TEXTFIELD_COLUMNS);
+		return formattedTextFieldEmployeeID;
 	}
 	
-	private JPanel addPanelToOptions()
+	private JPasswordField getPasswordField()
 	{
-		JPanel panel = new JPanel();
-		FlowLayout flowLayout = (FlowLayout) panel.getLayout();
-		flowLayout.setAlignment(FlowLayout.LEFT);
-		reportOptionsPanel.add(panel);
-		return panel;
+		JPasswordField passField = new JPasswordField();
+		passField.setColumns(PASSWORD_FIELD_COLUMNS);
+		return passField;
 	}
 	
-	private JDatePickerImpl getDatePicker()
-	{
-		UtilDateModel model = new UtilDateModel();
-    	//model.setDate(20,04,2014);
-    	// Need this...
-    	Properties p = new Properties();
-    	p.put("text.today", "Today");
-    	p.put("text.month", "Month");
-    	p.put("text.year", "Year");
-    	JDatePanelImpl datePanel = new JDatePanelImpl(model, p);
-    	// Don't know about the formatter, but there it is...
-    	JDatePickerImpl datePicker = new JDatePickerImpl(datePanel, new DateLabelFormatter());
-    	return datePicker;
-	}
 	
-	private void displayReportItemsExecutedByDateOptions(String action) {
-		JPanel row1 = addPanelToOptions();
-		JPanel row2 = addPanelToOptions();
+	private void displayUpdateEmployeeOptions() {
+		formattedTextFieldEmployeeID = getEmployeeIDTextField();
 		
+		formattedTextFieldEmployeeName = getEmployeeNameTextField();
+		textFieldTempPassword = new JTextField();
 		
-		JLabel labelItemsShippedReceivedBy = new JLabel("Displayed items " + action + ":");
-		
-		JDatePickerImpl receivedDatePicker = getDatePicker();
-		
-		comboBoxShippedReceivedBeforeAfter = new JComboBox(new String[]{"Before", "After"});
-		
-		row1.add(labelItemsShippedReceivedBy);
-		row2.add(comboBoxShippedReceivedBeforeAfter);
-		row2.add(receivedDatePicker);
+		addRowToOptions(labelEmployeeID, formattedTextFieldEmployeeID);
+		addRowToOptions(labelEmployeeName, formattedTextFieldEmployeeName);
+		addRowToOptions(null, checkBoxIsManager);
 	}
 
-	private void displayReceivedByDateOptions() {
-		displayReportItemsExecutedByDateOptions("received");
-	}
-	
-	private void displayShippedByDateOptions() {
-		displayReportItemsExecutedByDateOptions("shipped");
-	}
-
-	private void displayItemOverviewOptions() {
-		// TODO Auto-generated method stub
-		
+	private JFormattedTextField getEmployeeNameTextField() {
+		NameDocument employeeNameDoc = new NameDocument();
+		formattedTextFieldEmployeeName = new JFormattedTextField();
+		formattedTextFieldEmployeeName.setDocument(employeeNameDoc);
+		formattedTextFieldEmployeeName.setColumns(EMPLOYEE_NAME_TEXTFIELD_COLUMNS);
+		return formattedTextFieldEmployeeName;
 	}
 
-	private void displayEmployeeOptions() {
-		JPanel row1 = addPanelToOptions();
-		JPanel row2 = addPanelToOptions();
+	private void displayChangeEmployeePassOptions() {
 		
-		JCheckBox chckbxEmployees = new JCheckBox("Display Data about Non-Manager Employees");
-		row1.add(chckbxEmployees);
-		
-		JCheckBox chckbxManagers = new JCheckBox("Display Data about Managers");
-		row2.add(chckbxManagers);
-	}
-
-	private void displayAgingItemsOptions() {
-		JPanel row1 = addPanelToOptions();
-		
-		JLabel lblItemsOlderThan = new JLabel("Display items older than:");
-		row1.add(lblItemsOlderThan);
-		
-		NumberFormat format = NumberFormat.getInstance();
-		format.setGroupingUsed(false);
-	    NumberFormatter formatter = new NumberFormatter(format);
-	    formatter.setValueClass(Integer.class);
-	    formatter.setMinimum(MIN_AGING_ITEMS_DAYS);
-	    formatter.setMaximum(MAX_AGING_ITEMS_DAYS);
-	    formatter.setAllowsInvalid(false);
-	    // If you want the value to be committed on each keystroke instead of focus lost
-	    formatter.setCommitsOnValidEdit(true);
-	    JFormattedTextField textFieldItemsOlderThan = new JFormattedTextField(formatter);
-
-	    textFieldItemsOlderThan.addKeyListener(new KeyListener() {
-	    	
-			@Override
-			public void keyPressed(KeyEvent e) {
-				if(textFieldItemsOlderThan.getText().length() > 0)
-				{
-					//parse text to integer, safe because doc filter only allows ints
-					int currentValue = Integer.parseInt(textFieldItemsOlderThan.getText());
-					//when up is pressed, increment, when down is pressed, decrement
-					if (e.getKeyCode() == KeyEvent.VK_UP && currentValue < MAX_AGING_ITEMS_DAYS) {
-			            currentValue++;
-			        }else if (e.getKeyCode() == KeyEvent.VK_DOWN && currentValue > MIN_AGING_ITEMS_DAYS) {
-			            currentValue--;
-			        }
-					textFieldItemsOlderThan.setText("" + currentValue);
-				}
-			}
-
-			@Override
-			public void keyReleased(KeyEvent e) {
-				// TODO Auto-generated method stub
-				
-			}
-
-			@Override
-			public void keyTyped(KeyEvent e) {
-				// TODO Auto-generated method stub
-			}
-		});
+	    formattedTextFieldEmployeeID = getEmployeeIDTextField();
+	    formattedTextFieldEmployeeID.setEditable(this.isManager); //managers can edit anyones password
 	    
-		row1.add(textFieldItemsOlderThan);
-		textFieldItemsOlderThan.setColumns(3);
+	    //TODO make the employee ID field start as currently logged in employee's ID
+	    //if they arent a manager, it will be uneditable / a label
+	    //also managers shouldnt have to enter the current password to change a password
+		addRowToOptions(labelEmployeeID, formattedTextFieldEmployeeID);
 		
-		JLabel lblDays = new JLabel("days");
-		row1.add(lblDays);
+		//TODO if current entered employee ID is a manager, make this require their password
+		passFieldCurrentPass = getPasswordField();
+		addRowToOptions(labelCurrentPassword, passFieldCurrentPass);
+		
+		passFieldNewPass = getPasswordField();
+		addRowToOptions(labelNewPassword, passFieldNewPass);
 	}
-	
-	private void initializeGenerateButton(){
-		JPanel generateButtonPanel = new JPanel();
-		FlowLayout fl_generateButtonPanel = (FlowLayout) generateButtonPanel.getLayout();
-		fl_generateButtonPanel.setAlignment(FlowLayout.RIGHT);
-		reportSelectionOptionsPanel.add(generateButtonPanel, BorderLayout.SOUTH);
 
+	private void displayDeleteEmployeeOptions() {
+		formattedTextFieldEmployeeID = new JFormattedTextField();
 		
-		JButton btnNewButton = new JButton("Generate");
-		btnNewButton.setFont(new Font("Tahoma", Font.PLAIN, 22));
-		generateButtonPanel.add(btnNewButton);
-		btnNewButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent ae) {
-				generateReport((String) comboBoxReportType.getSelectedItem());
-			}
-		});
-		btnNewButton.setHorizontalAlignment(SwingConstants.RIGHT);
+		addRowToOptions(labelEmployeeID, formattedTextFieldEmployeeID);
+		
+		//TODO make this check database from ID, put name in field for you
+		formattedTextFieldEmployeeName = getEmployeeNameTextField();
+		addRowToOptions(labelEmployeeName, formattedTextFieldEmployeeName);
 	}
 	
-	private void generateReport(String reportName)
+	private void displayAddEmployeeOptions()
 	{
-		switch (reportName){
-		case AGING_ITEMS_REPORTNAME: 
-			displayAgingItemsReport();
-			break;
-		case EMPLOYEES_REPORTNAME: 
-			displayEmployeeReport();
-			break;
-		case ITEM_OVERVIEW_REPORTNAME:
-			displayItemOverviewReport();
-			break;
-		case SHIPPED_BY_DATE_REPORTNAME: 
-			displayShippedByDateReport();
-			break;
-		case RECEIVED_BY_DATE_REPORTNAME: 
-			displayReceivedByDateReport();
-			break;
-		}
+		formattedTextFieldEmployeeID = getEmployeeIDTextField();
+		
+		addRowToOptions(labelEmployeeID, formattedTextFieldEmployeeID);
+		
+		formattedTextFieldEmployeeName = getEmployeeNameTextField();
+		
+		addRowToOptions(labelEmployeeName, formattedTextFieldEmployeeName);
+		
+		textFieldTempPassword = new JTextField();
+		textFieldTempPassword.setColumns(15);
+		
+		addRowToOptions(labelTempPassword, textFieldTempPassword);
+		addRowToOptions(null, checkBoxIsManager);
 	}
 	
-	private void displayReceivedByDateReport() {
-		// TODO Auto-generated method stub
+	
+	/**
+	 * Add a row of options to the gridbaglayout in the options panel, in two columns.
+	 * @param firstColumn the component to place in the first column in this row
+	 * @param secondColumn the component to place in the second column in this row
+	 */
+	private void addRowToOptions(Component firstColumn, Component secondColumn)
+	{
+		Component rigidAreaLeft = Box.createRigidArea(new Dimension(OPTIONS_LEFT_MARGIN, 0));
+		GridBagConstraints gbc_rigidAreaLeft = new GridBagConstraints();
+		gbc_rigidAreaLeft.anchor = GridBagConstraints.WEST;
+		gbc_rigidAreaLeft.insets = new Insets(0, 0, 5, 5);
+		gbc_rigidAreaLeft.gridx = 0;
+		gbc_rigidAreaLeft.gridy = nextOptionRow;
+		panelActionOptions.add(rigidAreaLeft, gbc_rigidAreaLeft);
 		
-	}
-
-	private void displayShippedByDateReport() {
-		// TODO Auto-generated method stub
-		
-	}
-
-	private void displayItemOverviewReport() {
-		// TODO Auto-generated method stub
-		
-	}
-
-	private void displayEmployeeReport() {
-		try{
-		ResultSet employeeResultSet = SQL_Handler.getAllEmp();
-		List<String[]> employeeInfoList = SQL_Handler.getResultSetAsListOfArrays(employeeResultSet);
-		String[] columnNames = SQL_Handler.getColumnNamesFromResultSet(employeeResultSet);
-		populateTable(employeeInfoList, columnNames);
-		}catch(SQLException ex)
+		if(firstColumn != null)
 		{
-			JOptionPane.showMessageDialog(frmWimsReports, "An unexpected database error occured when " 
-					+ "trying to retrieve employee data", "Employee Query Failed", JOptionPane.ERROR_MESSAGE);
+			GridBagConstraints gbc_optionLabel = new GridBagConstraints();
+			gbc_optionLabel.anchor = GridBagConstraints.EAST;
+			gbc_optionLabel.insets = new Insets(0, 0, 5, 5);
+			gbc_optionLabel.gridx = 1;
+			gbc_optionLabel.gridy = nextOptionRow;
+			panelActionOptions.add(firstColumn, gbc_optionLabel);
+		}
+		if(secondColumn != null)
+		{
+			GridBagConstraints gbc_optionTextField = new GridBagConstraints();
+			gbc_optionTextField.fill = GridBagConstraints.HORIZONTAL;
+			gbc_optionTextField.insets = new Insets(0, 0, 5, 5);
+			gbc_optionTextField.anchor = GridBagConstraints.WEST;
+			gbc_optionTextField.gridx = 2;
+			gbc_optionTextField.gridy = nextOptionRow;
+			panelActionOptions.add(secondColumn, gbc_optionTextField);
 		}
 		
+		nextOptionRow++;
 	}
 
-	private void populateTable(List<String[]> dataList, String[] columnNames) {
-		
-        String[][] dataArrays = new String[dataList.size()][];
-        dataArrays = (String[][]) dataList.toArray(dataArrays);
-		populateTable(dataArrays, columnNames);
-	}
+	  /**
+	   * Validate password with regular expression
+	   * @param password password for validation
+	   * @return true valid password, false invalid password
+	   */
+	  public boolean validatePassword(final String password){
+		  passwordMatcher = passwordPattern.matcher(password);
+		  return passwordMatcher.matches();
+	  }
 	
-	private void populateTable(String[][] dataList, String[] columnNames) {
-		DefaultTableModel model = new DefaultTableModel(dataList, columnNames);
-		table.setModel(model);
-		model.fireTableDataChanged();
-	}
-	
-	
-
-	private void displayAgingItemsReport() {
-		// TODO Auto-generated method stub
-		
-	}
-
-	private void initializeReportOptionsPanel()
+	public JFrame getFrame()
 	{
-		reportOptionsPanel = new JPanel();
-		reportSelectionOptionsPanel.add(reportOptionsPanel, BorderLayout.CENTER);
-		reportOptionsPanel.setLayout(new BoxLayout(reportOptionsPanel, BoxLayout.Y_AXIS));
-		
-		displayOptionsForReport((String) comboBoxReportType.getSelectedItem());
-	}
-	
-	private void initializeTable()
-	{
-		reportTableScrollPane = new JScrollPane();
-		frmWimsReports.getContentPane().add(reportTableScrollPane, BorderLayout.CENTER);
-		
-		table = new JTable();
-		TableWidthAdjuster = new WidthAdjuster(table);
-		
-		
-		    
-		table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
-		table.setFillsViewportHeight(true);
-		Object[][] defaultData = new Object[52][50]; 
-		String[] defaultColNames = new String[52];
-		//MyTableModel tabelModel = new MyTableModel(defaultData, defaultColNames)
-		table.setModel(new DefaultTableModel(defaultData, defaultColNames));
-
-		reportTableScrollPane.setViewportView(table);
-	}
-
-	private void initializeExport(){
-		JPanel exportPanel = new JPanel();
-		frmWimsReports.getContentPane().add(exportPanel, BorderLayout.SOUTH);
-		exportPanel.setLayout(new FlowLayout(FlowLayout.RIGHT, 5, 5));
-		
-		JButton btnNewButton_1 = new JButton("Export");
-		btnNewButton_1.setFont(new Font("Tahoma", Font.PLAIN, 26));
-		btnNewButton_1.setHorizontalAlignment(SwingConstants.RIGHT);
-		exportPanel.add(btnNewButton_1);
-	}
-
-	private void initializeBorderStruts()
-	{
-		Component horizontalStrut = Box.createHorizontalStrut(20);
-		frmWimsReports.getContentPane().add(horizontalStrut, BorderLayout.WEST);
-		
-		Component horizontalStrut_1 = Box.createHorizontalStrut(20);
-		frmWimsReports.getContentPane().add(horizontalStrut_1, BorderLayout.EAST);
+		return this.frame;
 	}
 }
