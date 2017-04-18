@@ -6,6 +6,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 /**
  * This class is used to handle common SQL operations for the WIMS application
  * @author Jon Spratt
@@ -16,7 +17,7 @@ public class SQL_Handler {
 	/**
 	 * A collection of prepared SQL statements
 	 */
-	private static HashMap<String, PreparedStatement> sql_statements = populatePreparedStatements();
+	private static HashMap<String, PreparedStatement> sql_statements = (HashMap<String, PreparedStatement>) populatePreparedStatements();
 	/**
 	 * Holds a prepared SQL statement
 	 */
@@ -190,7 +191,7 @@ public class SQL_Handler {
 	 * Populate a hash map of prepared SQL statements
 	 * @return returns a collection of key - prepared SQL statement pairs
 	 */
-	private static HashMap<String, PreparedStatement> populatePreparedStatements() {
+	private static Map<String, PreparedStatement> populatePreparedStatements() {
 		String stmt_key = "";
 		PreparedStatement statement;
 		HashMap<String, PreparedStatement> statements = new HashMap<String, PreparedStatement>();
@@ -199,16 +200,13 @@ public class SQL_Handler {
 		try {			
 			//Key for storage in HashMap
 			stmt_key = "EmpByID";
-			
 			//Prepared SQL statement with wildcard (?)
-			statement = conn.prepareStatement("SELECT * FROM employees " +
-					  						  "WHERE employee_id = ?");
+			statement = conn.prepareStatement("SELECT * FROM employees WHERE employee_id = ?");
 			//Add the prepared statement to the HashMap
 			statements.put(stmt_key, statement);
 			
 			stmt_key = "EmpSalt";
-			statement = conn.prepareStatement("SELECT salt FROM employees " +
-											  "WHERE employee_id = ?");
+			statement = conn.prepareStatement("SELECT salt FROM employees WHERE employee_id = ?");
 			statements.put(stmt_key, statement);
 			
 			stmt_key = "NewEmp";
@@ -227,6 +225,30 @@ public class SQL_Handler {
 			
 			stmt_key = "UpdateItemQty";
 			statement = conn.prepareStatement("UPDATE items SET current_stock = ? WHERE item_number = ?");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "ItemStock";
+			statement = conn.prepareStatement("SELECT current_stock FROM items WHERE item_number = ?");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "FullUpdate";
+			statement = conn.prepareStatement("UPDATE swenggdb.items SET name = ?, price = ?, weight = ?, current_stock = ?, restock_threshold = ? WHERE item_number = ?");
+			statements.put(stmt_key, statement); 
+			
+			stmt_key = "ItemType";
+			statement = conn.prepareStatement("INSERT INTO swenggdb.items_item_category (item_number, type) VALUES (?, ?)");
+			statements.put(stmt_key, statement); 
+			
+			stmt_key = "GetItemTypes";
+			statement = conn.prepareStatement("SELECT * FROM swenggdb.items_item_category WHERE item_number = ?");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "InDB";
+			statement = conn.prepareStatement("SELECT * from items WHERE item_number = ?");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "ItemInfo";
+			statement = conn.prepareStatement("SELECT * FROM swenggdb.items WHERE item_number = ?");
 			statements.put(stmt_key, statement);
 			
 			stmt_key = "ItemStock";
@@ -288,5 +310,103 @@ public class SQL_Handler {
 			 columnNames[i] = rsmd.getColumnName(i+1);
 		 }
 		 return columnNames;
+	}
+	
+	
+	public static void fullItemUpdate(String name, String price, 
+			int weight, int currentStock, int restockThreshold, String itemNumber) throws SQLException
+	{
+		stmt = sql_statements.get("FullUpdate");		
+		stmt.setString(1, name);
+		stmt.setString(2, price);
+		stmt.setInt(3, weight);
+		stmt.setInt(4, currentStock);
+		stmt.setInt(5, restockThreshold);
+		stmt.setString(6, itemNumber);
+		stmt.execute();
+	} 
+	
+	public static void insertItemType(String itemNumber, String itemType) throws SQLException {
+		stmt = sql_statements.get("ItemType");
+		stmt.setString(1, itemNumber);
+		stmt.setString(2, itemType);
+		stmt.execute();
+	}
+	
+	/**
+	 * Get the itemTypes from the database and return them as a list
+	 * @param itemNumber
+	 * @return a list of all the items types of itemNumber as strings
+	 * @throws SQLException
+	 */
+	public static ArrayList<String> getItemTypes(String itemNumber) throws SQLException {
+		ArrayList<String> result = new ArrayList<String>();
+		stmt = sql_statements.get("GetItemTypes");
+		stmt.setString(1, itemNumber);
+		rs = stmt.executeQuery();				//execute
+		while (rs.next()){
+				result.add(rs.getString("type"));	//add it to the list
+		}			
+		return result;
+	}
+	
+
+	
+
+	public static int getItemWeight(String itemNumber) throws SQLException {
+		int weight = 0;
+		stmt = sql_statements.get("ItemInfo");
+		stmt.setString(1, itemNumber);
+		rs = stmt.executeQuery();
+		rs.next();
+		weight = rs.getInt("weight");
+		return weight;
+	}	
+	
+	public static String getItemPrice(String itemNumber) throws SQLException {
+		String price;
+		stmt = sql_statements.get("ItemInfo");
+		stmt.setString(1, itemNumber);
+		rs = stmt.executeQuery();
+		rs.next();
+		price = rs.getString("price");
+		return price;
+	}
+	
+	public static String getItemName(String itemNumber) throws SQLException {
+		String name;
+		stmt = sql_statements.get("ItemInfo");
+		stmt.setString(1, itemNumber);
+		rs = stmt.executeQuery();
+		rs.next();
+		name = rs.getString("name");
+		return name;
+	}
+	
+	/**
+	 * 
+	 * @param itemNumber
+	 * @return
+	 * @throws SQLException
+	 */
+	public static boolean itemInDB(String itemNumber) throws SQLException {
+		stmt = sql_statements.get("InDB");
+		stmt.setString(1, itemNumber);
+		rs = stmt.executeQuery();
+		if (rs.next())
+			return true;
+		else
+			return false;
+	}
+	
+	
+	public static int getItemRestock(String itemNumber) throws SQLException {
+		int reStock = 0;
+		stmt = sql_statements.get("ItemInfo");
+		stmt.setString(1, itemNumber);
+		rs = stmt.executeQuery();
+		rs.next();
+		reStock = rs.getInt("restock_threshold");
+		return reStock;
 	}
 }
