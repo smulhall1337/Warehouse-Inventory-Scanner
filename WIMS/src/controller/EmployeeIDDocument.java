@@ -7,21 +7,19 @@ import javax.swing.text.PlainDocument;
 
 /**
 *
-* 
+* @author cpp-qt
 */
 public class EmployeeIDDocument extends PlainDocument {
 
-	private static final long serialVersionUID = -4123508951048548691L;
-	
-	public static final int MIN_ID_LENGTH = 0;
-	public static final int MAX_ID_LENGTH = 45;
-	
-	//this regex matches 1 or more digits, optionally followed by a dash and a number, followed by any number of numbers
-	public static final String EMPLOYEE_ID_REGEX = "[0-9]+-?[0-9]*?{" + MIN_ID_LENGTH + "," + MAX_ID_LENGTH + "}"; 
-	private String text = "";
-	
-	@Override
-	public void insertString(int offset, String txt, AttributeSet a) {
+public static final int MIN_ID_LENGTH = 0;
+public static final int MAX_ID_LENGTH = 45;
+
+//this regex matches 1 or more digits, optionally followed by a dash and a number, followed by any number of numbers
+public static final String EMPLOYEE_ID_REGEX = "[0-9]+-?[0-9]*?{" + MIN_ID_LENGTH + "," + MAX_ID_LENGTH + "}"; 
+private String text = "";
+
+@Override
+public void insertString(int offset, String txt, AttributeSet a) {
     try {
         text = getText(0, getLength());
         if ((text + txt).matches(EMPLOYEE_ID_REGEX)) {

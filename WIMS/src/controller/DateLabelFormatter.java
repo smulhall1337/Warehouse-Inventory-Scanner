@@ -8,8 +8,10 @@ import javax.swing.JFormattedTextField.AbstractFormatter;
 
 public class DateLabelFormatter extends AbstractFormatter {
 
-	static final long serialVersionUID = -2599442220715466395L;
-	
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = -2599442220715466395L;
 	private String datePattern = "yyyy-MM-dd";
     private SimpleDateFormat dateFormatter = new SimpleDateFormat(datePattern);
 

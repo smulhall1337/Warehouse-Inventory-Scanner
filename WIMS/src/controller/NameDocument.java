@@ -7,12 +7,9 @@ import javax.swing.text.PlainDocument;
 
 /**
 *
-* 
+* @author cpp-qt
 */
 public class NameDocument extends PlainDocument {
-
-
-private static final long serialVersionUID = 4703543304850225476L;
 
 public static final int MIN_NAME_LENGTH = 0;
 public static final int MAX_NAME_LENGTH = 45;

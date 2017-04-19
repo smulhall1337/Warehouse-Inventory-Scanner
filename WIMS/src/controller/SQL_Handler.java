@@ -300,6 +300,36 @@ public class SQL_Handler {
 		return table;
 	}
 	
+	/**
+	 * 
+	 * @param result the result set to convert to a list of arrays
+	 * @return a list containing String arrays, where every index in the list is a row,
+	 * where the String arrays each represent a row
+	 * @throws SQLException
+	 */
+	public static Object[][] getResultSetAs2DObjArray(ResultSet result) throws SQLException
+	{
+		int nCol = result.getMetaData().getColumnCount();
+		//set the resultset to the last row
+		result.last();
+		//save the row number of the last row
+		int nRow = result.getRow();
+		//set the cursor back to the top
+		result.beforeFirst();
+		Object[][] data = new Object[nRow][nCol];
+		int ndx = 0;
+		while( result.next()) {
+		    Object[] row = new Object[nCol];
+		    for( int iCol = 1; iCol <= nCol; iCol++ ){
+		            Object obj = result.getObject( iCol );
+		            row[iCol-1] = obj;
+		    }
+		    data[ndx] = row;
+		    ndx++;
+		}
+		return data;
+	}
+	
 	public static String[] getColumnNamesFromResultSet(ResultSet result) throws SQLException
 	{
 		 ResultSetMetaData rsmd = result.getMetaData();
@@ -408,5 +438,20 @@ public class SQL_Handler {
 		rs.next();
 		reStock = rs.getInt("restock_threshold");
 		return reStock;
+	}
+	//TODO BAD
+	public static ResultSet executeCustomQuery(String query)
+	{
+		Connection conn = getConnection();
+		try {
+			stmt = conn.prepareStatement(query);
+		rs = stmt.executeQuery(); 
+		rs.next();
+		return rs;
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return null;
+		}
 	}
 }
