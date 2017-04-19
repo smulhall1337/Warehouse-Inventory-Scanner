@@ -16,6 +16,7 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -23,6 +24,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
+import java.util.regex.Pattern;
 
 import javax.swing.AbstractButton;
 import javax.swing.BorderFactory;
@@ -44,6 +46,8 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.SwingConstants;
+import javax.swing.SwingWorker;
 import javax.swing.Timer;
 import javax.swing.border.Border;
 import javax.swing.table.TableCellRenderer;
@@ -57,6 +61,9 @@ import org.jdatepicker.impl.UtilDateModel;
 
 import controller.DBNamesManager;
 import controller.DateLabelFormatter;
+import controller.ErrorStatusReportable;
+import controller.ImprovedFormattedTextField;
+import controller.SQL_Handler;
 import controller.WIMSTable;
 import controller.WIMSTableModel;
 import controller.WidthAdjuster;
@@ -106,6 +113,9 @@ public class MainWindow implements ErrorStatusReportable{
 	//How many pixels will be between the table panel and the edge of the window
 	private static final int TABLE_PANEL_MARGIN = 20;
 	
+	private static final String NUMERIC_FIELD_ENTRY_REGEXSTRING = "([+-]?\\d*\\.?\\d*)";
+	private static final DecimalFormat NUMERIC_FIELD_ENTRY_FORMAT = new DecimalFormat(NUMERIC_FIELD_ENTRY_REGEXSTRING);
+	
 	//HashMaps that map each field to a checkbox, used for the "show columns for" checkboxes
 	//Maps are <Key, Value> = <FieldName, CheckBoxForFieldName>
 	private HashMap<String, JCheckBox> palletFieldsCheckBoxesMap;
@@ -128,7 +138,7 @@ public class MainWindow implements ErrorStatusReportable{
 	//JTextField to enter a search string when a String type field is selected
 	private JTextField stringFieldTextField;
 	//JFormattedTextField to enter a number when a numeric type field is selected
-	private JFormattedTextField numericFieldTextField;
+	private ImprovedFormattedTextField numericFieldTextField;
 	
 	//Wrapper panel for the table scrollpane
 	private JPanel tablePanel;
@@ -154,7 +164,8 @@ public class MainWindow implements ErrorStatusReportable{
 	//whether error is active, used so multiple threads arent created
 	private boolean errorIsActive;
 	//how long to display error messages for, in milliseconds
-	protected static final int ERROR_DISPLAY_TIME_MS = 1500;
+	protected static final int ERROR_DISPLAY_TIME_MS = 7000;
+	private SwingWorker<Boolean, Void> updateTableProcess;
 	
 	
 	//Fields for menubar and submenus
@@ -188,6 +199,12 @@ public class MainWindow implements ErrorStatusReportable{
 	private static final int STARTING_OPTION_ROW = 1;
 
 	private static final String LOADING_GIF_ICON_NAME = "loading.gif";
+
+	private static final String BUILDING_QUERY_STATUS_MESSAGE = "Building query...";
+
+	private static final String EXECUTING_QUERY_STATUS_MESSAGE = "Fetching data from database...";
+
+	private static final String UPDATING_TABLE_STATUS_MESSAGE = "Updating table with data...";
 
 	
 
@@ -660,7 +677,7 @@ public class MainWindow implements ErrorStatusReportable{
 		switch (fieldType){
 		case DBNamesManager.NUMERIC_FIELD_TYPE_NAME: 
 			//if numeric, display a number entry text field
-			numericFieldTextField = new JFormattedTextField();
+			numericFieldTextField = new ImprovedFormattedTextField(NUMERIC_FIELD_ENTRY_FORMAT);
 			numericFieldTextField.setColumns(FIELD_OPTION_TEXTBOX_COLUMNS);
 			numericFieldTextField.setFont(FIELD_MODIFIER_COMPONENT_FONT);
 			entityAndFieldSelectPanel.add(numericFieldTextField);
@@ -685,7 +702,7 @@ public class MainWindow implements ErrorStatusReportable{
 	 * Initialize the components for field modifiers
 	 */
 	private void initializeFieldModifierComponents() {
-		numericFieldTextField = new JFormattedTextField();
+		numericFieldTextField = new ImprovedFormattedTextField(NUMERIC_FIELD_ENTRY_FORMAT);
 		stringFieldTextField = new JTextField();
 		dateFieldDatePicker = this.getDatePicker();
 		numericFieldTextField.setFont(FIELD_MODIFIER_COMPONENT_FONT);
@@ -841,20 +858,29 @@ public class MainWindow implements ErrorStatusReportable{
 		updateButtonPanel = new JPanel();
 		allOptionsPanel.add(updateButtonPanel, BorderLayout.SOUTH);
 		updateButtonPanel.setLayout(new FlowLayout(FlowLayout.RIGHT, 5, 5));
+		BoxLayout updatePanelLayout = new BoxLayout(updateButtonPanel, BoxLayout.X_AXIS);
+		updateButtonPanel.setLayout(updatePanelLayout);
+		
 		
 		
 		//create a new label for error status and make the text invisible at first
 		lblErrorStatus = new JLabel("Placeholder text");
 		lblErrorStatus.setForeground(updateButtonPanel.getBackground());
 		lblErrorStatus.setFont(LABEL_FONT);
-		updateButtonPanel.add(lblErrorStatus);
+		//make the error status stick to the left
+		Box errorStatusBox = Box.createHorizontalBox();
+	    errorStatusBox.add(lblErrorStatus);
+	    errorStatusBox.add(Box.createGlue());
+		updateButtonPanel.add(errorStatusBox);
 		
 		//create a label to have the loading gif as its icon
 		lblLoadingIcon = new JLabel("Getting info...");
 		ImageIcon loadingGif = new ImageIcon(getClass().getClassLoader().getResource(LOADING_GIF_ICON_NAME));
-		lblLoadingIcon.setForeground(updateButtonPanel.getBackground());
+		//lblLoadingIcon.setForeground(updateButtonPanel.getBackground());
 		lblLoadingIcon.setFont(LABEL_FONT);
 		lblLoadingIcon.setIcon(loadingGif);
+		lblLoadingIcon.setVisible(false);
+		lblLoadingIcon.setHorizontalTextPosition(SwingConstants.LEFT);
 		updateButtonPanel.add(lblLoadingIcon);
 		
 		//Create the update button and give it an action listener to gather the
@@ -863,31 +889,71 @@ public class MainWindow implements ErrorStatusReportable{
 		updateButton.setFont(BUTTON_FONT);
 		updateButtonPanel.add(updateButton);
 		updateButton.addActionListener(new ActionListener() {
+			
+
 			@Override
 			public void actionPerformed(ActionEvent ae) {
 				String entityName = (String) comboBoxEntityType.getSelectedItem();
 				String fieldName = (String) comboBoxField.getSelectedItem();
 				String fieldModifier = (String) comboBoxFieldModifier.getSelectedItem();
 				String fieldModifierValue = getFieldModifierValue(fieldName);
-				updateTableBasedOnSelection(entityName, fieldName, fieldModifier, fieldModifierValue);
+				updateTableProcess = new SwingWorker<Boolean, Void>() {
+
+			        @Override
+			        protected Boolean doInBackground() throws Exception {
+			        	lblLoadingIcon.setVisible(true);
+			            boolean success = updateTableBasedOnSelection(entityName, fieldName, fieldModifier, fieldModifierValue);
+			            if(success)
+			            {
+				            currentTableEntity = entityName;
+							setAreCheckBoxesAreEnabled(true); //TODO double check this
+							displayColumnHeaderCheckboxesStatus("", lblCheckBoxesStatus.getBackground()); //TODO this is bad
+							clearErrorStatus();
+							mainTable.updateColumnWidths();
+			            }else{
+			            	boolean modifierValueEntered = (fieldModifierValue == null) 
+									|| (!fieldModifierValue.equals(DBNamesManager.getDefaultFieldModifierValue()));
+			            	String error = "There are no results for " + entityName;
+							if(modifierValueEntered)
+								error = error + " with " + fieldName + " " + fieldModifier + " " + fieldModifierValue;
+							error += ".";
+							displayErrorStatus(error);
+							setAreCheckBoxesAreEnabled(false); //TODO double check this
+			            }
+			            return success;
+			        }
+
+			        @Override
+			        protected void done() {
+			            System.out.println("you gotta make this work correctly");  
+			        	lblLoadingIcon.setVisible(false);
+			        	updateFieldModifierComponent(fieldName);
+			        }
+			    };
+			    updateTableProcess.execute();
 			}
 		});
 	}
 	
 	public void displayErrorStatus(String errorText)
 	{
-		ActionListener taskPerformer = new ActionListener() {
-		    public void actionPerformed(ActionEvent evt) {
-		    	if(!errorText.equals(lblErrorStatus.getText()))
-    			{
-		    		lblErrorStatus.setForeground(Color.RED);
-		    		lblErrorStatus.setText(errorText);
-    			}
+		if(!errorText.equals(lblErrorStatus.getText()))
+		{
+			lblErrorStatus.setForeground(Color.RED);
+    		lblErrorStatus.setText(errorText);
+			Timer errorDisplayTimer = new Timer(ERROR_DISPLAY_TIME_MS, new ActionListener() {
+			    public void actionPerformed(ActionEvent evt) {
+		    		clearErrorStatus();
 		    }
-		};
-		Timer errorDisplayTimer = new Timer(ERROR_DISPLAY_TIME_MS, taskPerformer);
-		errorDisplayTimer.setRepeats(false);
-		errorDisplayTimer.start();
+		});
+			errorDisplayTimer.setRepeats(false);
+			errorDisplayTimer.start();
+		}
+	}
+	
+	public void clearErrorStatus()
+	{
+		lblErrorStatus.setText("");
 	}
 	
 	/**
@@ -896,12 +962,15 @@ public class MainWindow implements ErrorStatusReportable{
 	 * @param fieldName the name of the selected field in the field modifier
 	 * @param fieldModifier the description in the field modifier, i.e. "less than" or "starting with"
 	 * @param fieldModifierValue the value the user entered in the field modifier entry field
+	 * @return true if update successful, and false otherwise
 	 */
-	private void updateTableBasedOnSelection(String entityName, String fieldName, String fieldModifier, String fieldModifierValue){
+	private boolean updateTableBasedOnSelection(String entityName, String fieldName, String fieldModifier, String fieldModifierValue){
 		//TODO finish this functionality to interact with the database
 		if (entityName.equals(DBNamesManager.getAllEntitySpecifierDisplayname())) 
 		{
+			return false; //TODO finish
 		} else {
+			lblLoadingIcon.setText(BUILDING_QUERY_STATUS_MESSAGE);
 			String dbEntityName = DBNamesManager.getEntityDatabaseVariableByDisplayName(entityName);
 			String query = "SELECT * FROM " + dbEntityName;
 			//if the user has entered a modifier value
@@ -915,31 +984,25 @@ public class MainWindow implements ErrorStatusReportable{
 				query = query + " WHERE " + dbFieldName + modifierString;
 			}
 			try {
+			lblLoadingIcon.setText(EXECUTING_QUERY_STATUS_MESSAGE);
 			ResultSet result = controller.SQL_Handler.executeCustomQuery(query);
 			if(result.next())
 			{
+				lblLoadingIcon.setText(UPDATING_TABLE_STATUS_MESSAGE);
 				Object[][] data = controller.SQL_Handler.getResultSetAs2DObjArray(result);			
 				String[] columnNames = controller.SQL_Handler.getColumnNamesFromResultSet(result);
-				updateColumnNamesToDisplayNames(columnNames);
+				SQL_Handler.updateColumnNamesToDisplayNames(columnNames);
 				WIMSTableModel tabelModel = new WIMSTableModel(data, columnNames);
 				//headersToColumnMap = mainTable.getTableColumnByHeaderMap();
 				mainTable.setModel(tabelModel);
-				currentTableEntity = entityName;
-				setAreCheckBoxesAreEnabled(true); //TODO double check this
-				displayColumnHeaderCheckboxesStatus("", lblCheckBoxesStatus.getBackground()); //TODO this is bad
+				return true;
 			}else{
-				String error = "There are no results for " + entityName;
-				if(modifierValueEntered)
-					error = error + " with " + fieldName + " " + fieldModifier + " " + fieldModifierValue;
-				error += ".";
-				displayErrorStatus(error);
-				setAreCheckBoxesAreEnabled(false); //TODO double check this
-				
+				return false;
 			}
-			mainTable.updateColumnWidths();
 			} catch (SQLException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
+				return false; //TODO handle returning false on SQL error vs no query results
 			}
 			
 		}
@@ -947,14 +1010,7 @@ public class MainWindow implements ErrorStatusReportable{
 		//TODO THISIS BAD
 	}
 	
-	//TODO should go in SQL handler
-	private void updateColumnNamesToDisplayNames(String[] columnNames) {
-		// TODO Auto-generated method stub
-		for(int i = 0; i < columnNames.length; i++)
-		{
-			columnNames[i] = DBNamesManager.getFieldDisplayNameByDatabaseVariable(columnNames[i]);
-		}
-	}
+	
 
 	private String getQueryModifierString(String fieldModifier, String fieldModifierValue) {
 		String modifierString = "";

@@ -13,6 +13,7 @@ import javax.swing.JComboBox;
 import java.awt.BorderLayout;
 
 import controller.DateLabelFormatter;
+import controller.ErrorStatusReportable;
 import controller.SQL_Handler;
 import controller.WidthAdjuster;
 
