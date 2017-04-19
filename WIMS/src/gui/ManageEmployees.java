@@ -70,7 +70,7 @@ public class ManageEmployees extends JFrame{
 	private static final String PASSWORD_REQUIREMENT_DESCRIPTION = 
 			"Passwords must be 8-20 characters with at least one digit,"
 			+ "\n" + "one upper case letter, one lower case letter,"
-	 		+ "\n" + "and one special symbol (‚Äú@#$%‚Äù)";
+	 		+ "\n" + "and one special symbol (ì@#$%î)";
 	
 	private boolean isManager;
 	

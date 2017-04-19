@@ -14,6 +14,7 @@ import java.awt.BorderLayout;
 
 import controller.DateLabelFormatter;
 import controller.SQL_Handler;
+import controller.WidthAdjuster;
 
 import java.awt.FlowLayout;
 
@@ -47,7 +48,7 @@ import javax.swing.JCheckBox;
 
 import org.jdatepicker.impl.*;
 
-public class ReportsWindow {
+public class ReportsWindow implements ErrorStatusReportable{
 
 	private JFrame frame;
 	private JTable table;
@@ -447,5 +448,11 @@ public class ReportsWindow {
 		
 		Component horizontalStrut_1 = Box.createHorizontalStrut(20);
 		frame.getContentPane().add(horizontalStrut_1, BorderLayout.EAST);
+	}
+
+	@Override
+	public void displayErrorStatus(String errorText) {
+		// TODO Auto-generated method stub
+		
 	}
 }
