@@ -1,7 +1,5 @@
 package controller;
 
-import gui.ErrorStatusReportable;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
@@ -39,49 +37,56 @@ public class DatabaseUpdateTableWorker extends SwingWorker<Integer, String> {
 	
 	@Override
 	protected Integer doInBackground() throws Exception {
-		// Start
-		//(String entityName, String fieldName, String fieldModifier, String fieldModifierValue)
+		
 			//TODO finish this functionality to interact with the database
 			if (entityName.equals(DBNamesManager.getAllEntitySpecifierDisplayname())) 
 			{
 			} else {
-			String dbEntityName = DBNamesManager.getEntityDatabaseVariableByDisplayName(entityName);
-			String query = "SELECT * FROM " + dbEntityName;
-			//if the user has entered a modifier value
-			boolean modifierValueEntered = (fieldModifierValue == null) 
-										|| (!fieldModifierValue.equals(DBNamesManager.getDefaultFieldModifierValue()));
-			if (modifierValueEntered) 
-			{
-				String dbFieldName = DBNamesManager.getFieldDatabaseVariableFieldByDisplayName(fieldName);
-				String modifierString = getQueryModifierString(fieldModifier,
-						fieldModifierValue);
-				query = query + " WHERE " + dbFieldName + modifierString;
+				String dbEntityName = DBNamesManager.getEntityDatabaseVariableByDisplayName(entityName);
+				String query = "SELECT * FROM " + dbEntityName;
+				//if the user has entered a modifier value
+				boolean modifierValueEntered = (fieldModifierValue == null) 
+											|| (!fieldModifierValue.equals(DBNamesManager.getDefaultFieldModifierValue()));
+				if (modifierValueEntered) 
+				{
+					String dbFieldName = DBNamesManager.getFieldDatabaseVariableFieldByDisplayName(fieldName);
+					String modifierString = getQueryModifierString(fieldModifier,
+							fieldModifierValue);
+					query = query + " WHERE " + dbFieldName + modifierString;
+				}
+				try {
+				ResultSet result = controller.SQL_Handler.executeCustomQuery(query);
+				if(result.next())
+				{
+					Object[][] data = controller.SQL_Handler.getResultSetAs2DObjArray(result);			
+					String[] columnNames = controller.SQL_Handler.getColumnNamesFromResultSet(result);
+					SQL_Handler.updateColumnNamesToDisplayNames(columnNames);
+					WIMSTableModel tabelModel = new WIMSTableModel(data, columnNames);
+					//headersToColumnMap = mainTable.getTableColumnByHeaderMap();
+					this.table.setModel(tabelModel);
+					currentTableEntity = this.entityName;
+					setAreCheckBoxesAreEnabled(true); //TODO double check this
+					displayColumnHeaderCheckboxesStatus("", lblCheckBoxesStatus.getBackground()); //TODO this is bad
+					clearErrorStatus();
+				}else{
+					String error = "There are no results for " + entityName;
+					if(modifierValueEntered)
+						error = error + " with " + fieldName + " " + fieldModifier + " " + fieldModifierValue;
+					error += ".";
+					displayErrorStatus(error);
+					setAreCheckBoxesAreEnabled(false); //TODO double check this
+					
+				}
+				mainTable.updateColumnWidths();
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				
 			}
-			try {
-			ResultSet result = controller.SQL_Handler.executeCustomQuery(query);
-			if(result.next())
-			{
-				Object[][] data = controller.SQL_Handler.getResultSetAs2DObjArray(result);			
-				String[] columnNames = controller.SQL_Handler.getColumnNamesFromResultSet(result);
-	
-				WIMSTableModel tabelModel = new WIMSTableModel(data, columnNames);
-				table.setModel(tabelModel);
-			}else{
-				String error = "There are no results for " + entityName;
-				if(modifierValueEntered)
-					error = error + " with " + fieldName + " " + fieldModifier + " " + fieldModifierValue;
-				error += ".";
-				window.displayErrorStatus(error);
-			}
-			table.updateColumnWidths();
-			} catch (SQLException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			
-		}
-		//TODO make it update the table neatly, probably in another method
-		//TODO THISIS BAD
+			//TODO make it update the table neatly, probably in another method
+			//TODO THISIS BAD
+		
 	
 		
 		

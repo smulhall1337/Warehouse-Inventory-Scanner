@@ -14,6 +14,7 @@ public class DBNamesManager {
 	public static final String[] ENTITY_DISPLAYNAMES = {ITEM_ENTITY_DISPLAYNAME, PALLET_ENTITY_DISPLAYNAME, ORDER_ENTITY_DISPLAYNAME, ALL_ENTITY_SPECIFIER_DISPLAYNAME};
 	
 	//All of the Item fields
+	public static final String ITEM_SIMPLE_INDEX_DISPLAYNAME = "Simple Item Index";
 	public static final String ITEM_NAME_FIELD_DISPLAYNAME = "Name";
 	public static final String ITEM_NUMBER_FIELD_DISPLAYNAME = "Item Number";
 	public static final String ITEM_PRICE_FIELD_DISPLAYNAME = "Price";
@@ -22,10 +23,11 @@ public class DBNamesManager {
 	public static final String ITEM_RESTOCK_FIELD_DISPLAYNAME = "Restock Threshold";
 	//TODO handle item categories--get from SQL handler as 1 string with commas, display in one column
 	//Item fields for the fields combobox
-	public static final String[] ITEM_FIELD_DISPLAYNAMES = {ITEM_NAME_FIELD_DISPLAYNAME, ITEM_NUMBER_FIELD_DISPLAYNAME, ITEM_PRICE_FIELD_DISPLAYNAME,
+	public static final String[] ITEM_FIELD_DISPLAYNAMES = {ITEM_SIMPLE_INDEX_DISPLAYNAME, ITEM_NAME_FIELD_DISPLAYNAME, ITEM_NUMBER_FIELD_DISPLAYNAME, ITEM_PRICE_FIELD_DISPLAYNAME,
 													ITEM_WEIGHT_FIELD_DISPLAYNAME, ITEM_CURR_STOCK_FIELD_DISPLAYNAME, ITEM_RESTOCK_FIELD_DISPLAYNAME};
 	
 	//All of the Pallet fields
+	public static final String PALLET_SIMPLE_INDEX_DISPLAYNAME = "Simple Pallet Index";
 	public static final String PALLET_ID_FIELD_DISPLAYNAME = "Pallet ID";
 	public static final String PALLET_ORDER_NUM_FIELD_DISPLAYNAME = "Order Number";
 	public static final String PALLET_LOC_FIELD_DISPLAYNAME = "Location";
@@ -38,12 +40,13 @@ public class DBNamesManager {
 	public static final String PALLET_SHIP_DATE_FIELD_DISPLAYNAME = "Ship Date";
 	public static final String PALLET_NOTES_FIELD_DISPLAYNAME = "Notes";
 	//Pallet fields for the fields combobox
-	public static final String[] PALLET_FIELD_DISPLAYNAMES = {PALLET_ID_FIELD_DISPLAYNAME, PALLET_ORDER_NUM_FIELD_DISPLAYNAME, PALLET_LOC_FIELD_DISPLAYNAME,
+	public static final String[] PALLET_FIELD_DISPLAYNAMES = {PALLET_SIMPLE_INDEX_DISPLAYNAME, PALLET_ID_FIELD_DISPLAYNAME, PALLET_ORDER_NUM_FIELD_DISPLAYNAME, PALLET_LOC_FIELD_DISPLAYNAME,
 									PALLET_PIECE_COUNT_FIELD_DISPLAYNAME, PALLET_WEIGHT_FIELD_DISPLAYNAME, PALLET_LENGTH_FIELD_DISPLAYNAME, PALLET_WIDTH_FIELD_DISPLAYNAME, 
 									PALLET_HEIGHT_FIELD_DISPLAYNAME, PALLET_RECEIVE_DATE_FIELD_DISPLAYNAME, PALLET_SHIP_DATE_FIELD_DISPLAYNAME, PALLET_NOTES_FIELD_DISPLAYNAME};
 	
 	
 	//All of the Order fields
+	public static final String ORDER_SIMPLE_INDEX_DISPLAYNAME = "Simple Order Index";
 	public static final String ORDER_NUM_FIELD_DISPLAYNAME = "Order Number";
 	public static final String ORDER_ORIGIN_FIELD_DISPLAYNAME = "Origin";
 	public static final String ORDER_DEST_FIELD_DISPLAYNAME = "Destination";
@@ -52,7 +55,7 @@ public class DBNamesManager {
 	public static final String ORDER_RECEIVING_EMPLOYEE_FIELD_DISPLAYNAME = "Employee Received By";
 	public static final String ORDER_SHIPPING_EMPLOYEE_FIELD_DISPLAYNAME = "Employee Shipped By";
 	//Order fields for the fields combobox
-	public static final String[] ORDER_FIELD_DISPLAYNAMES = {ORDER_NUM_FIELD_DISPLAYNAME, ORDER_ORIGIN_FIELD_DISPLAYNAME, ORDER_DEST_FIELD_DISPLAYNAME, ORDER_DATE_PLACED_FIELD_DISPLAYNAME,
+	public static final String[] ORDER_FIELD_DISPLAYNAMES = {ORDER_SIMPLE_INDEX_DISPLAYNAME, ORDER_NUM_FIELD_DISPLAYNAME, ORDER_ORIGIN_FIELD_DISPLAYNAME, ORDER_DEST_FIELD_DISPLAYNAME, ORDER_DATE_PLACED_FIELD_DISPLAYNAME,
 													ORDER_DATE_SHIPPED_FIELD_DISPLAYNAME, ORDER_RECEIVING_EMPLOYEE_FIELD_DISPLAYNAME, 
 													ORDER_SHIPPING_EMPLOYEE_FIELD_DISPLAYNAME};
 	
@@ -64,17 +67,19 @@ public class DBNamesManager {
 		PALLET_DB_ENTITY_NAME, ORDER_DB_ENTITY_NAME};
 	
 	//All of the Item database fields
+	public static final String ITEM_SIMPLE_INDEX_DB_FIELD = "simple_item_index";
 	public static final String ITEM_NAME_DB_FIELD = "name";
 	public static final String ITEM_NUMBER_DB_FIELD = "item_number";
 	public static final String ITEM_PRICE_DB_FIELD = "price";
 	public static final String ITEM_WEIGHT_DB_FIELD = "weight";
 	public static final String ITEM_CURR_STOCK_DB_FIELD = "current_stock";
 	public static final String ITEM_RESTOCK_DB_FIELD = "restock_threshold";
-	public static final String[] ITEM_DB_FIELDS = {ITEM_NAME_DB_FIELD, ITEM_NUMBER_DB_FIELD, ITEM_PRICE_DB_FIELD,
+	public static final String[] ITEM_DB_FIELDS = {ITEM_SIMPLE_INDEX_DB_FIELD, ITEM_NAME_DB_FIELD, ITEM_NUMBER_DB_FIELD, ITEM_PRICE_DB_FIELD,
 		ITEM_WEIGHT_DB_FIELD, ITEM_CURR_STOCK_DB_FIELD, ITEM_RESTOCK_DB_FIELD};
 	
 	
 	//All of the Pallet database fields
+	public static final String PALLET_SIMPLE_INDEX_DB_FIELD = "simple_pallet_index";
 	public static final String PALLET_ID_DB_FIELD = "pallet_id";
 	public static final String PALLET_ORDER_NUM_DB_FIELD = "order_number";
 	public static final String PALLET_LOC_DB_FIELD = "location_coordinate";
@@ -86,12 +91,13 @@ public class DBNamesManager {
 	public static final String PALLET_RECEIVE_DATE_DB_FIELD = "receival_date";
 	public static final String PALLET_SHIP_DATE_DB_FIELD = "ship_date";
 	public static final String PALLET_NOTES_DB_FIELD = "notes";
-	public static final String[] PALLET_DB_FIELDS = {PALLET_ID_DB_FIELD, PALLET_ORDER_NUM_DB_FIELD, PALLET_LOC_DB_FIELD,
+	public static final String[] PALLET_DB_FIELDS = {PALLET_SIMPLE_INDEX_DB_FIELD, PALLET_ID_DB_FIELD, PALLET_ORDER_NUM_DB_FIELD, PALLET_LOC_DB_FIELD,
 		PALLET_PIECE_COUNT_DB_FIELD, PALLET_WEIGHT_DB_FIELD, PALLET_LENGTH_DB_FIELD, PALLET_WIDTH_DB_FIELD, 
 		PALLET_HEIGHT_DB_FIELD, PALLET_RECEIVE_DATE_DB_FIELD, PALLET_SHIP_DATE_DB_FIELD, PALLET_NOTES_DB_FIELD};
 
 	
 	//All of the Order database fields
+	public static final String ORDER_SIMPLE_INDEX_DB_FIELD = "simple_order_index";
 	public static final String ORDER_NUM_DB_FIELD = "order_number";
 	public static final String ORDER_ORIGIN_DB_FIELD = "origin";
 	public static final String ORDER_DEST_DB_FIELD = "destination";
@@ -173,6 +179,7 @@ public class DBNamesManager {
 	}
 	
 	private static void addItemFieldDisplayNamesToMapByDBName(HashMap<String, String> buildFieldDBNameToDisplayNameNameMap) {
+		buildFieldDBNameToDisplayNameNameMap.put(ITEM_SIMPLE_INDEX_DB_FIELD, ITEM_SIMPLE_INDEX_DISPLAYNAME);
 		buildFieldDBNameToDisplayNameNameMap.put(ITEM_NAME_DB_FIELD, ITEM_NAME_FIELD_DISPLAYNAME);
 		buildFieldDBNameToDisplayNameNameMap.put(ITEM_PRICE_DB_FIELD, ITEM_PRICE_FIELD_DISPLAYNAME);
 		buildFieldDBNameToDisplayNameNameMap.put(ITEM_WEIGHT_DB_FIELD, ITEM_WEIGHT_FIELD_DISPLAYNAME);
@@ -185,6 +192,7 @@ public class DBNamesManager {
 	
 	private static void addPalletFieldDisplayNamesToMapByDBName(HashMap<String, String> buildFieldDBNameToDisplayNameMap) 
 	{
+		buildFieldDBNameToDisplayNameMap.put(PALLET_SIMPLE_INDEX_DB_FIELD, PALLET_SIMPLE_INDEX_DISPLAYNAME);
 		buildFieldDBNameToDisplayNameMap.put(PALLET_PIECE_COUNT_DB_FIELD, PALLET_PIECE_COUNT_FIELD_DISPLAYNAME);
 		buildFieldDBNameToDisplayNameMap.put(PALLET_WEIGHT_DB_FIELD, PALLET_WEIGHT_FIELD_DISPLAYNAME);
 		buildFieldDBNameToDisplayNameMap.put(PALLET_LENGTH_DB_FIELD, PALLET_LENGTH_FIELD_DISPLAYNAME);
@@ -202,6 +210,7 @@ public class DBNamesManager {
 	
 	private static void addOrderFieldDisplayNamesToMapByDBName(HashMap<String, String> buildFieldDBNameToDisplayNameMap) 
 	{
+		buildFieldDBNameToDisplayNameMap.put(ORDER_SIMPLE_INDEX_DB_FIELD, ORDER_SIMPLE_INDEX_DISPLAYNAME);
 		buildFieldDBNameToDisplayNameMap.put(ORDER_NUM_DB_FIELD, ORDER_NUM_FIELD_DISPLAYNAME);
 		buildFieldDBNameToDisplayNameMap.put(ORDER_ORIGIN_DB_FIELD, ORDER_ORIGIN_FIELD_DISPLAYNAME);
 		buildFieldDBNameToDisplayNameMap.put(ORDER_DEST_DB_FIELD, ORDER_DEST_FIELD_DISPLAYNAME);
@@ -215,8 +224,8 @@ public class DBNamesManager {
 	/**
 	 * =======================================================================================================
 	 * *******************************************************************************************************
-	 * *******************************KEY: DATABASE-SIDE FIELD NAME	 *************************************
-	 * *******************************VALUE: GUI-SIDE FIELD DISPLAYNAME *************************************
+	 * *******************************KEY: 	 GUI-SIDE FIELD DISPLAYNAME  *************************************
+	 * *******************************VALUE: DATABASE-SIDE FIELD NAME    *************************************
 	 * =======================================================================================================
 	 */
 	private static HashMap<String, String> buildFieldDBNameByDisplayNameMap() {
@@ -228,6 +237,7 @@ public class DBNamesManager {
 	}
 	
 	private static void addItemFieldDBNamesToMapByDisplayName(HashMap<String, String> buildLocalFieldNameToDBFieldNameMap) {
+		buildLocalFieldNameToDBFieldNameMap.put(ITEM_SIMPLE_INDEX_DISPLAYNAME, ITEM_SIMPLE_INDEX_DB_FIELD);
 		buildLocalFieldNameToDBFieldNameMap.put(ITEM_NAME_FIELD_DISPLAYNAME, ITEM_NAME_DB_FIELD);
 		buildLocalFieldNameToDBFieldNameMap.put(ITEM_PRICE_FIELD_DISPLAYNAME, ITEM_PRICE_DB_FIELD);
 		buildLocalFieldNameToDBFieldNameMap.put(ITEM_WEIGHT_FIELD_DISPLAYNAME, ITEM_WEIGHT_DB_FIELD);
@@ -240,6 +250,7 @@ public class DBNamesManager {
 	
 	private static void addPalletFieldDBNamesToMapByDisplayName(HashMap<String, String> buildLocalFieldNameToDBFieldNameMap) 
 	{
+		buildLocalFieldNameToDBFieldNameMap.put(PALLET_SIMPLE_INDEX_DISPLAYNAME, PALLET_SIMPLE_INDEX_DB_FIELD);
 		buildLocalFieldNameToDBFieldNameMap.put(PALLET_PIECE_COUNT_FIELD_DISPLAYNAME, PALLET_PIECE_COUNT_DB_FIELD);
 		buildLocalFieldNameToDBFieldNameMap.put(PALLET_WEIGHT_FIELD_DISPLAYNAME, PALLET_WEIGHT_DB_FIELD);
 		buildLocalFieldNameToDBFieldNameMap.put(PALLET_LENGTH_FIELD_DISPLAYNAME, PALLET_LENGTH_DB_FIELD);
@@ -257,6 +268,7 @@ public class DBNamesManager {
 	
 	private static void addOrderFieldDBNamesToMapByDisplayName(HashMap<String, String> buildLocalFieldNameToDBFieldNameMap) 
 	{
+		buildLocalFieldNameToDBFieldNameMap.put(ORDER_SIMPLE_INDEX_DISPLAYNAME, ORDER_SIMPLE_INDEX_DB_FIELD);
 		buildLocalFieldNameToDBFieldNameMap.put(ORDER_NUM_FIELD_DISPLAYNAME, ORDER_NUM_DB_FIELD);
 		buildLocalFieldNameToDBFieldNameMap.put(ORDER_ORIGIN_FIELD_DISPLAYNAME, ORDER_ORIGIN_DB_FIELD);
 		buildLocalFieldNameToDBFieldNameMap.put(ORDER_DEST_FIELD_DISPLAYNAME, ORDER_DEST_DB_FIELD);
@@ -314,6 +326,7 @@ public class DBNamesManager {
 	
 	private static void addItemFieldTypesToMapByDBName(
 		HashMap<String, String> buildingFieldDBNameToDataTypeMap) {
+		buildingFieldDBNameToDataTypeMap.put(ITEM_SIMPLE_INDEX_DB_FIELD, NUMERIC_FIELD_TYPE_NAME);
 		buildingFieldDBNameToDataTypeMap.put(ITEM_PRICE_DB_FIELD, NUMERIC_FIELD_TYPE_NAME);
 		buildingFieldDBNameToDataTypeMap.put(ITEM_WEIGHT_DB_FIELD, NUMERIC_FIELD_TYPE_NAME);
 		buildingFieldDBNameToDataTypeMap.put(ITEM_CURR_STOCK_DB_FIELD, NUMERIC_FIELD_TYPE_NAME);
@@ -325,24 +338,34 @@ public class DBNamesManager {
 	
 	private static void addPalletFieldTypesToMapByDBName(
 		HashMap<String, String> buildingFieldDBNameToDataTypeMap) {
-		buildingFieldDBNameToDataTypeMap.put(PALLET_PIECE_COUNT_DB_FIELD, PALLET_PIECE_COUNT_FIELD_DISPLAYNAME);
-		buildingFieldDBNameToDataTypeMap.put(PALLET_WEIGHT_DB_FIELD, PALLET_WEIGHT_FIELD_DISPLAYNAME);
-		buildingFieldDBNameToDataTypeMap.put(PALLET_LENGTH_DB_FIELD, PALLET_LENGTH_FIELD_DISPLAYNAME);
-		buildingFieldDBNameToDataTypeMap.put(PALLET_WIDTH_DB_FIELD, PALLET_WIDTH_FIELD_DISPLAYNAME);
-		buildingFieldDBNameToDataTypeMap.put(PALLET_HEIGHT_DB_FIELD, PALLET_HEIGHT_FIELD_DISPLAYNAME);
+		buildingFieldDBNameToDataTypeMap.put(PALLET_SIMPLE_INDEX_DB_FIELD, NUMERIC_FIELD_TYPE_NAME);
+		buildingFieldDBNameToDataTypeMap.put(PALLET_PIECE_COUNT_DB_FIELD, NUMERIC_FIELD_TYPE_NAME);
+		buildingFieldDBNameToDataTypeMap.put(PALLET_WEIGHT_DB_FIELD, NUMERIC_FIELD_TYPE_NAME);
+		buildingFieldDBNameToDataTypeMap.put(PALLET_LENGTH_DB_FIELD, NUMERIC_FIELD_TYPE_NAME);
+		buildingFieldDBNameToDataTypeMap.put(PALLET_WIDTH_DB_FIELD, NUMERIC_FIELD_TYPE_NAME);
+		buildingFieldDBNameToDataTypeMap.put(PALLET_HEIGHT_DB_FIELD, NUMERIC_FIELD_TYPE_NAME);
 		
-		buildingFieldDBNameToDataTypeMap.put(PALLET_ID_DB_FIELD, PALLET_ID_FIELD_DISPLAYNAME);
-		buildingFieldDBNameToDataTypeMap.put(PALLET_ORDER_NUM_DB_FIELD, PALLET_ORDER_NUM_FIELD_DISPLAYNAME);
-		buildingFieldDBNameToDataTypeMap.put(PALLET_LOC_DB_FIELD, PALLET_LOC_FIELD_DISPLAYNAME);
-		buildingFieldDBNameToDataTypeMap.put(PALLET_NOTES_DB_FIELD, PALLET_NOTES_FIELD_DISPLAYNAME);
+		buildingFieldDBNameToDataTypeMap.put(PALLET_ID_DB_FIELD, STRING_FIELD_TYPE_NAME);
+		buildingFieldDBNameToDataTypeMap.put(PALLET_ORDER_NUM_DB_FIELD, STRING_FIELD_TYPE_NAME);
+		buildingFieldDBNameToDataTypeMap.put(PALLET_LOC_DB_FIELD, STRING_FIELD_TYPE_NAME);
+		buildingFieldDBNameToDataTypeMap.put(PALLET_NOTES_DB_FIELD, STRING_FIELD_TYPE_NAME);
 
-		buildingFieldDBNameToDataTypeMap.put(PALLET_RECEIVE_DATE_DB_FIELD, PALLET_RECEIVE_DATE_FIELD_DISPLAYNAME);
-		buildingFieldDBNameToDataTypeMap.put(PALLET_SHIP_DATE_DB_FIELD, PALLET_SHIP_DATE_FIELD_DISPLAYNAME);
+		buildingFieldDBNameToDataTypeMap.put(PALLET_RECEIVE_DATE_DB_FIELD, DATE_FIELD_TYPE_NAME);
+		buildingFieldDBNameToDataTypeMap.put(PALLET_SHIP_DATE_DB_FIELD, DATE_FIELD_TYPE_NAME);
 	}
 	
 	private static void addOrderFieldTypesToMapByDBName(
 			HashMap<String, String> buildingFieldDBNameToDataTypeMap) {
-		// TODO Auto-generated method stub	
+		buildingFieldDBNameToDataTypeMap.put(ORDER_SIMPLE_INDEX_DB_FIELD, NUMERIC_FIELD_TYPE_NAME);
+
+		buildingFieldDBNameToDataTypeMap.put(ORDER_NUM_DB_FIELD, STRING_FIELD_TYPE_NAME);
+		buildingFieldDBNameToDataTypeMap.put(ORDER_ORIGIN_DB_FIELD, STRING_FIELD_TYPE_NAME);
+		buildingFieldDBNameToDataTypeMap.put(ORDER_DEST_DB_FIELD, STRING_FIELD_TYPE_NAME);
+		buildingFieldDBNameToDataTypeMap.put(ORDER_RECEIVING_EMPLOYEE_DB_FIELD, STRING_FIELD_TYPE_NAME);
+		buildingFieldDBNameToDataTypeMap.put(ORDER_SHIPPING_EMPLOYEE_DB_FIELD, STRING_FIELD_TYPE_NAME);
+		
+		buildingFieldDBNameToDataTypeMap.put(ORDER_DATE_PLACED_DB_FIELD, DATE_FIELD_TYPE_NAME);
+		buildingFieldDBNameToDataTypeMap.put(ORDER_DATE_SHIPPED_DB_FIELD, DATE_FIELD_TYPE_NAME);
 	}
 
 	/**
@@ -362,6 +385,7 @@ public class DBNamesManager {
 	
 	private static void addItemFieldTypesToMapByDisplayName(HashMap<String, String> buildingDataTypesMap)
 	{
+		buildingDataTypesMap.put(ITEM_SIMPLE_INDEX_DISPLAYNAME, NUMERIC_FIELD_TYPE_NAME);
 		buildingDataTypesMap.put(ITEM_PRICE_FIELD_DISPLAYNAME, NUMERIC_FIELD_TYPE_NAME);
 		buildingDataTypesMap.put(ITEM_WEIGHT_FIELD_DISPLAYNAME, NUMERIC_FIELD_TYPE_NAME);
 		buildingDataTypesMap.put(ITEM_CURR_STOCK_FIELD_DISPLAYNAME, NUMERIC_FIELD_TYPE_NAME);
@@ -373,6 +397,7 @@ public class DBNamesManager {
 
 	private static void addPalletFieldTypesToMapByDisplayName(HashMap<String, String> buildingDataTypesMap)
 	{
+		buildingDataTypesMap.put(PALLET_SIMPLE_INDEX_DISPLAYNAME, NUMERIC_FIELD_TYPE_NAME);
 		buildingDataTypesMap.put(PALLET_PIECE_COUNT_FIELD_DISPLAYNAME, NUMERIC_FIELD_TYPE_NAME);
 		buildingDataTypesMap.put(PALLET_WEIGHT_FIELD_DISPLAYNAME, NUMERIC_FIELD_TYPE_NAME);
 		buildingDataTypesMap.put(PALLET_LENGTH_FIELD_DISPLAYNAME, NUMERIC_FIELD_TYPE_NAME);
@@ -390,6 +415,8 @@ public class DBNamesManager {
 	
 	private static void addOrderFieldTypesToMapByDisplayName(HashMap<String, String> buildingDataTypesMap)
 	{	
+		buildingDataTypesMap.put(ORDER_SIMPLE_INDEX_DISPLAYNAME, NUMERIC_FIELD_TYPE_NAME);
+		
 		buildingDataTypesMap.put(ORDER_NUM_FIELD_DISPLAYNAME, STRING_FIELD_TYPE_NAME);
 		buildingDataTypesMap.put(ORDER_ORIGIN_FIELD_DISPLAYNAME, STRING_FIELD_TYPE_NAME);
 		buildingDataTypesMap.put(ORDER_DEST_FIELD_DISPLAYNAME, STRING_FIELD_TYPE_NAME);

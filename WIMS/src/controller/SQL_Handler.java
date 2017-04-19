@@ -454,4 +454,13 @@ public class SQL_Handler {
 			return null;
 		}
 	}
+	
+	//TODO should go in SQL handler
+		public static void updateColumnNamesToDisplayNames(String[] columnNames) {
+			// TODO Auto-generated method stub
+			for(int i = 0; i < columnNames.length; i++)
+			{
+				columnNames[i] = DBNamesManager.getFieldDisplayNameByDatabaseVariable(columnNames[i]);
+			}
+		}
 }
