@@ -18,15 +18,19 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 
+import javax.swing.AbstractButton;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.DefaultComboBoxModel;
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
@@ -40,157 +44,53 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.Timer;
 import javax.swing.border.Border;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
+import javax.swing.table.TableColumnModel;
 import javax.swing.table.TableRowSorter;
 
 import org.jdatepicker.impl.JDatePanelImpl;
 import org.jdatepicker.impl.JDatePickerImpl;
 import org.jdatepicker.impl.UtilDateModel;
 
+import controller.DBNamesManager;
 import controller.DateLabelFormatter;
-import controller.TableColumnAdjuster;
+import controller.WIMSTable;
 import controller.WIMSTableModel;
+import controller.WidthAdjuster;
 
-public class MainWindow {
+public class MainWindow implements ErrorStatusReportable{
 
 	private JFrame frame;
-	
-	//All of the entity type names for the entity type combobox
-	private static final String ITEM_ENTITY_NAME = "Items";
-	private static final String PALLET_ENTITY_NAME = "Pallets";
-	private static final String ORDER_ENTITY_NAME = "Orders";
-	private static final String ALL_ENTITY_NAME = "All warehouse entities";
-	private static final String[] ENTITIES = {ITEM_ENTITY_NAME, PALLET_ENTITY_NAME, ORDER_ENTITY_NAME, ALL_ENTITY_NAME};
-	
-	//All of the Item fields
-	private static final String ITEM_NAME_FIELD = "Name";
-	private static final String ITEM_NUMBER_FIELD = "Item Number";
-	private static final String ITEM_PRICE_FIELD = "Price";
-	private static final String ITEM_WEIGHT_FIELD = "Weight";
-	private static final String ITEM_CURR_STOCK_FIELD = "Current Stock";
-	private static final String ITEM_RESTOCK_FIELD = "Restock Threshold";
-	//TODO handle item categories--get from SQL handler as 1 string with commas, display in one column
-	
-	//All of the Pallet fields
-	private static final String PALLET_ID_FIELD = "Pallet ID";
-	private static final String PALLET_ORDER_NUM_FIELD = "Order Number";
-	private static final String PALLET_LOC_FIELD = "Location";
-	private static final String PALLET_PIECE_COUNT_FIELD = "Piece Count";
-	private static final String PALLET_WEIGHT_FIELD = "Weight";
-	private static final String PALLET_LENGTH_FIELD = "Length";
-	private static final String PALLET_WIDTH_FIELD = "Width";
-	private static final String PALLET_HEIGHT_FIELD = "Height";
-	private static final String PALLET_RECEIVE_DATE_FIELD = "Receival Date";
-	private static final String PALLET_SHIP_DATE_FIELD = "Ship Date";
-	private static final String PALLET_NOTES_FIELD = "Notes";
-	
-	//All of the Order fields
-	private static final String ORDER_NUM_FIELD = "Order Number";
-	private static final String ORDER_ORIGIN_FIELD = "Origin";
-	private static final String ORDER_DEST_FIELD = "Destination";
-	private static final String ORDER_DATE_PLACED_FIELD = "Date Placed";
-	private static final String ORDER_DATE_SHIPPED_FIELD = "Date Shipped";
-	private static final String ORDER_RECEIVING_EMPLOYEE_FIELD = "Employee Received By";
-	private static final String ORDER_SHIPPING_EMPLOYEE_FIELD = "Employee Shipped By";
-	
-	//All of the entity type names for the entity type combobox
-	private static final String ITEM_DB_ENTITY_NAME = "Items";
-	private static final String PALLET_DB_ENTITY_NAME = "Pallets";
-	private static final String ORDER_DB_ENTITY_NAME = "Orders";
-	private static final String[] ALL_DB_ENTITIES = {ITEM_DB_ENTITY_NAME, 
-		PALLET_DB_ENTITY_NAME, ORDER_DB_ENTITY_NAME};
-	
-	//All of the Item database fields
-	private static final String ITEM_NAME_DB_FIELD = "name";
-	private static final String ITEM_NUMBER_DB_FIELD = "item_number";
-	private static final String ITEM_PRICE_DB_FIELD = "price";
-	private static final String ITEM_WEIGHT_DB_FIELD = "weight";
-	private static final String ITEM_CURR_STOCK_DB_FIELD = "current_stock";
-	private static final String ITEM_RESTOCK_DB_FIELD = "restock_threshold";
-	
-	//All of the Pallet database fields
-	private static final String PALLET_ID_DB_FIELD = "pallet_id";
-	private static final String PALLET_ORDER_NUM_DB_FIELD = "order_number";
-	private static final String PALLET_LOC_DB_FIELD = "location_coordinate";
-	private static final String PALLET_PIECE_COUNT_DB_FIELD = "piece_count";
-	private static final String PALLET_WEIGHT_DB_FIELD = "weight";
-	private static final String PALLET_LENGTH_DB_FIELD = "length";
-	private static final String PALLET_WIDTH_DB_FIELD = "width";
-	private static final String PALLET_HEIGHT_DB_FIELD = "height";
-	private static final String PALLET_RECEIVE_DATE_DB_FIELD = "receival_date";
-	private static final String PALLET_SHIP_DATE_DB_FIELD = "ship_date";
-	private static final String PALLET_NOTES_DB_FIELD = "notes";
-	
-	//All of the Order database fields
-	private static final String ORDER_NUM_DB_FIELD = "order_number";
-	private static final String ORDER_ORIGIN_DB_FIELD = "origin";
-	private static final String ORDER_DEST_DB_FIELD = "destination";
-	private static final String ORDER_DATE_PLACED_DB_FIELD = "date_placed";
-	private static final String ORDER_DATE_SHIPPED_DB_FIELD = "date_shipped";
-	private static final String ORDER_RECEIVING_EMPLOYEE_DB_FIELD = "received_by_emp_id";
-	private static final String ORDER_SHIPPING_EMPLOYEE_DB_FIELD = "shipped_by_emp_id";
-	
-	//Pallet fields for the fields combobox
-	private static final String[] PALLET_FIELDS = {PALLET_ID_FIELD, PALLET_ORDER_NUM_FIELD, PALLET_LOC_FIELD,
-									PALLET_PIECE_COUNT_FIELD, PALLET_WEIGHT_FIELD, PALLET_LENGTH_FIELD, PALLET_WIDTH_FIELD, 
-									PALLET_HEIGHT_FIELD, PALLET_RECEIVE_DATE_FIELD, PALLET_SHIP_DATE_FIELD, PALLET_NOTES_FIELD};
-	
-	//Item fields for the fields combobox
-	private static final String[] ITEM_FIELDS = {ITEM_NAME_FIELD, ITEM_NUMBER_FIELD, ITEM_PRICE_FIELD,
-													ITEM_WEIGHT_FIELD, ITEM_CURR_STOCK_FIELD, ITEM_RESTOCK_FIELD};
-	
-	//Order fields for the fields combobox
-	private static final String[] ORDER_FIELDS = {ORDER_NUM_FIELD, ORDER_ORIGIN_FIELD, ORDER_DEST_FIELD, ORDER_DATE_PLACED_FIELD,
-													ORDER_DATE_SHIPPED_FIELD, ORDER_RECEIVING_EMPLOYEE_FIELD, 
-													ORDER_SHIPPING_EMPLOYEE_FIELD};
-	
-	//All of the options for a numeric type field
-	private static final String NUMERIC_FIELD_TYPE_NAME = "numeric";
-	private static final String NUMERIC_FIELD_GREATER_THAN = "greater than";
-	private static final String NUMERIC_FIELD_LESS_THAN = "less than";
-	private static final String NUMERIC_FIELD_EQUAL_TO = "equal to";
-	//Array of numeric field type options for field options combobox when a numeric type field is selected
-	private static final String[] NUMERIC_FIELD_DESCRIPTONS = {NUMERIC_FIELD_GREATER_THAN, NUMERIC_FIELD_LESS_THAN, NUMERIC_FIELD_EQUAL_TO};
-	
-	//All of the options for a string type field
-	private static final String STRING_FIELD_TYPE_NAME = "String";
-	private static final String STRING_FIELD_STARTING_WITH = "starting with";
-	private static final String STRING_FIELD_ENDING_WITH = "ending with";
-	private static final String STRING_FIELD_CONTAINS = "containing";
-	private static final String STRING_FIELD_THAT_IS = "that is";
-	//Array of numeric field type options for field options combobox when a String type field is selected
-	private static final String[] STRING_FIELD_DESCRIPTIONS = {STRING_FIELD_STARTING_WITH, STRING_FIELD_ENDING_WITH, STRING_FIELD_CONTAINS, STRING_FIELD_THAT_IS};
-	
-	//All of the options for a date type field
-	private static final String DATE_FIELD_TYPE_NAME = "date";
-	private static final String DATE_FIELD_BEFORE = "before";
-	private static final String DATE_FIELD_AFTER = "after";
-	private static final String DATE_FIELD_ON = "on";
-	//Array of numeric field type options for field options combobox when a Date type field is selected
-	private static final String[] DATE_FIELD_DESCRIPTIONS = {DATE_FIELD_BEFORE, DATE_FIELD_AFTER, DATE_FIELD_ON};
-	
-	//the default value for the field modifier components
-	private static final String DEFAULT_FIELD_MODIFIER_VALUE = "";
 
 	//number of columns for field textboxes
 	private static final int FIELD_OPTION_TEXTBOX_COLUMNS = 10;
 	
 	//Fonts for different UI elements
-	private static final Font MENUBAR_FONT = new Font("Tahoma", Font.PLAIN, 14);
-	private static final Font LABEL_FONT = new Font("Tahoma", Font.PLAIN, 18);
-	private static final Font COMBOBOX_FONT = new Font("Tahoma", Font.PLAIN, 18);
-	private static final Font CHECKBOX_FONT = new Font("Tahoma", Font.PLAIN, 14);
+	private static final int ENTITYFIELD_SELECTION_FONT_SIZE = 18;
+	private static final int SMALLER_COMPONENT_FONT_SIZE = 14;
+	private static final int TABLE_FONT_SIZE = 14;
+	private static final Font LABEL_FONT = new Font("Tahoma", Font.PLAIN, ENTITYFIELD_SELECTION_FONT_SIZE);
+	private static final Font COMBOBOX_FONT = new Font("Tahoma", Font.PLAIN, ENTITYFIELD_SELECTION_FONT_SIZE);
+	private static final Font FIELD_MODIFIER_COMPONENT_FONT = new Font("Tahoma", Font.PLAIN, ENTITYFIELD_SELECTION_FONT_SIZE);
+	private static final Font MENUBAR_FONT = new Font("Tahoma", Font.PLAIN, SMALLER_COMPONENT_FONT_SIZE);
+	private static final Font CHECKBOX_FONT = new Font("Tahoma", Font.PLAIN, SMALLER_COMPONENT_FONT_SIZE);
 	private static final Font BUTTON_FONT = new Font("Tahoma", Font.PLAIN, 22);
+	private static final Font CHECKBOX_STATUS_FONT = new Font("Tahoma", Font.PLAIN, SMALLER_COMPONENT_FONT_SIZE);
+	
+	private static final Font TABLE_FONT = new Font("Tahoma", Font.PLAIN, TABLE_FONT_SIZE);
+	private static final Font TABLE_HEADER_FONT = new Font("Tahoma", Font.PLAIN, TABLE_FONT_SIZE);
+	
 	
 	//Max width for when only max height is going to be restricted (setMaximumSize requires height&width)
 	private static final int IRRELEVANT_MAX_WIDTH = Integer.MAX_VALUE;
 	
 	//Dimension constants for entire application window
-	private static final int DEFAULT_WINDOW_WIDTH = 900;
+	private static final int DEFAULT_WINDOW_WIDTH = 925;
 	private static final int DEFAULT_WINDOW_HEIGHT = 700;
-	private static final int MIN_WINDOW_WIDTH = 850;
+	private static final int MIN_WINDOW_WIDTH = 910;
 	private static final int MIN_WINDOW_HEIGHT = 675;
 	
 	//Dimension constants for top menubar
@@ -205,36 +105,12 @@ public class MainWindow {
 	
 	//How many pixels will be between the table panel and the edge of the window
 	private static final int TABLE_PANEL_MARGIN = 20;
-	//the margin in each column after resizing
-	private static final int TABLE_COLUMN_MARGIN = 25; 
 	
 	//HashMaps that map each field to a checkbox, used for the "show columns for" checkboxes
 	//Maps are <Key, Value> = <FieldName, CheckBoxForFieldName>
 	private HashMap<String, JCheckBox> palletFieldsCheckBoxesMap;
 	private HashMap<String, JCheckBox> itemFieldsCheckBoxesMap;
 	private HashMap<String, JCheckBox> orderFieldsCheckBoxesMap;
-	
-	/* HashMap that contains a mapping of all fields to their 'type'
-	 * For example, Item Number is a string type, here with a key/value pair of <ITEM_NUMBER_FIELD, STRING_FIELD_TYPE_NAME>
-	 * Weight, for example, would be <ITEM_WEIGHT_FIELD,NUMERIC_FIELD_TYPE_NAME> aka <"Weight","numeric">
-	 * This allows the combobox for options to know whether to say "less than" for numbers, or "starting with" for strings,
-	 * or "before" for dates, etc.
-	 */
-	private HashMap<String, String> fieldDataTypesMap;
-	
-	/* HashMap that contains a mapping of all locally declared field names to their database variable name
-	 * For example, Item Number is a local field, but in the DB it is item_number.
-	 * This mapping would be <ITEM_NAME_FIELD, ITEM_NAME_DB_FIELD>, or <"Item Number","item number">
-	 * This allows the update table function to access the database based on UI element values
-	 */
-	private HashMap<String, String> localFieldNameToDBFieldNameMap;
-	
-	/* HashMap that contains a mapping of all locally declared entity names to their database variable name
-	 * For example, Item is a local field, but in the DB it is item.
-	 * This mapping would be <ITEM_ENTITY_FIELD, ITEM_DB_ENTITY_NAME>, or <"Item","item">
-	 * This allows the update table function to access the database based on UI element values
-	 */
-	private HashMap<String, String> localEntityNameToDBEntityNameMap;
 	
 	private JPanel showColumnsForPanel;
 	//Combobox to select an entity type to view
@@ -258,16 +134,27 @@ public class MainWindow {
 	private JPanel tablePanel;
 	//Scrollpane for the table
 	private JScrollPane mainTableScrollPane;
-	//main table in scrollpane
-	private JTable mainTable;
+	//main table in scrollpane, a custom table class
+	private WIMSTable mainTable;
 	//width adjuster manager for table
 	private WidthAdjuster TableWidthAdjuster;
+	//a map where the column header is the key, and the column is the value
+	private HashMap <String,TableColumn> headersToDeletedColumnMap; //TODO maybe add a show all columns button
 	
 	//wrapper panel that contains entity&field selection panel, showcolumnsfor panel,
 	//and update button panel
 	private JPanel allOptionsPanel;
 	//panel that contains entity, field, and field options selection
 	private JPanel entityAndFieldSelectPanel;
+	
+	//components for update button panel
+	private JPanel updateButtonPanel;
+	private JButton updateButton;
+	private JLabel lblErrorStatus;
+	//whether error is active, used so multiple threads arent created
+	private boolean errorIsActive;
+	//how long to display error messages for, in milliseconds
+	protected static final int ERROR_DISPLAY_TIME_MS = 1500;
 	
 	
 	//Fields for menubar and submenus
@@ -292,8 +179,16 @@ public class MainWindow {
 	//the index of the next option row in the gridbaglayout. Used with addRowToOptions()
 	//to manage the adding of field name checkboxes to that panel
 	private int nextOptionRow;
+
+	private JLabel lblLoadingIcon;
+	private String currentTableEntity; //TODO use this to keep track of the entity currently in the table view
+
+	private JLabel lblCheckBoxesStatus;
 	//initial starting option row, this is the value the layout defaults to when it is cleared
 	private static final int STARTING_OPTION_ROW = 1;
+
+	private static final String LOADING_GIF_ICON_NAME = "loading.gif";
+
 	
 
 	/**
@@ -331,130 +226,16 @@ public class MainWindow {
 		initializeAllOptionsPanel();
 		initializeTablePanel();
 	}
-
+	
 	/**
 	 * Initialize the hashmaps for checkboxes and field data types
 	 */
 	private void initializeAllHashMaps()
 	{
-		palletFieldsCheckBoxesMap = getCheckBoxHashMap(PALLET_FIELDS);
-		itemFieldsCheckBoxesMap = getCheckBoxHashMap(ITEM_FIELDS);
-		orderFieldsCheckBoxesMap = getCheckBoxHashMap(ORDER_FIELDS);
-		initializeFieldDataTypesMap();
-		initializeLocalEntityNameToDBEntityNameMap();
-		initializeLocalFieldNameToDBFieldNameMap();
-	}
-	
-	private void initializeLocalEntityNameToDBEntityNameMap() {
-		localEntityNameToDBEntityNameMap = new HashMap<String, String>();
-		localEntityNameToDBEntityNameMap.put(ITEM_ENTITY_NAME,ITEM_DB_ENTITY_NAME);
-		localEntityNameToDBEntityNameMap.put(PALLET_ENTITY_NAME,PALLET_DB_ENTITY_NAME);
-		localEntityNameToDBEntityNameMap.put(ORDER_ENTITY_NAME,ORDER_DB_ENTITY_NAME);
-	}
-
-	private void initializeLocalFieldNameToDBFieldNameMap() {
-		localFieldNameToDBFieldNameMap = new HashMap<String, String>();
-		addItemFieldNamesToDBFieldsMap();
-		addPalletFieldNamesToDBFieldsMap();
-		addOrderFieldNamesToDBFieldsMap();
-	}
-
-	private void addItemFieldNamesToDBFieldsMap() {
-		localFieldNameToDBFieldNameMap.put(ITEM_NAME_FIELD, ITEM_NAME_DB_FIELD);
-		localFieldNameToDBFieldNameMap.put(ITEM_PRICE_FIELD, ITEM_PRICE_DB_FIELD);
-		localFieldNameToDBFieldNameMap.put(ITEM_WEIGHT_FIELD, ITEM_WEIGHT_DB_FIELD);
-		localFieldNameToDBFieldNameMap.put(ITEM_CURR_STOCK_FIELD, ITEM_CURR_STOCK_DB_FIELD);
-		localFieldNameToDBFieldNameMap.put(ITEM_RESTOCK_FIELD, ITEM_RESTOCK_DB_FIELD);
-
-		localFieldNameToDBFieldNameMap.put(ITEM_NAME_FIELD, ITEM_NAME_DB_FIELD);
-		localFieldNameToDBFieldNameMap.put(ITEM_NUMBER_FIELD, ITEM_NUMBER_DB_FIELD);
-	}
-	
-	private void addPalletFieldNamesToDBFieldsMap() {
-		localFieldNameToDBFieldNameMap.put(PALLET_PIECE_COUNT_FIELD, PALLET_PIECE_COUNT_DB_FIELD);
-		localFieldNameToDBFieldNameMap.put(PALLET_WEIGHT_FIELD, PALLET_WEIGHT_DB_FIELD);
-		localFieldNameToDBFieldNameMap.put(PALLET_LENGTH_FIELD, PALLET_LENGTH_DB_FIELD);
-		localFieldNameToDBFieldNameMap.put(PALLET_WIDTH_FIELD, PALLET_WIDTH_DB_FIELD);
-		localFieldNameToDBFieldNameMap.put(PALLET_HEIGHT_FIELD, PALLET_HEIGHT_DB_FIELD);
-		
-		localFieldNameToDBFieldNameMap.put(PALLET_ID_FIELD, PALLET_ID_DB_FIELD);
-		localFieldNameToDBFieldNameMap.put(PALLET_ORDER_NUM_FIELD, PALLET_ORDER_NUM_DB_FIELD);
-		localFieldNameToDBFieldNameMap.put(PALLET_LOC_FIELD , PALLET_LOC_DB_FIELD);
-		localFieldNameToDBFieldNameMap.put(PALLET_NOTES_FIELD, PALLET_NOTES_DB_FIELD);
-
-		localFieldNameToDBFieldNameMap.put(PALLET_RECEIVE_DATE_FIELD, PALLET_RECEIVE_DATE_DB_FIELD);
-		localFieldNameToDBFieldNameMap.put(PALLET_SHIP_DATE_FIELD, PALLET_SHIP_DATE_DB_FIELD);
-	}
-	
-	private void addOrderFieldNamesToDBFieldsMap() {
-		fieldDataTypesMap.put(ORDER_NUM_FIELD, ORDER_NUM_DB_FIELD);
-		fieldDataTypesMap.put(ORDER_ORIGIN_FIELD, ORDER_ORIGIN_DB_FIELD);
-		fieldDataTypesMap.put(ORDER_DEST_FIELD, ORDER_DEST_DB_FIELD);
-		fieldDataTypesMap.put(ORDER_RECEIVING_EMPLOYEE_FIELD, ORDER_RECEIVING_EMPLOYEE_DB_FIELD);
-		fieldDataTypesMap.put(ORDER_SHIPPING_EMPLOYEE_FIELD, ORDER_SHIPPING_EMPLOYEE_DB_FIELD);
-		
-		fieldDataTypesMap.put(ORDER_DATE_PLACED_FIELD, ORDER_DATE_PLACED_DB_FIELD);
-		fieldDataTypesMap.put(ORDER_DATE_SHIPPED_FIELD, ORDER_DATE_SHIPPED_DB_FIELD);
-	}
-
-	/**
-	 * Initialize the field options map that maps field names to their
-	 * data type
-	 */
-	private void initializeFieldDataTypesMap() {
-		fieldDataTypesMap = new HashMap<String, String>();
-		addItemFieldTypesToMap();
-		addPalletFieldTypesToMap();
-		addOrderFieldTypesToMap();
-	}
-	
-	/**
-	 * Add all item fields and their data types to the fieldDataTypesMap
-	 */
-	private void addItemFieldTypesToMap()
-	{
-		fieldDataTypesMap.put(ITEM_PRICE_FIELD, NUMERIC_FIELD_TYPE_NAME);
-		fieldDataTypesMap.put(ITEM_WEIGHT_FIELD, NUMERIC_FIELD_TYPE_NAME);
-		fieldDataTypesMap.put(ITEM_CURR_STOCK_FIELD, NUMERIC_FIELD_TYPE_NAME);
-		fieldDataTypesMap.put(ITEM_RESTOCK_FIELD, NUMERIC_FIELD_TYPE_NAME);
-
-		fieldDataTypesMap.put(ITEM_NAME_FIELD, STRING_FIELD_TYPE_NAME);
-		fieldDataTypesMap.put(ITEM_NUMBER_FIELD, STRING_FIELD_TYPE_NAME);
-	}
-	
-	/**
-	 * Add all pallet fields and their data types to the fieldDataTypesMap
-	 */
-	private void addPalletFieldTypesToMap()
-	{
-		fieldDataTypesMap.put(PALLET_PIECE_COUNT_FIELD, NUMERIC_FIELD_TYPE_NAME);
-		fieldDataTypesMap.put(PALLET_WEIGHT_FIELD, NUMERIC_FIELD_TYPE_NAME);
-		fieldDataTypesMap.put(PALLET_LENGTH_FIELD, NUMERIC_FIELD_TYPE_NAME);
-		fieldDataTypesMap.put(PALLET_WIDTH_FIELD, NUMERIC_FIELD_TYPE_NAME);
-		fieldDataTypesMap.put(PALLET_HEIGHT_FIELD, NUMERIC_FIELD_TYPE_NAME);
-		
-		fieldDataTypesMap.put(PALLET_ID_FIELD, STRING_FIELD_TYPE_NAME);
-		fieldDataTypesMap.put(PALLET_ORDER_NUM_FIELD, STRING_FIELD_TYPE_NAME);
-		fieldDataTypesMap.put(PALLET_LOC_FIELD , STRING_FIELD_TYPE_NAME);
-		fieldDataTypesMap.put(PALLET_NOTES_FIELD, STRING_FIELD_TYPE_NAME);
-
-		fieldDataTypesMap.put(PALLET_RECEIVE_DATE_FIELD, DATE_FIELD_TYPE_NAME);
-		fieldDataTypesMap.put(PALLET_SHIP_DATE_FIELD , DATE_FIELD_TYPE_NAME);
-	}
-	
-	/**
-	 * Add all order fields and their data types to the fieldDataTypesMap
-	 */
-	private void addOrderFieldTypesToMap()
-	{	
-		fieldDataTypesMap.put(ORDER_NUM_FIELD, STRING_FIELD_TYPE_NAME);
-		fieldDataTypesMap.put(ORDER_ORIGIN_FIELD, STRING_FIELD_TYPE_NAME);
-		fieldDataTypesMap.put(ORDER_DEST_FIELD, STRING_FIELD_TYPE_NAME);
-		fieldDataTypesMap.put(ORDER_RECEIVING_EMPLOYEE_FIELD, STRING_FIELD_TYPE_NAME);
-		fieldDataTypesMap.put(ORDER_SHIPPING_EMPLOYEE_FIELD, STRING_FIELD_TYPE_NAME);
-		
-		fieldDataTypesMap.put(ORDER_DATE_PLACED_FIELD, DATE_FIELD_TYPE_NAME);
-		fieldDataTypesMap.put(ORDER_DATE_SHIPPED_FIELD, DATE_FIELD_TYPE_NAME);
+		headersToDeletedColumnMap = new HashMap<String, TableColumn>();
+		palletFieldsCheckBoxesMap = getCheckBoxHashMap(DBNamesManager.getAllPalletFieldDisplayNames());
+		itemFieldsCheckBoxesMap = getCheckBoxHashMap(DBNamesManager.getAllItemFieldDisplayNames());
+		orderFieldsCheckBoxesMap = getCheckBoxHashMap(DBNamesManager.getAllOrderFieldDisplayNames());
 	}
 
 	/**
@@ -473,9 +254,38 @@ public class MainWindow {
 			JCheckBox nextBox = new JCheckBox(nextField);
 			nextBox.setSelected(true);
 			nextBox.setFont(CHECKBOX_FONT);
+			nextBox.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent actionEvent) {
+					AbstractButton abstractButton = (AbstractButton) actionEvent.getSource();
+					boolean selected = abstractButton.getModel().isSelected();
+					TableColumnModel tcm = mainTable.getColumnModel();
+					TableColumn correspondingColumn;
+					if(!selected)
+					{
+						correspondingColumn = mainTable.getColumn(nextField);//headersToColumnMap.get(nextField);
+						tcm.removeColumn(correspondingColumn);
+						headersToDeletedColumnMap.put(nextField, correspondingColumn);
+					}else{
+						correspondingColumn = headersToDeletedColumnMap.get(nextField);
+						tcm.addColumn(correspondingColumn);
+					}
+				}
+				//TODO add toggle hide/show all columns
+				//TODO fix bug of when a query for an entity type fails, the checkboxes should reset
+			});
 			map.put(nextField, nextBox);
 		}
 		return map;
+	}
+	
+	private void setAreCheckBoxesAreEnabled(boolean areActive)
+	{
+		HashMap<String, JCheckBox> checkBoxes = getCheckBoxMapForEntity((String) comboBoxEntityType.getSelectedItem());
+		Iterator<String> checkBoxItty = checkBoxes.keySet().iterator();
+		while(checkBoxItty.hasNext())
+		{
+			checkBoxes.get(checkBoxItty.next()).setEnabled(areActive);
+		}
 	}
 
 	/**
@@ -669,21 +479,43 @@ public class MainWindow {
 				String currentEntity = (String) comboBoxEntityType.getSelectedItem();
 				//if "all warehouse entities" is selected, we can't show fields
 				//so we hide all of the field and field modifier options
-				if(currentEntity.equals(ALL_ENTITY_NAME)){
+				if(currentEntity.equals(DBNamesManager.getDisplayNameForAllEntitySpecifier())){
 					setFieldOptionVisibility(false);
 				}else{
-				//display checkboxes for the newly selected entity's fields
-				//and update the fields combobox to display these fields
-				setFieldOptionVisibility(true);
-				displayFieldCheckBoxesForEntity(currentEntity);
-				updateFieldsComboBox(currentEntity);
+					//display checkboxes for the newly selected entity's fields
+					//and update the fields combobox to display these fields
+					setFieldOptionVisibility(true);
+					displayFieldCheckBoxesForEntity(currentEntity);
+					updateFieldsComboBox(currentEntity);
+					if(currentEntity.equals(currentTableEntity))
+					{
+						setAreCheckBoxesAreEnabled(true); //TODO double check this
+						clearColumnHeaderCheckboxesStatus();
+					}else{
+						setAreCheckBoxesAreEnabled(false);
+						displayColumnHeaderCheckboxesStatus("Make a query first to show/hide columns", Color.RED);
+					}
 				}
 			}
 		});
 		comboBoxEntityType.setFont(COMBOBOX_FONT);
 		//display the entities from the entity array
-		comboBoxEntityType.setModel(new DefaultComboBoxModel(ENTITIES));
+		comboBoxEntityType.setModel(new DefaultComboBoxModel(DBNamesManager.getEntityDisplayNames()));
+		if(lblCheckBoxesStatus == null)
+			initializeCheckBoxStatusLabel();
+		setAreCheckBoxesAreEnabled(false);
+		displayColumnHeaderCheckboxesStatus("Make a query first to show/hide columns", Color.RED); //TODO add these to be constants
 		entityAndFieldSelectPanel.add(comboBoxEntityType);
+	}
+	
+	private void displayColumnHeaderCheckboxesStatus(String string, Color color) {
+		// TODO Auto-generated method stub
+		lblCheckBoxesStatus.setText(string);
+		lblCheckBoxesStatus.setForeground(color);
+	}
+	
+	private void clearColumnHeaderCheckboxesStatus() {
+		displayColumnHeaderCheckboxesStatus("", showColumnsForPanel.getBackground());
 	}
 	
 	private void setFieldOptionVisibility(boolean visibility) {
@@ -751,14 +583,14 @@ public class MainWindow {
 	 */
 	private void updateFieldsComboBox(String entityName) {
 		switch (entityName){
-		case ITEM_ENTITY_NAME: 
-			comboBoxField.setModel(new DefaultComboBoxModel(ITEM_FIELDS));
+		case DBNamesManager.ITEM_ENTITY_DISPLAYNAME: 
+			comboBoxField.setModel(new DefaultComboBoxModel(DBNamesManager.getAllItemFieldDisplayNames()));
 			break;
-		case PALLET_ENTITY_NAME: 
-			comboBoxField.setModel(new DefaultComboBoxModel(PALLET_FIELDS));
+		case DBNamesManager.PALLET_ENTITY_DISPLAYNAME: 
+			comboBoxField.setModel(new DefaultComboBoxModel(DBNamesManager.getAllPalletFieldDisplayNames()));
 			break;
-		case ORDER_ENTITY_NAME:
-			comboBoxField.setModel(new DefaultComboBoxModel(ORDER_FIELDS));
+		case DBNamesManager.ORDER_ENTITY_DISPLAYNAME:
+			comboBoxField.setModel(new DefaultComboBoxModel(DBNamesManager.getAllOrderFieldDisplayNames()));
 			break;
 		}
 		//if the combobox for the field modifiers has been initialized, update it 
@@ -793,21 +625,21 @@ public class MainWindow {
 	
 	/**
 	 * Update the field modifiers combobox based on the given field
-	 * @param field the field to display modifiers for
+	 * @param fieldDisplayName the field to display modifiers for
 	 */
-	private void updateFieldModifierComboBox(String field) {
+	private void updateFieldModifierComboBox(String fieldDisplayName) {
 		//get the data type of the given field
-		String fieldType = fieldDataTypesMap.get(field);
+		String fieldType = DBNamesManager.getFieldDataTypeByDisplayName(fieldDisplayName);
 		//fill the combobox based on the field data type
 		switch (fieldType){
-		case NUMERIC_FIELD_TYPE_NAME: 
-			comboBoxFieldModifier.setModel(new DefaultComboBoxModel(NUMERIC_FIELD_DESCRIPTONS));
+		case DBNamesManager.NUMERIC_FIELD_TYPE_NAME: 
+			comboBoxFieldModifier.setModel(new DefaultComboBoxModel(DBNamesManager.getNumericFieldModifierStrings()));
 			break;
-		case STRING_FIELD_TYPE_NAME: 
-			comboBoxFieldModifier.setModel(new DefaultComboBoxModel(STRING_FIELD_DESCRIPTIONS));
+		case DBNamesManager.STRING_FIELD_TYPE_NAME: 
+			comboBoxFieldModifier.setModel(new DefaultComboBoxModel(DBNamesManager.getStringFieldModifierStrings()));
 			break;
-		case DATE_FIELD_TYPE_NAME:
-			comboBoxFieldModifier.setModel(new DefaultComboBoxModel(DATE_FIELD_DESCRIPTIONS));
+		case DBNamesManager.DATE_FIELD_TYPE_NAME:
+			comboBoxFieldModifier.setModel(new DefaultComboBoxModel(DBNamesManager.getDateFieldModifierStrings()));
 			break;
 		}
 	}
@@ -816,31 +648,34 @@ public class MainWindow {
 	 * Update the user field modifier component based on the given field. Date types
 	 * will display a date picker component, numeric types will have a number
 	 * entry component, etc.
-	 * @param field the field to use to determine how to update the field modifier component
+	 * @param fieldDisplayName the field to use to determine how to update the field modifier component
 	 */
-	private void updateFieldModifierComponent(String field) {
+	private void updateFieldModifierComponent(String fieldDisplayName) {
 		//clear the current field modifier component
 		clearFieldModifierComponent();
 		//get the data type of the field to update the component based on
-		String fieldType = fieldDataTypesMap.get(field);
+		String fieldType = DBNamesManager.getFieldDataTypeByDisplayName(fieldDisplayName);
 		//TODO add documents for text fields
 		//Update the component based on the data type of the field
 		switch (fieldType){
-		case NUMERIC_FIELD_TYPE_NAME: 
+		case DBNamesManager.NUMERIC_FIELD_TYPE_NAME: 
 			//if numeric, display a number entry text field
 			numericFieldTextField = new JFormattedTextField();
 			numericFieldTextField.setColumns(FIELD_OPTION_TEXTBOX_COLUMNS);
+			numericFieldTextField.setFont(FIELD_MODIFIER_COMPONENT_FONT);
 			entityAndFieldSelectPanel.add(numericFieldTextField);
 			break;
-		case STRING_FIELD_TYPE_NAME: 
+		case DBNamesManager.STRING_FIELD_TYPE_NAME: 
 			//if string, display a text field for the user's search string
 			stringFieldTextField = new JTextField();
 			stringFieldTextField.setColumns(FIELD_OPTION_TEXTBOX_COLUMNS);
+			stringFieldTextField.setFont(FIELD_MODIFIER_COMPONENT_FONT);
 			entityAndFieldSelectPanel.add(stringFieldTextField);
 			break;
-		case DATE_FIELD_TYPE_NAME:
+		case DBNamesManager.DATE_FIELD_TYPE_NAME:
 			//if date, display a date picker
 			dateFieldDatePicker = this.getDatePicker();
+			dateFieldDatePicker.setFont(FIELD_MODIFIER_COMPONENT_FONT);
 			entityAndFieldSelectPanel.add(dateFieldDatePicker);
 			break;
 		}
@@ -853,6 +688,9 @@ public class MainWindow {
 		numericFieldTextField = new JFormattedTextField();
 		stringFieldTextField = new JTextField();
 		dateFieldDatePicker = this.getDatePicker();
+		numericFieldTextField.setFont(FIELD_MODIFIER_COMPONENT_FONT);
+		stringFieldTextField.setFont(FIELD_MODIFIER_COMPONENT_FONT);
+		dateFieldDatePicker.setFont(FIELD_MODIFIER_COMPONENT_FONT);
 	}
 	
 	/**
@@ -878,13 +716,13 @@ public class MainWindow {
 	 * 			this method will return null
 	 */
 	private String getFieldModifierValue(String currentField) {
-		String fieldType = fieldDataTypesMap.get(currentField);
+		String fieldType = DBNamesManager.getFieldDataTypeByDisplayName(currentField);
 		switch (fieldType){
-		case NUMERIC_FIELD_TYPE_NAME: 
+		case DBNamesManager.NUMERIC_FIELD_TYPE_NAME: 
 			return numericFieldTextField.getText();
-		case STRING_FIELD_TYPE_NAME: 
+		case DBNamesManager.STRING_FIELD_TYPE_NAME: 
 			return stringFieldTextField.getText();
-		case DATE_FIELD_TYPE_NAME:
+		case DBNamesManager.DATE_FIELD_TYPE_NAME:
 			return dateFieldDatePicker.getJFormattedTextField().getText();
 		}
 		return null; //is not supposed to happen, if this happens there is an error
@@ -914,10 +752,19 @@ public class MainWindow {
 		showColumnsForPanel.setLayout(gbl_entityOptionsPanel);
 		allOptionsPanel.add(showColumnsForPanel, BorderLayout.CENTER);
 		
+		if(lblCheckBoxesStatus == null)
+			initializeCheckBoxStatusLabel();
+		
 		//Set the initial state of the panel to update based on the initial state of the entity combobox
 		displayFieldCheckBoxesForEntity((String) comboBoxEntityType.getSelectedItem());
 	}
 	
+	private void initializeCheckBoxStatusLabel() {
+		lblCheckBoxesStatus = new JLabel("filler text");
+		lblCheckBoxesStatus.setForeground(lblCheckBoxesStatus.getBackground());
+		lblCheckBoxesStatus.setFont(CHECKBOX_STATUS_FONT);
+	}
+
 	/**
 	 * Display the field column header checkboxes for the given entity
 	 * @param entityName the entity for whose fields checkboxes will be displayed
@@ -928,16 +775,31 @@ public class MainWindow {
 		clearCurrentCheckBoxes();
 		//display checkboxes for fields of the given entity
 		switch (entityName){
-		case ITEM_ENTITY_NAME: 
+		case DBNamesManager.ITEM_ENTITY_DISPLAYNAME: 
 			displayFieldCheckBoxesOptions(itemFieldsCheckBoxesMap);
 			break;
-		case PALLET_ENTITY_NAME: 
+		case DBNamesManager.PALLET_ENTITY_DISPLAYNAME: 
 			displayFieldCheckBoxesOptions(palletFieldsCheckBoxesMap);
 			break;
-		case ORDER_ENTITY_NAME:
+		case DBNamesManager.ORDER_ENTITY_DISPLAYNAME:
 			displayFieldCheckBoxesOptions(orderFieldsCheckBoxesMap);
 			break;
 		}
+		//TODO check this label
+		addRowToFieldCheckBoxes(null,lblCheckBoxesStatus,null);
+	}
+	
+	private HashMap<String,JCheckBox> getCheckBoxMapForEntity(String entityName)
+	{
+		switch (entityName){
+		case DBNamesManager.ITEM_ENTITY_DISPLAYNAME: 
+			return itemFieldsCheckBoxesMap;
+		case DBNamesManager.PALLET_ENTITY_DISPLAYNAME: 
+			return palletFieldsCheckBoxesMap;
+		case DBNamesManager.ORDER_ENTITY_DISPLAYNAME:
+			return orderFieldsCheckBoxesMap;
+		}
+		return null; //TODO add error handling or somethin
 	}
 	
 	/**
@@ -955,7 +817,7 @@ public class MainWindow {
 				secondBox = map.get(itty.next());
 			if(itty.hasNext())
 				thirdBox = map.get(itty.next());
-			addRowToFieldCheckboxes(firstBox, secondBox, thirdBox);
+			addRowToFieldCheckBoxes(firstBox, secondBox, thirdBox);
 		}
 	}
 
@@ -976,13 +838,28 @@ public class MainWindow {
 	private void initializeUpdateButtonPanel(){
 	
 		//Create the update button panel and add it
-		JPanel updateButtonPanel = new JPanel();
+		updateButtonPanel = new JPanel();
 		allOptionsPanel.add(updateButtonPanel, BorderLayout.SOUTH);
 		updateButtonPanel.setLayout(new FlowLayout(FlowLayout.RIGHT, 5, 5));
-
+		
+		
+		//create a new label for error status and make the text invisible at first
+		lblErrorStatus = new JLabel("Placeholder text");
+		lblErrorStatus.setForeground(updateButtonPanel.getBackground());
+		lblErrorStatus.setFont(LABEL_FONT);
+		updateButtonPanel.add(lblErrorStatus);
+		
+		//create a label to have the loading gif as its icon
+		lblLoadingIcon = new JLabel("Getting info...");
+		ImageIcon loadingGif = new ImageIcon(getClass().getClassLoader().getResource(LOADING_GIF_ICON_NAME));
+		lblLoadingIcon.setForeground(updateButtonPanel.getBackground());
+		lblLoadingIcon.setFont(LABEL_FONT);
+		lblLoadingIcon.setIcon(loadingGif);
+		updateButtonPanel.add(lblLoadingIcon);
+		
 		//Create the update button and give it an action listener to gather the
 		//selected options from the UI elements and 
-		JButton updateButton = new JButton("Update");
+		updateButton = new JButton("Update");
 		updateButton.setFont(BUTTON_FONT);
 		updateButtonPanel.add(updateButton);
 		updateButton.addActionListener(new ActionListener() {
@@ -997,6 +874,22 @@ public class MainWindow {
 		});
 	}
 	
+	public void displayErrorStatus(String errorText)
+	{
+		ActionListener taskPerformer = new ActionListener() {
+		    public void actionPerformed(ActionEvent evt) {
+		    	if(!errorText.equals(lblErrorStatus.getText()))
+    			{
+		    		lblErrorStatus.setForeground(Color.RED);
+		    		lblErrorStatus.setText(errorText);
+    			}
+		    }
+		};
+		Timer errorDisplayTimer = new Timer(ERROR_DISPLAY_TIME_MS, taskPerformer);
+		errorDisplayTimer.setRepeats(false);
+		errorDisplayTimer.start();
+	}
+	
 	/**
 	 * Update the table from the database based on the selected entities, fields, and inputs
 	 * @param entityName the type of the entities that will be displayed in the table
@@ -1006,91 +899,99 @@ public class MainWindow {
 	 */
 	private void updateTableBasedOnSelection(String entityName, String fieldName, String fieldModifier, String fieldModifierValue){
 		//TODO finish this functionality to interact with the database
-		if (entityName.equals(ALL_ENTITY_NAME)) 
+		if (entityName.equals(DBNamesManager.getAllEntitySpecifierDisplayname())) 
 		{
 		} else {
-			String dbEntityName = localEntityNameToDBEntityNameMap
-					.get(entityName);
+			String dbEntityName = DBNamesManager.getEntityDatabaseVariableByDisplayName(entityName);
 			String query = "SELECT * FROM " + dbEntityName;
 			//if the user has entered a modifier value
-			if (!fieldModifierValue.equals(DEFAULT_FIELD_MODIFIER_VALUE)) 
+			boolean modifierValueEntered = (fieldModifierValue == null) 
+										|| (!fieldModifierValue.equals(DBNamesManager.getDefaultFieldModifierValue()));
+			if (modifierValueEntered) 
 			{
-				String dbFieldName = localFieldNameToDBFieldNameMap.get(fieldName);
+				String dbFieldName = DBNamesManager.getFieldDatabaseVariableFieldByDisplayName(fieldName);
 				String modifierString = getQueryModifierString(fieldModifier,
 						fieldModifierValue);
 				query = query + " WHERE " + dbFieldName + modifierString;
 			}
-			ResultSet result = controller.SQL_Handler.executeCustomQuery(query);
-			List<String[]> stringData;
 			try {
-				stringData = controller.SQL_Handler.getResultSetAsListOfArrays(result);
-			
-			String[] columnNames = controller.SQL_Handler.getColumnNamesFromResultSet(result);
-			Object[][] data = (Object[][]) stringData.toArray();
-			WIMSTableModel tabelModel = new WIMSTableModel(data, columnNames);
-			mainTable.setModel(tabelModel);
+			ResultSet result = controller.SQL_Handler.executeCustomQuery(query);
+			if(result.next())
+			{
+				Object[][] data = controller.SQL_Handler.getResultSetAs2DObjArray(result);			
+				String[] columnNames = controller.SQL_Handler.getColumnNamesFromResultSet(result);
+				updateColumnNamesToDisplayNames(columnNames);
+				WIMSTableModel tabelModel = new WIMSTableModel(data, columnNames);
+				//headersToColumnMap = mainTable.getTableColumnByHeaderMap();
+				mainTable.setModel(tabelModel);
+				currentTableEntity = entityName;
+				setAreCheckBoxesAreEnabled(true); //TODO double check this
+				displayColumnHeaderCheckboxesStatus("", lblCheckBoxesStatus.getBackground()); //TODO this is bad
+			}else{
+				String error = "There are no results for " + entityName;
+				if(modifierValueEntered)
+					error = error + " with " + fieldName + " " + fieldModifier + " " + fieldModifierValue;
+				error += ".";
+				displayErrorStatus(error);
+				setAreCheckBoxesAreEnabled(false); //TODO double check this
+				
+			}
+			mainTable.updateColumnWidths();
 			} catch (SQLException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+			
 		}
 		//TODO make it update the table neatly, probably in another method
 		//TODO THISIS BAD
 	}
 	
+	//TODO should go in SQL handler
+	private void updateColumnNamesToDisplayNames(String[] columnNames) {
+		// TODO Auto-generated method stub
+		for(int i = 0; i < columnNames.length; i++)
+		{
+			columnNames[i] = DBNamesManager.getFieldDisplayNameByDatabaseVariable(columnNames[i]);
+		}
+	}
+
 	private String getQueryModifierString(String fieldModifier, String fieldModifierValue) {
 		String modifierString = "";
 		switch (fieldModifier){
-		case NUMERIC_FIELD_LESS_THAN: 
+		case DBNamesManager.NUMERIC_FIELD_LESS_THAN: 
 			modifierString = " < " + fieldModifierValue;
 			break;
-		case NUMERIC_FIELD_GREATER_THAN: 
+		case DBNamesManager.NUMERIC_FIELD_GREATER_THAN: 
 			modifierString = " > " + fieldModifierValue;
 			break;
-		case NUMERIC_FIELD_EQUAL_TO:
+		case DBNamesManager.NUMERIC_FIELD_EQUAL_TO:
 			modifierString = " = " + fieldModifierValue;
 			break;
-		case STRING_FIELD_STARTING_WITH:
+		case DBNamesManager.STRING_FIELD_STARTING_WITH:
 			modifierString = " LIKE " + fieldModifierValue + "%";
 			break;
-		case STRING_FIELD_ENDING_WITH:
+		case DBNamesManager.STRING_FIELD_ENDING_WITH:
 			modifierString = " LIKE " + "%" + fieldModifierValue;
 			break;
-		case STRING_FIELD_CONTAINS:
-			modifierString = " LIKE " + "%" + fieldModifierValue + "%";
+		case DBNamesManager.STRING_FIELD_CONTAINS:
+			modifierString = " LIKE " + "%" + fieldModifierValue + "%"; //TODO check syntaxes for all of these
 			break;
-		case STRING_FIELD_THAT_IS:
+		case DBNamesManager.STRING_FIELD_THAT_IS:
 			modifierString = " = " + fieldModifierValue;
 			break;
-		case DATE_FIELD_BEFORE:
+		case DBNamesManager.DATE_FIELD_BEFORE:
 			modifierString = " < " + "\'" + fieldModifierValue + "\')";
 			break;
-		case DATE_FIELD_AFTER:
+		case DBNamesManager.DATE_FIELD_AFTER:
 			modifierString = " > " + "\'" + fieldModifierValue + "\')";
 			break;
-		case DATE_FIELD_ON:
+		case DBNamesManager.DATE_FIELD_ON:
 			modifierString = " = " + "\'" + fieldModifierValue + "\')";
 			break;
 		}
 		return modifierString;
 	}
-
-	/*	private static final String NUMERIC_FIELD_TYPE_NAME = "numeric";
-		private static final String NUMERIC_FIELD_GREATER_THAN = "greater than";
-		private static final String NUMERIC_FIELD_LESS_THAN = "less than";
-		private static final String NUMERIC_FIELD_EQUAL_TO = "equal to";
-		
-		private static final String STRING_FIELD_TYPE_NAME = "String";
-		private static final String STRING_FIELD_STARTING_WITH = "starting with";
-		private static final String STRING_FIELD_ENDING_WITH = "ending with";
-		private static final String STRING_FIELD_CONTAINS = "containing";
-		private static final String STRING_FIELD_EQUAL_TO = "that is";
-		
-		private static final String DATE_FIELD_TYPE_NAME = "date";
-		private static final String DATE_FIELD_BEFORE = "before";
-		private static final String DATE_FIELD_AFTER = "after";
-		private static final String DATE_FIELD_ON = "on";
-	 */
 	
 	/**
 	 * Initialize the table panel and the table within.
@@ -1106,12 +1007,31 @@ public class MainWindow {
 		resizingPanelForTable.add(tablePanel);
 		tablePanel.setLayout(new BorderLayout(0, 0));
 		
+		//make a new wimstable, override the viewport tracking so autoresize and scroll is utilized
+		mainTable = new WIMSTable();
+		mainTable.setFont(TABLE_FONT);
+		String[] defaultColNames = MainWindow.getTestTableColumnNames();//TODO test data, is only temporary
+		Object[][] defaultData = MainWindow.getTestTableData();//TODO test data, is only temporary
+		WIMSTableModel tabelModel = new WIMSTableModel(defaultData, defaultColNames);
+		
+		mainTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+		mainTable.setFillsViewportHeight(true);
+		mainTable.setModel(tabelModel);
+		mainTable.setRowSorter(new TableRowSorter(tabelModel));
+		//TODO investigate use of width adjuster
+		TableWidthAdjuster = new WidthAdjuster(mainTable);
+	
+		mainTable.updateColumnWidths();
+		initializeTableScrollPane();
+		//mainTableScrollPane.setViewportView(mainTable);
+		initializeTablePanelBorderSpacing();
+	}
+	
+	private void initializeTableScrollPane()
+	{
 		mainTableScrollPane = new JScrollPane(mainTable);
 		tablePanel.add(mainTableScrollPane);
 		mainTableScrollPane.setViewportView(mainTable);
-		
-		//make a new jtable, override the viewport tracking so autoresize and scroll is utilized
-		mainTable = new JTable();
 		
 		mainTableScrollPane.addComponentListener(new ComponentAdapter() {
 		    @Override
@@ -1123,44 +1043,8 @@ public class MainWindow {
 		        }
 		    }
 		});
-		
-		
-		//TODO test data, is only temporary
-		String[] defaultColNames = MainWindow.getTestTableColumnNames();
-		Object[][] defaultData = MainWindow.getTestTableData();
-		
-		mainTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-		mainTable.setFillsViewportHeight(true);
-		WIMSTableModel tabelModel = new WIMSTableModel(defaultData, defaultColNames);
-		
-		mainTable.setModel(tabelModel);
-		mainTable.setRowSorter(new TableRowSorter(tabelModel));
-		//TODO investigate use of width adjuster
-		TableWidthAdjuster = new WidthAdjuster(mainTable);
-	
-		mainTableScrollPane.setViewportView(mainTable);
-		for(int i =0; i <mainTable.getColumnCount(); i++)
-		{
-			//TODO sort this out, maybe check the difference between column header and data widths and do margins from that
-			//TODO maybe make a method that lets you right click to change whether data is centered, etc.
-			int headerWidth = this.getColumnHeaderWidth(i);
-			int dataWidth = this.getColumnDataWidth(i);
-			//double column margin to not have any hidden text when the black arrow appears
-			//after double clicking to sort. this leaves room for the arrow
-			int columnWidth = headerWidth; 
-			if(dataWidth > headerWidth)
-				columnWidth = dataWidth;
-			else
-				columnWidth = headerWidth;
-			TableColumn column = mainTable.getColumnModel().getColumn(i);
-		    column.setMinWidth(columnWidth + TABLE_COLUMN_MARGIN);
-		    column.setPreferredWidth(columnWidth + TABLE_COLUMN_MARGIN);
-		    column.setWidth(columnWidth + TABLE_COLUMN_MARGIN);
-		}
-		
-		initializeTablePanelBorderSpacing();
 	}
-	
+
 	/**
 	 * Add a row of components to the checkbox display panel. Any or all components can be null,
 	 * and (a) blank space(s) will be left in the row.
@@ -1211,7 +1095,7 @@ public class MainWindow {
 	 * @param secondColumn	the component to add in the second column of this row
 	 * @param thirdColumn	the component to add in the third column of this row
 	 */
-	private void addRowToFieldCheckboxes(Component firstColumn, Component secondColumn, Component thirdColumn)
+	private void addRowToFieldCheckBoxes(Component firstColumn, Component secondColumn, Component thirdColumn)
 	{
 		//if the given thirdcolumn is null, just add nothing
 		if(thirdColumn != null)
@@ -1320,61 +1204,6 @@ public class MainWindow {
 		return testColNames;
 	}
 	
-	public int getColumnHeaderWidth(int column)
-	{
-		if (mainTable.getTableHeader() == null)
-			return 0;
-
-		TableColumn tableColumn = mainTable.getColumnModel().getColumn(column);
-		Object value = tableColumn.getHeaderValue();
-		TableCellRenderer renderer = tableColumn.getHeaderRenderer();
-
-		if (renderer == null)
-		{
-			renderer = mainTable.getTableHeader().getDefaultRenderer();
-		}
-
-		Component c = renderer.getTableCellRendererComponent(mainTable, value, false, false, -1, column);
-		return c.getPreferredSize().width;
-	}
 	
-	/*
-	 *  Calculate the width based on the widest cell renderer for the
-	 *  given column.
-	 */
-	private int getColumnDataWidth(int column)
-	{
-		//TODO error checking for no data
-		//if (! isColumnDataIncluded) return 0;
-
-		int preferredWidth = 0;
-		int maxWidth = mainTable.getColumnModel().getColumn(column).getMaxWidth();
-
-		for (int row = 0; row < mainTable.getRowCount(); row++)
-		{
-			preferredWidth = Math.max(preferredWidth, this.getCellDataWidth(row, column));
-
-			//  We've exceeded the maximum width, no need to check other rows
-
-			if (preferredWidth >= maxWidth)
-				break;
-		}
-
-		return preferredWidth;
-	}
-	
-	/*
-	 *  Get the preferred width for the specified cell
-	 */
-	private int getCellDataWidth(int row, int column)
-	{
-		//  Inovke the renderer for the cell to calculate the preferred width
-
-		TableCellRenderer cellRenderer = mainTable.getCellRenderer(row, column);
-		Component c = mainTable.prepareRenderer(cellRenderer, row, column);
-		int width = c.getPreferredSize().width + mainTable.getIntercellSpacing().width;
-
-		return width;
-	}
 
 }
