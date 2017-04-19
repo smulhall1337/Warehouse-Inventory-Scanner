@@ -35,7 +35,7 @@ public class SQL_Handler {
 	 * @return the connection to the database, null if connection cannot be established
 	 */
 	public static Connection getConnection() {
-		final String SQL_DRIVER = "com.mysql.jdbc.Driver";
+		final String SQL_DRIVER = "com.mysql.cj.jdbc.Driver";
 		final String URL = "jdbc:mysql://swenggseanmulhall.cdyrbvongw5v.us-east-1.rds.amazonaws.com:3306/swenggdb";
 		final String DB_USER = "seansgroup";
 		final String DB_PW = "Sssh.It'sasecret";
@@ -218,6 +218,10 @@ public class SQL_Handler {
 			statement = conn.prepareStatement("SELECT * FROM employees");
 			statements.put(stmt_key, statement);
 			
+			stmt_key = "AllItems";
+			statement = conn.prepareStatement("SELECT * FROM items");
+			statements.put(stmt_key, statement);
+			
 			stmt_key = "NewItem";
 			statement = conn.prepareStatement("INSERT INTO items (item_number, name, price, weight, current_stock, restock_threshold) " +
 											  "VALUES (?,?,?,?,?,?)");
@@ -277,58 +281,6 @@ public class SQL_Handler {
 		return sql_statements;
 	}
 	
-	/**
-	 * 
-	 * @param result the result set to convert to a list of arrays
-	 * @return a list containing String arrays, where every index in the list is a row,
-	 * where the String arrays each represent a row
-	 * @throws SQLException
-	 */
-	public static List<String[]> getResultSetAsListOfArrays(ResultSet result) throws SQLException
-	{
-		int nCol = result.getMetaData().getColumnCount();
-		List<String[]> table = new ArrayList<>();
-		while( result.next()) {
-		    String[] row = new String[nCol];
-		    for( int iCol = 1; iCol <= nCol; iCol++ ){
-		            Object obj = result.getObject( iCol );
-		            row[iCol-1] = (obj == null) ?null:obj.toString();
-		    }
-		    table.add( row );
-		}
-	
-		return table;
-	}
-	
-	/**
-	 * 
-	 * @param result the result set to convert to a list of arrays
-	 * @return a list containing String arrays, where every index in the list is a row,
-	 * where the String arrays each represent a row
-	 * @throws SQLException
-	 */
-	public static Object[][] getResultSetAs2DObjArray(ResultSet result) throws SQLException
-	{
-		int nCol = result.getMetaData().getColumnCount();
-		//set the resultset to the last row
-		result.last();
-		//save the row number of the last row
-		int nRow = result.getRow();
-		//set the cursor back to the top
-		result.beforeFirst();
-		Object[][] data = new Object[nRow][nCol];
-		int ndx = 0;
-		while( result.next()) {
-		    Object[] row = new Object[nCol];
-		    for( int iCol = 1; iCol <= nCol; iCol++ ){
-		            Object obj = result.getObject( iCol );
-		            row[iCol-1] = obj;
-		    }
-		    data[ndx] = row;
-		    ndx++;
-		}
-		return data;
-	}
 	
 	public static String[] getColumnNamesFromResultSet(ResultSet result) throws SQLException
 	{
@@ -445,8 +397,9 @@ public class SQL_Handler {
 		Connection conn = getConnection();
 		try {
 			stmt = conn.prepareStatement(query);
-		rs = stmt.executeQuery(); 
-		rs.next();
+			rs = stmt.executeQuery(); 
+			rs.next();
+			System.out.println("RESULT SET COLUMN STRING: " + rs.getString(3));
 		return rs;
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
@@ -455,6 +408,62 @@ public class SQL_Handler {
 		}
 	}
 	
+	/**
+	 * 
+	 * @param result the result set to convert to a list of arrays
+	 * @return a list containing String arrays, where every index in the list is a row,
+	 * where the String arrays each represent a row
+	 * @throws SQLException
+	 */
+	public static Object[][] getResultSetAs2DObjArray(ResultSet result) throws SQLException
+	{
+		int nCol = result.getMetaData().getColumnCount();
+		//set the resultset to the last row
+		result.last();
+		//save the row number of the last row
+		int nRow = result.getRow();
+		//set the cursor back to the top
+		result.beforeFirst();
+		Object[][] data = new Object[nRow][nCol];
+		int ndx = 0;
+		while( result.next()) {
+		    Object[] row = new Object[nCol];
+		    for( int iCol = 1; iCol <= nCol; iCol++ ){
+		            Object obj = result.getObject( iCol );
+		            row[iCol-1] = obj;
+		    }
+		    data[ndx] = row;
+		    ndx++;
+		}
+		result.beforeFirst();
+		return data;
+	}
+	
+	
+	/**
+	 * 
+	 * @param result the result set to convert to a list of arrays
+	 * @return a list containing String arrays, where every index in the list is a row,
+	 * where the String arrays each represent a row
+	 * @throws SQLException
+	 */
+	public static List<String[]> getResultSetAsListOfArrays(ResultSet result) throws SQLException
+	{
+		int nCol = result.getMetaData().getColumnCount();
+		List<String[]> table = new ArrayList<>();
+		while( result.next()) {
+		    String[] row = new String[nCol];
+		    for( int iCol = 1; iCol <= nCol; iCol++ ){
+		            Object obj = result.getObject( iCol );
+		            row[iCol-1] = (obj == null) ?null:obj.toString();
+		    }
+		    table.add( row );
+		}
+		result.beforeFirst();
+		return table;
+	}
+	
+	
 	//TODO should go in SQL handler
 		public static void updateColumnNamesToDisplayNames(String[] columnNames) {
 			// TODO Auto-generated method stub
@@ -462,5 +471,18 @@ public class SQL_Handler {
 			{
 				columnNames[i] = DBNamesManager.getFieldDisplayNameByDatabaseVariable(columnNames[i]);
 			}
+		}
+		
+		//TODO NO
+		public static ResultSet getAllItems()
+		{
+			stmt = sql_statements.get("AllItems");
+			try {
+				rs = stmt.executeQuery();
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			return rs;
 		}
 }

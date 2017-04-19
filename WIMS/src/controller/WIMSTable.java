@@ -152,5 +152,4 @@ public class WIMSTable extends JTable{
 
 		return width;
 	}
-
 }
