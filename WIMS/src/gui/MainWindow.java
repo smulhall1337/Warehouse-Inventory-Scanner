@@ -21,6 +21,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
@@ -50,6 +51,7 @@ import javax.swing.SwingConstants;
 import javax.swing.SwingWorker;
 import javax.swing.Timer;
 import javax.swing.border.Border;
+import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
@@ -72,16 +74,12 @@ public class MainWindow implements ErrorStatusReportable{
 
 	private JFrame frame;
 
-	//number of columns for field textboxes
-	private static final int FIELD_OPTION_TEXTBOX_COLUMNS = 10;
+	
 	
 	//Fonts for different UI elements
-	private static final int ENTITYFIELD_SELECTION_FONT_SIZE = 18;
 	private static final int SMALLER_COMPONENT_FONT_SIZE = 14;
 	private static final int TABLE_FONT_SIZE = 14;
-	private static final Font LABEL_FONT = new Font("Tahoma", Font.PLAIN, ENTITYFIELD_SELECTION_FONT_SIZE);
-	private static final Font COMBOBOX_FONT = new Font("Tahoma", Font.PLAIN, ENTITYFIELD_SELECTION_FONT_SIZE);
-	private static final Font FIELD_MODIFIER_COMPONENT_FONT = new Font("Tahoma", Font.PLAIN, ENTITYFIELD_SELECTION_FONT_SIZE);
+	private static final Font LABEL_FONT = new Font("Tahoma", Font.PLAIN, 18);
 	private static final Font MENUBAR_FONT = new Font("Tahoma", Font.PLAIN, SMALLER_COMPONENT_FONT_SIZE);
 	private static final Font CHECKBOX_FONT = new Font("Tahoma", Font.PLAIN, SMALLER_COMPONENT_FONT_SIZE);
 	private static final Font BUTTON_FONT = new Font("Tahoma", Font.PLAIN, 22);
@@ -112,10 +110,7 @@ public class MainWindow implements ErrorStatusReportable{
 	
 	//How many pixels will be between the table panel and the edge of the window
 	private static final int TABLE_PANEL_MARGIN = 20;
-	
-	private static final String NUMERIC_FIELD_ENTRY_REGEXSTRING = "([+-]?\\d*\\.?\\d*)";
-	private static final DecimalFormat NUMERIC_FIELD_ENTRY_FORMAT = new DecimalFormat(NUMERIC_FIELD_ENTRY_REGEXSTRING);
-	
+		
 	//HashMaps that map each field to a checkbox, used for the "show columns for" checkboxes
 	//Maps are <Key, Value> = <FieldName, CheckBoxForFieldName>
 	private HashMap<String, JCheckBox> palletFieldsCheckBoxesMap;
@@ -123,22 +118,6 @@ public class MainWindow implements ErrorStatusReportable{
 	private HashMap<String, JCheckBox> orderFieldsCheckBoxesMap;
 	
 	private JPanel showColumnsForPanel;
-	//Combobox to select an entity type to view
-	private JComboBox comboBoxEntityType;
-	//Combobox to select a field of the currently selected entity
-	private JComboBox comboBoxField;
-	//Combobox to select "less than", "starting with", etc.
-	private JComboBox comboBoxFieldModifier;
-	//Labels that go along with comboboxes
-	private JLabel lblDisplayInfoFor;
-	private JLabel lblFieldWith; 
-	
-	//DatePicker to select date when a Date type field is selected
-	private JDatePickerImpl dateFieldDatePicker;
-	//JTextField to enter a search string when a String type field is selected
-	private JTextField stringFieldTextField;
-	//JFormattedTextField to enter a number when a numeric type field is selected
-	private ImprovedFormattedTextField numericFieldTextField;
 	
 	//Wrapper panel for the table scrollpane
 	private JPanel tablePanel;
@@ -155,7 +134,7 @@ public class MainWindow implements ErrorStatusReportable{
 	//and update button panel
 	private JPanel allOptionsPanel;
 	//panel that contains entity, field, and field options selection
-	private JPanel entityAndFieldSelectPanel;
+	private EntityAndFieldPanel entityAndFieldSelectPanel;
 	
 	//components for update button panel
 	private JPanel updateButtonPanel;
@@ -195,6 +174,8 @@ public class MainWindow implements ErrorStatusReportable{
 	private String currentTableEntity; //TODO use this to keep track of the entity currently in the table view
 
 	private JLabel lblCheckBoxesStatus;
+
+	private HashMap<String, Integer> headersToOldIndexMap;
 	//initial starting option row, this is the value the layout defaults to when it is cleared
 	private static final int STARTING_OPTION_ROW = 1;
 
@@ -250,6 +231,7 @@ public class MainWindow implements ErrorStatusReportable{
 	private void initializeAllHashMaps()
 	{
 		headersToDeletedColumnMap = new HashMap<String, TableColumn>();
+		headersToOldIndexMap = new HashMap<String, Integer>();
 		palletFieldsCheckBoxesMap = getCheckBoxHashMap(DBNamesManager.getAllPalletFieldDisplayNames());
 		itemFieldsCheckBoxesMap = getCheckBoxHashMap(DBNamesManager.getAllItemFieldDisplayNames());
 		orderFieldsCheckBoxesMap = getCheckBoxHashMap(DBNamesManager.getAllOrderFieldDisplayNames());
@@ -277,13 +259,20 @@ public class MainWindow implements ErrorStatusReportable{
 					boolean selected = abstractButton.getModel().isSelected();
 					TableColumnModel tcm = mainTable.getColumnModel();
 					TableColumn correspondingColumn;
+					int correspondingColNdx;
 					if(!selected)
 					{
 						correspondingColumn = mainTable.getColumn(nextField);//headersToColumnMap.get(nextField);
-						tcm.removeColumn(correspondingColumn);
+						int oldColNdx = tcm.getColumnIndex(nextField);
+						headersToOldIndexMap.put(nextField,mainTable.convertColumnIndexToView(oldColNdx));
+						mainTable.removeColumn(correspondingColumn);
 						headersToDeletedColumnMap.put(nextField, correspondingColumn);
 					}else{
 						correspondingColumn = headersToDeletedColumnMap.get(nextField);
+						correspondingColNdx = headersToOldIndexMap.get(nextField);
+						mainTable.addColumn(correspondingColumn);
+						mainTable.moveColumn(mainTable.getColumnCount(), correspondingColNdx);
+						headersToDeletedColumnMap.remove(nextField);
 						tcm.addColumn(correspondingColumn);
 					}
 				}
@@ -461,69 +450,13 @@ public class MainWindow implements ErrorStatusReportable{
 		showColumnsForLabelPanel.add(showColumnHeaders);
 	}
 	
-	private void initializeEntityAndFieldSelectPanel()
-	{
-		entityAndFieldSelectPanel = new JPanel();
-		FlowLayout fl_entitySelectPanel = (FlowLayout) entityAndFieldSelectPanel.getLayout();
-		fl_entitySelectPanel.setVgap(10);
-		fl_entitySelectPanel.setAlignment(FlowLayout.LEFT);
+	private void initializeEntityAndFieldSelectPanel(){
+		//TODO add this to a field
 		allOptionsPanel.add(entityAndFieldSelectPanel, BorderLayout.NORTH);
-		
-		lblDisplayInfoFor = new JLabel("Display info for");
-		lblDisplayInfoFor.setFont(LABEL_FONT);
-		entityAndFieldSelectPanel.add(lblDisplayInfoFor);
-		
-		initializeEntityComboBox();
-		
-		lblFieldWith = new JLabel("with");
-		lblFieldWith.setFont(LABEL_FONT);
-		entityAndFieldSelectPanel.add(lblFieldWith);
-		
-		initializeFieldsComboBox();
-		initializeFieldModifierComboBox();
 	}
 	
 
-	/**
-	 * Initialize the combobox of entities.
-	 */
-	private void initializeEntityComboBox()
-	{
-		comboBoxEntityType = new JComboBox();
-		comboBoxEntityType.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent ae) {
-				String currentEntity = (String) comboBoxEntityType.getSelectedItem();
-				//if "all warehouse entities" is selected, we can't show fields
-				//so we hide all of the field and field modifier options
-				if(currentEntity.equals(DBNamesManager.getDisplayNameForAllEntitySpecifier())){
-					setFieldOptionVisibility(false);
-				}else{
-					//display checkboxes for the newly selected entity's fields
-					//and update the fields combobox to display these fields
-					setFieldOptionVisibility(true);
-					displayFieldCheckBoxesForEntity(currentEntity);
-					updateFieldsComboBox(currentEntity);
-					if(currentEntity.equals(currentTableEntity))
-					{
-						setAreCheckBoxesAreEnabled(true); //TODO double check this
-						clearColumnHeaderCheckboxesStatus();
-					}else{
-						setAreCheckBoxesAreEnabled(false);
-						displayColumnHeaderCheckboxesStatus("Make a query first to show/hide columns", Color.RED);
-					}
-				}
-			}
-		});
-		comboBoxEntityType.setFont(COMBOBOX_FONT);
-		//display the entities from the entity array
-		comboBoxEntityType.setModel(new DefaultComboBoxModel(DBNamesManager.getEntityDisplayNames()));
-		if(lblCheckBoxesStatus == null)
-			initializeCheckBoxStatusLabel();
-		setAreCheckBoxesAreEnabled(false);
-		displayColumnHeaderCheckboxesStatus("Make a query first to show/hide columns", Color.RED); //TODO add these to be constants
-		entityAndFieldSelectPanel.add(comboBoxEntityType);
-	}
+	
 	
 	private void displayColumnHeaderCheckboxesStatus(String string, Color color) {
 		// TODO Auto-generated method stub
@@ -533,216 +466,6 @@ public class MainWindow implements ErrorStatusReportable{
 	
 	private void clearColumnHeaderCheckboxesStatus() {
 		displayColumnHeaderCheckboxesStatus("", showColumnsForPanel.getBackground());
-	}
-	
-	private void setFieldOptionVisibility(boolean visibility) {
-		
-		//set the other comboboxes to the given visibility
-		comboBoxField.setVisible(visibility);
-		comboBoxFieldModifier.setVisible(visibility);
-		
-		//set the labels for those comboboxes to the given visibility
-		lblDisplayInfoFor.setVisible(visibility);
-		lblFieldWith.setVisible(visibility);
-		
-		//set the field modifier component to the given visibility
-		setFieldModifierVisibility(visibility);
-		
-		//set the show columns for components to the given visibility
-		showColumnsForLabelPanel.setVisible(visibility);
-		showColumnsForPanel.setVisible(visibility);
-	}
-	
-
-	/**
-	 * Set the visibility of the field modifier components to the given visibilty
-	 * @param visibility the visibilty to set the field modifier components to. 
-	 * 			true - components are visible
-	 * 			false - components are not visible
-	 */
-	private void setFieldModifierVisibility(boolean visibility) {
-		//for each possible field modifier component, if it isn't null,
-		//and its parent isn't null (aka it is actually displayed on a window)
-		//then set its visibility to the given value
-		if(numericFieldTextField != null && numericFieldTextField.getParent() != null)
-			numericFieldTextField.setVisible(visibility);
-		if(stringFieldTextField.getParent() != null && stringFieldTextField.getParent() != null)
-			stringFieldTextField.setVisible(visibility);
-		if(dateFieldDatePicker.getParent() != null && dateFieldDatePicker.getParent() != null)
-			dateFieldDatePicker.setVisible(visibility);
-	}
-
-	/**
-	 * Initialize the combobox the combobox of fields for the current entity.
-	 */
-	private void initializeFieldsComboBox()
-	{
-		comboBoxField = new JComboBox();
-		comboBoxField.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent ae) {
-				String currentField = (String) comboBoxField.getSelectedItem();
-				updateFieldModifierComboBox(currentField);
-				updateFieldModifierComponent(currentField);
-			}
-		});
-		comboBoxField.setFont(COMBOBOX_FONT);
-		entityAndFieldSelectPanel.add(comboBoxField);
-		//get the current entity
-		String currentEntity = (String) comboBoxEntityType.getSelectedItem();
-		//update this fields combobox to display that entity's fields
-		updateFieldsComboBox(currentEntity);
-	}
-	
-	/**
-	 * Update the fields combobox to display the fields for the given entity
-	 * @param entityName the entity whose fields will be displayed in the combobox
-	 */
-	private void updateFieldsComboBox(String entityName) {
-		switch (entityName){
-		case DBNamesManager.ITEM_ENTITY_DISPLAYNAME: 
-			comboBoxField.setModel(new DefaultComboBoxModel(DBNamesManager.getAllItemFieldDisplayNames()));
-			break;
-		case DBNamesManager.PALLET_ENTITY_DISPLAYNAME: 
-			comboBoxField.setModel(new DefaultComboBoxModel(DBNamesManager.getAllPalletFieldDisplayNames()));
-			break;
-		case DBNamesManager.ORDER_ENTITY_DISPLAYNAME:
-			comboBoxField.setModel(new DefaultComboBoxModel(DBNamesManager.getAllOrderFieldDisplayNames()));
-			break;
-		}
-		//if the combobox for the field modifiers has been initialized, update it 
-		//based on the newly selected entity (it will update based on whatever
-		//field from the new entity is selected first). This solves the problem
-		//of switching entities causing the field modifiers to not make sense for
-		//the current entity's first field.
-		if(comboBoxFieldModifier != null)
-		{
-			//grab the currently selected field (which has been updated in the switch(entityName) above)
-			String currentField = (String) comboBoxField.getSelectedItem();
-			//update the field modifier components based on this field
-			updateFieldModifierComboBox(currentField);
-			updateFieldModifierComponent(currentField);
-		}
-	}
-
-	/**
-	 * Initialize the combobox for the field modifiers. 
-	 */
-	private void initializeFieldModifierComboBox() {
-		comboBoxFieldModifier = new JComboBox();		
-		comboBoxFieldModifier.setFont(COMBOBOX_FONT);
-		entityAndFieldSelectPanel.add(comboBoxFieldModifier);
-
-		String currentField = (String) comboBoxField.getSelectedItem();
-		
-		initializeFieldModifierComponents();
-		updateFieldModifierComponent(currentField);
-		updateFieldModifierComboBox(currentField);
-	}
-	
-	/**
-	 * Update the field modifiers combobox based on the given field
-	 * @param fieldDisplayName the field to display modifiers for
-	 */
-	private void updateFieldModifierComboBox(String fieldDisplayName) {
-		//get the data type of the given field
-		String fieldType = DBNamesManager.getFieldDataTypeByDisplayName(fieldDisplayName);
-		//fill the combobox based on the field data type
-		switch (fieldType){
-		case DBNamesManager.NUMERIC_FIELD_TYPE_NAME: 
-			comboBoxFieldModifier.setModel(new DefaultComboBoxModel(DBNamesManager.getNumericFieldModifierStrings()));
-			break;
-		case DBNamesManager.STRING_FIELD_TYPE_NAME: 
-			comboBoxFieldModifier.setModel(new DefaultComboBoxModel(DBNamesManager.getStringFieldModifierStrings()));
-			break;
-		case DBNamesManager.DATE_FIELD_TYPE_NAME:
-			comboBoxFieldModifier.setModel(new DefaultComboBoxModel(DBNamesManager.getDateFieldModifierStrings()));
-			break;
-		}
-	}
-	
-	/**
-	 * Update the user field modifier component based on the given field. Date types
-	 * will display a date picker component, numeric types will have a number
-	 * entry component, etc.
-	 * @param fieldDisplayName the field to use to determine how to update the field modifier component
-	 */
-	private void updateFieldModifierComponent(String fieldDisplayName) {
-		//clear the current field modifier component
-		clearFieldModifierComponent();
-		//get the data type of the field to update the component based on
-		String fieldType = DBNamesManager.getFieldDataTypeByDisplayName(fieldDisplayName);
-		//TODO add documents for text fields
-		//Update the component based on the data type of the field
-		switch (fieldType){
-		case DBNamesManager.NUMERIC_FIELD_TYPE_NAME: 
-			//if numeric, display a number entry text field
-			numericFieldTextField = new ImprovedFormattedTextField(NUMERIC_FIELD_ENTRY_FORMAT);
-			numericFieldTextField.setColumns(FIELD_OPTION_TEXTBOX_COLUMNS);
-			numericFieldTextField.setFont(FIELD_MODIFIER_COMPONENT_FONT);
-			entityAndFieldSelectPanel.add(numericFieldTextField);
-			break;
-		case DBNamesManager.STRING_FIELD_TYPE_NAME: 
-			//if string, display a text field for the user's search string
-			stringFieldTextField = new JTextField();
-			stringFieldTextField.setColumns(FIELD_OPTION_TEXTBOX_COLUMNS);
-			stringFieldTextField.setFont(FIELD_MODIFIER_COMPONENT_FONT);
-			entityAndFieldSelectPanel.add(stringFieldTextField);
-			break;
-		case DBNamesManager.DATE_FIELD_TYPE_NAME:
-			//if date, display a date picker
-			dateFieldDatePicker = this.getDatePicker();
-			dateFieldDatePicker.setFont(FIELD_MODIFIER_COMPONENT_FONT);
-			entityAndFieldSelectPanel.add(dateFieldDatePicker);
-			break;
-		}
-	}
-	
-	/**
-	 * Initialize the components for field modifiers
-	 */
-	private void initializeFieldModifierComponents() {
-		numericFieldTextField = new ImprovedFormattedTextField(NUMERIC_FIELD_ENTRY_FORMAT);
-		stringFieldTextField = new JTextField();
-		dateFieldDatePicker = this.getDatePicker();
-		numericFieldTextField.setFont(FIELD_MODIFIER_COMPONENT_FONT);
-		stringFieldTextField.setFont(FIELD_MODIFIER_COMPONENT_FONT);
-		dateFieldDatePicker.setFont(FIELD_MODIFIER_COMPONENT_FONT);
-	}
-	
-	/**
-	 * Clear the current field modifier component
-	 */
-	private void clearFieldModifierComponent() {
-		if(numericFieldTextField.getParent() != null)
-			entityAndFieldSelectPanel.remove(numericFieldTextField);
-		if(stringFieldTextField.getParent() != null)
-			entityAndFieldSelectPanel.remove(stringFieldTextField);
-		if(dateFieldDatePicker.getParent() != null)
-			entityAndFieldSelectPanel.remove(dateFieldDatePicker);
-	}
-	
-	/**
-	 * Get the value the user entered into the field modifier
-	 * @param currentField the field that is currently selected
-	 * @return a String containing the user's entry into the field modifier.
-	 * 		   	if currentField is numeric type, this will be a number string
-	 * 			if currentField is a date type, this will be a string containing the date
-	 * 			if currentField is String type, this will be the search string the user entered
-	 * 			if the type of the currentField does not match any of the possible data types,
-	 * 			this method will return null
-	 */
-	private String getFieldModifierValue(String currentField) {
-		String fieldType = DBNamesManager.getFieldDataTypeByDisplayName(currentField);
-		switch (fieldType){
-		case DBNamesManager.NUMERIC_FIELD_TYPE_NAME: 
-			return numericFieldTextField.getText();
-		case DBNamesManager.STRING_FIELD_TYPE_NAME: 
-			return stringFieldTextField.getText();
-		case DBNamesManager.DATE_FIELD_TYPE_NAME:
-			return dateFieldDatePicker.getJFormattedTextField().getText();
-		}
-		return null; //is not supposed to happen, if this happens there is an error
 	}
 
 	private void initializeShowColumnsForPanel()
@@ -925,7 +648,7 @@ public class MainWindow implements ErrorStatusReportable{
 
 			        @Override
 			        protected void done() {
-			            System.out.println("you gotta make this work correctly");  
+			           // System.out.println("you gotta make this work correctly");  
 			        	lblLoadingIcon.setVisible(false);
 			        	updateFieldModifierComponent(fieldName);
 			        }
@@ -985,16 +708,23 @@ public class MainWindow implements ErrorStatusReportable{
 			}
 			try {
 			lblLoadingIcon.setText(EXECUTING_QUERY_STATUS_MESSAGE);
+			//TODO sysout delete
+			System.out.println(query);
 			ResultSet result = controller.SQL_Handler.executeCustomQuery(query);
+			//ResultSet result = controller.SQL_Handler.getAllItems();
 			if(result.next())
 			{
+				result.beforeFirst();
 				lblLoadingIcon.setText(UPDATING_TABLE_STATUS_MESSAGE);
 				Object[][] data = controller.SQL_Handler.getResultSetAs2DObjArray(result);			
 				String[] columnNames = controller.SQL_Handler.getColumnNamesFromResultSet(result);
 				SQL_Handler.updateColumnNamesToDisplayNames(columnNames);
-				WIMSTableModel tabelModel = new WIMSTableModel(data, columnNames);
+				updateTable(data, columnNames);
 				//headersToColumnMap = mainTable.getTableColumnByHeaderMap();
-				mainTable.setModel(tabelModel);
+				//((WIMSTableModel) mainTable.getModel()).updateTable(data, columnNames);
+//				for(int col = 0; col < data.length; col++)
+//					for(int row = 0; row < data[col].length; row++)
+//						System.out.println(data[col][row]);
 				return true;
 			}else{
 				return false;
@@ -1062,13 +792,21 @@ public class MainWindow implements ErrorStatusReportable{
 		tablePanel = new JPanel();
 		resizingPanelForTable.add(tablePanel);
 		tablePanel.setLayout(new BorderLayout(0, 0));
+		String[] initColNames = getTestTableColumnNames();
+		Object[][] initData = getTestTableData();
+		updateTable(initData, initColNames);
 		
+		initializeTableScrollPane();
+		//mainTableScrollPane.setViewportView(mainTable);
+		initializeTablePanelBorderSpacing();
+	}
+	
+	private void updateTable(Object[][] data, String[] columnNames)
+	{
 		//make a new wimstable, override the viewport tracking so autoresize and scroll is utilized
 		mainTable = new WIMSTable();
 		mainTable.setFont(TABLE_FONT);
-		String[] defaultColNames = MainWindow.getTestTableColumnNames();//TODO test data, is only temporary
-		Object[][] defaultData = MainWindow.getTestTableData();//TODO test data, is only temporary
-		WIMSTableModel tabelModel = new WIMSTableModel(defaultData, defaultColNames);
+		WIMSTableModel tabelModel = new WIMSTableModel(data, columnNames);
 		
 		mainTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
 		mainTable.setFillsViewportHeight(true);
@@ -1078,9 +816,8 @@ public class MainWindow implements ErrorStatusReportable{
 		TableWidthAdjuster = new WidthAdjuster(mainTable);
 	
 		mainTable.updateColumnWidths();
-		initializeTableScrollPane();
-		//mainTableScrollPane.setViewportView(mainTable);
-		initializeTablePanelBorderSpacing();
+		if(mainTableScrollPane != null)
+			mainTableScrollPane.setViewportView(mainTable);
 	}
 	
 	private void initializeTableScrollPane()
@@ -1183,26 +920,6 @@ public class MainWindow implements ErrorStatusReportable{
 		
 		Component bottomMargin = Box.createRigidArea(marginDimension);
 		tablePanel.add(bottomMargin, BorderLayout.SOUTH);
-	}
-	
-	/**
-	 * Get a date picker component
-	 * @return a date picker component
-	 */
-	private JDatePickerImpl getDatePicker()
-	{
-		UtilDateModel model = new UtilDateModel();
-    	//model.setDate(20,04,2014);
-    	// Need this...
-    	Properties p = new Properties();
-    	p.put("text.today", "Today");
-    	p.put("text.month", "Month");
-    	p.put("text.year", "Year");
-    	JDatePanelImpl datePanel = new JDatePanelImpl(model, p);
-    	// Don't know about the formatter, but there it is...
-    	JDatePickerImpl datePicker = new JDatePickerImpl(datePanel, new DateLabelFormatter());
-    	datePicker.setTextEditable(true);
-    	return datePicker;
 	}
 	
 	//TODO all of the stuff beneath this should be in some type of controller class
