@@ -14,10 +14,13 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Properties;
 
 import javax.swing.BorderFactory;
@@ -68,6 +71,7 @@ public class MainWindow {
 	private static final String ITEM_WEIGHT_FIELD = "Weight";
 	private static final String ITEM_CURR_STOCK_FIELD = "Current Stock";
 	private static final String ITEM_RESTOCK_FIELD = "Restock Threshold";
+	//TODO handle item categories--get from SQL handler as 1 string with commas, display in one column
 	
 	//All of the Pallet fields
 	private static final String PALLET_ID_FIELD = "Pallet ID";
@@ -90,7 +94,43 @@ public class MainWindow {
 	private static final String ORDER_DATE_SHIPPED_FIELD = "Date Shipped";
 	private static final String ORDER_RECEIVING_EMPLOYEE_FIELD = "Employee Received By";
 	private static final String ORDER_SHIPPING_EMPLOYEE_FIELD = "Employee Shipped By";
-	private static final String ORDER_MANIFEST_ID_FIELD = "Manifest ID";
+	
+	//All of the entity type names for the entity type combobox
+	private static final String ITEM_DB_ENTITY_NAME = "Items";
+	private static final String PALLET_DB_ENTITY_NAME = "Pallets";
+	private static final String ORDER_DB_ENTITY_NAME = "Orders";
+	private static final String[] ALL_DB_ENTITIES = {ITEM_DB_ENTITY_NAME, 
+		PALLET_DB_ENTITY_NAME, ORDER_DB_ENTITY_NAME};
+	
+	//All of the Item database fields
+	private static final String ITEM_NAME_DB_FIELD = "name";
+	private static final String ITEM_NUMBER_DB_FIELD = "item_number";
+	private static final String ITEM_PRICE_DB_FIELD = "price";
+	private static final String ITEM_WEIGHT_DB_FIELD = "weight";
+	private static final String ITEM_CURR_STOCK_DB_FIELD = "current_stock";
+	private static final String ITEM_RESTOCK_DB_FIELD = "restock_threshold";
+	
+	//All of the Pallet database fields
+	private static final String PALLET_ID_DB_FIELD = "pallet_id";
+	private static final String PALLET_ORDER_NUM_DB_FIELD = "order_number";
+	private static final String PALLET_LOC_DB_FIELD = "location_coordinate";
+	private static final String PALLET_PIECE_COUNT_DB_FIELD = "piece_count";
+	private static final String PALLET_WEIGHT_DB_FIELD = "weight";
+	private static final String PALLET_LENGTH_DB_FIELD = "length";
+	private static final String PALLET_WIDTH_DB_FIELD = "width";
+	private static final String PALLET_HEIGHT_DB_FIELD = "height";
+	private static final String PALLET_RECEIVE_DATE_DB_FIELD = "receival_date";
+	private static final String PALLET_SHIP_DATE_DB_FIELD = "ship_date";
+	private static final String PALLET_NOTES_DB_FIELD = "notes";
+	
+	//All of the Order database fields
+	private static final String ORDER_NUM_DB_FIELD = "order_number";
+	private static final String ORDER_ORIGIN_DB_FIELD = "origin";
+	private static final String ORDER_DEST_DB_FIELD = "destination";
+	private static final String ORDER_DATE_PLACED_DB_FIELD = "date_placed";
+	private static final String ORDER_DATE_SHIPPED_DB_FIELD = "date_shipped";
+	private static final String ORDER_RECEIVING_EMPLOYEE_DB_FIELD = "received_by_emp_id";
+	private static final String ORDER_SHIPPING_EMPLOYEE_DB_FIELD = "shipped_by_emp_id";
 	
 	//Pallet fields for the fields combobox
 	private static final String[] PALLET_FIELDS = {PALLET_ID_FIELD, PALLET_ORDER_NUM_FIELD, PALLET_LOC_FIELD,
@@ -104,7 +144,7 @@ public class MainWindow {
 	//Order fields for the fields combobox
 	private static final String[] ORDER_FIELDS = {ORDER_NUM_FIELD, ORDER_ORIGIN_FIELD, ORDER_DEST_FIELD, ORDER_DATE_PLACED_FIELD,
 													ORDER_DATE_SHIPPED_FIELD, ORDER_RECEIVING_EMPLOYEE_FIELD, 
-													ORDER_SHIPPING_EMPLOYEE_FIELD,ORDER_MANIFEST_ID_FIELD};
+													ORDER_SHIPPING_EMPLOYEE_FIELD};
 	
 	//All of the options for a numeric type field
 	private static final String NUMERIC_FIELD_TYPE_NAME = "numeric";
@@ -119,9 +159,9 @@ public class MainWindow {
 	private static final String STRING_FIELD_STARTING_WITH = "starting with";
 	private static final String STRING_FIELD_ENDING_WITH = "ending with";
 	private static final String STRING_FIELD_CONTAINS = "containing";
-	private static final String STRING_FIELD_EQUAL_TO = "equal to";
+	private static final String STRING_FIELD_THAT_IS = "that is";
 	//Array of numeric field type options for field options combobox when a String type field is selected
-	private static final String[] STRING_FIELD_DESCRIPTIONS = {STRING_FIELD_STARTING_WITH, STRING_FIELD_ENDING_WITH, STRING_FIELD_CONTAINS, STRING_FIELD_EQUAL_TO};
+	private static final String[] STRING_FIELD_DESCRIPTIONS = {STRING_FIELD_STARTING_WITH, STRING_FIELD_ENDING_WITH, STRING_FIELD_CONTAINS, STRING_FIELD_THAT_IS};
 	
 	//All of the options for a date type field
 	private static final String DATE_FIELD_TYPE_NAME = "date";
@@ -181,6 +221,20 @@ public class MainWindow {
 	 * or "before" for dates, etc.
 	 */
 	private HashMap<String, String> fieldDataTypesMap;
+	
+	/* HashMap that contains a mapping of all locally declared field names to their database variable name
+	 * For example, Item Number is a local field, but in the DB it is item_number.
+	 * This mapping would be <ITEM_NAME_FIELD, ITEM_NAME_DB_FIELD>, or <"Item Number","item number">
+	 * This allows the update table function to access the database based on UI element values
+	 */
+	private HashMap<String, String> localFieldNameToDBFieldNameMap;
+	
+	/* HashMap that contains a mapping of all locally declared entity names to their database variable name
+	 * For example, Item is a local field, but in the DB it is item.
+	 * This mapping would be <ITEM_ENTITY_FIELD, ITEM_DB_ENTITY_NAME>, or <"Item","item">
+	 * This allows the update table function to access the database based on UI element values
+	 */
+	private HashMap<String, String> localEntityNameToDBEntityNameMap;
 	
 	private JPanel showColumnsForPanel;
 	//Combobox to select an entity type to view
@@ -287,8 +341,62 @@ public class MainWindow {
 		itemFieldsCheckBoxesMap = getCheckBoxHashMap(ITEM_FIELDS);
 		orderFieldsCheckBoxesMap = getCheckBoxHashMap(ORDER_FIELDS);
 		initializeFieldDataTypesMap();
+		initializeLocalEntityNameToDBEntityNameMap();
+		initializeLocalFieldNameToDBFieldNameMap();
 	}
 	
+	private void initializeLocalEntityNameToDBEntityNameMap() {
+		localEntityNameToDBEntityNameMap = new HashMap<String, String>();
+		localEntityNameToDBEntityNameMap.put(ITEM_ENTITY_NAME,ITEM_DB_ENTITY_NAME);
+		localEntityNameToDBEntityNameMap.put(PALLET_ENTITY_NAME,PALLET_DB_ENTITY_NAME);
+		localEntityNameToDBEntityNameMap.put(ORDER_ENTITY_NAME,ORDER_DB_ENTITY_NAME);
+	}
+
+	private void initializeLocalFieldNameToDBFieldNameMap() {
+		localFieldNameToDBFieldNameMap = new HashMap<String, String>();
+		addItemFieldNamesToDBFieldsMap();
+		addPalletFieldNamesToDBFieldsMap();
+		addOrderFieldNamesToDBFieldsMap();
+	}
+
+	private void addItemFieldNamesToDBFieldsMap() {
+		localFieldNameToDBFieldNameMap.put(ITEM_NAME_FIELD, ITEM_NAME_DB_FIELD);
+		localFieldNameToDBFieldNameMap.put(ITEM_PRICE_FIELD, ITEM_PRICE_DB_FIELD);
+		localFieldNameToDBFieldNameMap.put(ITEM_WEIGHT_FIELD, ITEM_WEIGHT_DB_FIELD);
+		localFieldNameToDBFieldNameMap.put(ITEM_CURR_STOCK_FIELD, ITEM_CURR_STOCK_DB_FIELD);
+		localFieldNameToDBFieldNameMap.put(ITEM_RESTOCK_FIELD, ITEM_RESTOCK_DB_FIELD);
+
+		localFieldNameToDBFieldNameMap.put(ITEM_NAME_FIELD, ITEM_NAME_DB_FIELD);
+		localFieldNameToDBFieldNameMap.put(ITEM_NUMBER_FIELD, ITEM_NUMBER_DB_FIELD);
+	}
+	
+	private void addPalletFieldNamesToDBFieldsMap() {
+		localFieldNameToDBFieldNameMap.put(PALLET_PIECE_COUNT_FIELD, PALLET_PIECE_COUNT_DB_FIELD);
+		localFieldNameToDBFieldNameMap.put(PALLET_WEIGHT_FIELD, PALLET_WEIGHT_DB_FIELD);
+		localFieldNameToDBFieldNameMap.put(PALLET_LENGTH_FIELD, PALLET_LENGTH_DB_FIELD);
+		localFieldNameToDBFieldNameMap.put(PALLET_WIDTH_FIELD, PALLET_WIDTH_DB_FIELD);
+		localFieldNameToDBFieldNameMap.put(PALLET_HEIGHT_FIELD, PALLET_HEIGHT_DB_FIELD);
+		
+		localFieldNameToDBFieldNameMap.put(PALLET_ID_FIELD, PALLET_ID_DB_FIELD);
+		localFieldNameToDBFieldNameMap.put(PALLET_ORDER_NUM_FIELD, PALLET_ORDER_NUM_DB_FIELD);
+		localFieldNameToDBFieldNameMap.put(PALLET_LOC_FIELD , PALLET_LOC_DB_FIELD);
+		localFieldNameToDBFieldNameMap.put(PALLET_NOTES_FIELD, PALLET_NOTES_DB_FIELD);
+
+		localFieldNameToDBFieldNameMap.put(PALLET_RECEIVE_DATE_FIELD, PALLET_RECEIVE_DATE_DB_FIELD);
+		localFieldNameToDBFieldNameMap.put(PALLET_SHIP_DATE_FIELD, PALLET_SHIP_DATE_DB_FIELD);
+	}
+	
+	private void addOrderFieldNamesToDBFieldsMap() {
+		fieldDataTypesMap.put(ORDER_NUM_FIELD, ORDER_NUM_DB_FIELD);
+		fieldDataTypesMap.put(ORDER_ORIGIN_FIELD, ORDER_ORIGIN_DB_FIELD);
+		fieldDataTypesMap.put(ORDER_DEST_FIELD, ORDER_DEST_DB_FIELD);
+		fieldDataTypesMap.put(ORDER_RECEIVING_EMPLOYEE_FIELD, ORDER_RECEIVING_EMPLOYEE_DB_FIELD);
+		fieldDataTypesMap.put(ORDER_SHIPPING_EMPLOYEE_FIELD, ORDER_SHIPPING_EMPLOYEE_DB_FIELD);
+		
+		fieldDataTypesMap.put(ORDER_DATE_PLACED_FIELD, ORDER_DATE_PLACED_DB_FIELD);
+		fieldDataTypesMap.put(ORDER_DATE_SHIPPED_FIELD, ORDER_DATE_SHIPPED_DB_FIELD);
+	}
+
 	/**
 	 * Initialize the field options map that maps field names to their
 	 * data type
@@ -344,7 +452,6 @@ public class MainWindow {
 		fieldDataTypesMap.put(ORDER_DEST_FIELD, STRING_FIELD_TYPE_NAME);
 		fieldDataTypesMap.put(ORDER_RECEIVING_EMPLOYEE_FIELD, STRING_FIELD_TYPE_NAME);
 		fieldDataTypesMap.put(ORDER_SHIPPING_EMPLOYEE_FIELD, STRING_FIELD_TYPE_NAME);
-		fieldDataTypesMap.put(ORDER_MANIFEST_ID_FIELD, STRING_FIELD_TYPE_NAME);
 		
 		fieldDataTypesMap.put(ORDER_DATE_PLACED_FIELD, DATE_FIELD_TYPE_NAME);
 		fieldDataTypesMap.put(ORDER_DATE_SHIPPED_FIELD, DATE_FIELD_TYPE_NAME);
@@ -873,7 +980,8 @@ public class MainWindow {
 		allOptionsPanel.add(updateButtonPanel, BorderLayout.SOUTH);
 		updateButtonPanel.setLayout(new FlowLayout(FlowLayout.RIGHT, 5, 5));
 
-		//Create the 
+		//Create the update button and give it an action listener to gather the
+		//selected options from the UI elements and 
 		JButton updateButton = new JButton("Update");
 		updateButton.setFont(BUTTON_FONT);
 		updateButtonPanel.add(updateButton);
@@ -898,21 +1006,91 @@ public class MainWindow {
 	 */
 	private void updateTableBasedOnSelection(String entityName, String fieldName, String fieldModifier, String fieldModifierValue){
 		//TODO finish this functionality to interact with the database
-		switch (entityName){
-		case ALL_ENTITY_NAME:
-			break;
-		case ITEM_ENTITY_NAME: 
-			break;
-		case PALLET_ENTITY_NAME: 
-			break;
-		case ORDER_ENTITY_NAME:
-			break;
-		}
-		if(fieldModifierValue.equals(DEFAULT_FIELD_MODIFIER_VALUE))
+		if (entityName.equals(ALL_ENTITY_NAME)) 
 		{
+		} else {
+			String dbEntityName = localEntityNameToDBEntityNameMap
+					.get(entityName);
+			String query = "SELECT * FROM " + dbEntityName;
+			//if the user has entered a modifier value
+			if (!fieldModifierValue.equals(DEFAULT_FIELD_MODIFIER_VALUE)) 
+			{
+				String dbFieldName = localFieldNameToDBFieldNameMap.get(fieldName);
+				String modifierString = getQueryModifierString(fieldModifier,
+						fieldModifierValue);
+				query = query + " WHERE " + dbFieldName + modifierString;
+			}
+			ResultSet result = controller.SQL_Handler.executeCustomQuery(query);
+			List<String[]> stringData;
+			try {
+				stringData = controller.SQL_Handler.getResultSetAsListOfArrays(result);
 			
+			String[] columnNames = controller.SQL_Handler.getColumnNamesFromResultSet(result);
+			Object[][] data = (Object[][]) stringData.toArray();
+			WIMSTableModel tabelModel = new WIMSTableModel(data, columnNames);
+			mainTable.setModel(tabelModel);
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
+		//TODO make it update the table neatly, probably in another method
+		//TODO THISIS BAD
 	}
+	
+	private String getQueryModifierString(String fieldModifier, String fieldModifierValue) {
+		String modifierString = "";
+		switch (fieldModifier){
+		case NUMERIC_FIELD_LESS_THAN: 
+			modifierString = " < " + fieldModifierValue;
+			break;
+		case NUMERIC_FIELD_GREATER_THAN: 
+			modifierString = " > " + fieldModifierValue;
+			break;
+		case NUMERIC_FIELD_EQUAL_TO:
+			modifierString = " = " + fieldModifierValue;
+			break;
+		case STRING_FIELD_STARTING_WITH:
+			modifierString = " LIKE " + fieldModifierValue + "%";
+			break;
+		case STRING_FIELD_ENDING_WITH:
+			modifierString = " LIKE " + "%" + fieldModifierValue;
+			break;
+		case STRING_FIELD_CONTAINS:
+			modifierString = " LIKE " + "%" + fieldModifierValue + "%";
+			break;
+		case STRING_FIELD_THAT_IS:
+			modifierString = " = " + fieldModifierValue;
+			break;
+		case DATE_FIELD_BEFORE:
+			modifierString = " < " + "\'" + fieldModifierValue + "\')";
+			break;
+		case DATE_FIELD_AFTER:
+			modifierString = " > " + "\'" + fieldModifierValue + "\')";
+			break;
+		case DATE_FIELD_ON:
+			modifierString = " = " + "\'" + fieldModifierValue + "\')";
+			break;
+		}
+		return modifierString;
+	}
+
+	/*	private static final String NUMERIC_FIELD_TYPE_NAME = "numeric";
+		private static final String NUMERIC_FIELD_GREATER_THAN = "greater than";
+		private static final String NUMERIC_FIELD_LESS_THAN = "less than";
+		private static final String NUMERIC_FIELD_EQUAL_TO = "equal to";
+		
+		private static final String STRING_FIELD_TYPE_NAME = "String";
+		private static final String STRING_FIELD_STARTING_WITH = "starting with";
+		private static final String STRING_FIELD_ENDING_WITH = "ending with";
+		private static final String STRING_FIELD_CONTAINS = "containing";
+		private static final String STRING_FIELD_EQUAL_TO = "that is";
+		
+		private static final String DATE_FIELD_TYPE_NAME = "date";
+		private static final String DATE_FIELD_BEFORE = "before";
+		private static final String DATE_FIELD_AFTER = "after";
+		private static final String DATE_FIELD_ON = "on";
+	 */
 	
 	/**
 	 * Initialize the table panel and the table within.
