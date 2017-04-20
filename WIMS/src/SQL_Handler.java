@@ -174,9 +174,20 @@ public abstract class SQL_Handler {
 			stmt_key = "UpdateItemOnPallet";
 			statement = conn.prepareStatement("UPDATE swenggdb.pallets_items SET item_quantity = ? WHERE pallet_id = ? AND item_number = ?");
 			statements.put(stmt_key, statement);
+			stmt_key = "AddItemToPallet";
+			statement = conn.prepareStatement("INSERT INTO swenggdb.pallets_items (pallet_id, item_number, item_quantity) " +
+												"VALUES (?, ?, ?)");
+			statements.put(stmt_key, statement);
 			
 			//#############################################Orders
+			stmt_key = "OrderInDB";
+			statement = conn.prepareStatement("SELECT * FROM orders WHERE order_number = ?");
+			statements.put(stmt_key, statement);
 			
+			stmt_key = "NewOrder";
+			statement = conn.prepareStatement("INSERT INTO swenggdb.orders (order_number, origin, destination, received_by_emp_id, shipped_by_emp_id, date_placed, date_shipped, date_delivered) " +
+												"VALUES(?, ?,?, ?, ?, ?, ?, ?)");
+			statements.put(stmt_key, statement);
 			//#############################################Display		
 			
 		} catch (SQLException e) {
@@ -469,7 +480,28 @@ public abstract class SQL_Handler {
 	}
 	
 	//#############################################Orders
+	public static boolean OrderInDB(String OrderNumber) throws SQLException {
+		stmt = sql_statements.get("OrderInDB");
+		stmt.setString(1, OrderNumber);
+		rs = stmt.executeQuery();
+		if (rs.next())
+			return true;
+		else
+			return false;
+	}
 	
+	public static void insertNewOrder(String orderNumber, String origin, String destination, String receiveEmployeeID, String shipEmployeeID, String datePlaced, String dateShipped, String dateDelivered) throws SQLException {
+		stmt = sql_statements.get("NewOrder");
+		stmt.setString(1, orderNumber);
+		stmt.setString(2, origin);
+		stmt.setString(3, destination);
+		stmt.setString(4, receiveEmployeeID);
+		stmt.setString(5, shipEmployeeID);
+		stmt.setString(6, datePlaced);
+		stmt.setString(7, dateShipped);
+		stmt.setString(8, dateDelivered);
+		stmt.execute();
+	}
 	
 	
 	//#############################################Display	
