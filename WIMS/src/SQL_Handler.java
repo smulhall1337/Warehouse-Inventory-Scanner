@@ -490,9 +490,9 @@ public abstract class SQL_Handler {
 			return false;
 	}
 	
-	public static void insertNewOrder(String orderNumber, String origin, String destination, String receiveEmployeeID, String shipEmployeeID, String datePlaced, String dateShipped, String dateDelivered) throws SQLException {
+	public static void insertNewOrder(int orderNumber, String origin, String destination, String receiveEmployeeID, String shipEmployeeID, String datePlaced, String dateShipped, String dateDelivered) throws SQLException {
 		stmt = sql_statements.get("NewOrder");
-		stmt.setString(1, orderNumber);
+		stmt.setInt(1, orderNumber);
 		stmt.setString(2, origin);
 		stmt.setString(3, destination);
 		stmt.setString(4, receiveEmployeeID);
