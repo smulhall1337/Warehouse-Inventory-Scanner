@@ -68,9 +68,9 @@ public class ScanWindow {
 	/**
 	 * Create the application.
 	 */
-	public ScanWindow(/**boolean isManagement*/) {
-		//isM = isManagement
-		isM = true;
+	public ScanWindow(boolean isManagement) {
+		isM = isManagement
+		//isM = true;
 		initialize();
 	}//ScanWindow end
 
