@@ -102,9 +102,9 @@ public class MainWindow implements ErrorStatusReportable{
 	private static final int IRRELEVANT_MIN_DIMENSION = 1;
 	
 	//Dimension constants for entire application window
-	private static final int DEFAULT_WINDOW_WIDTH = 925;
+	private static final int DEFAULT_WINDOW_WIDTH = 950;
 	private static final int DEFAULT_WINDOW_HEIGHT = 700;
-	private static final int MIN_WINDOW_WIDTH = 910;
+	private static final int MIN_WINDOW_WIDTH = 930;
 	private static final int MIN_WINDOW_HEIGHT = 675;
 	
 	//Dimension constants for top menubar
@@ -435,13 +435,13 @@ public class MainWindow implements ErrorStatusReportable{
 		updateButtonPanel.add(updateButton);
 		updateButton.addActionListener(new ActionListener() {
 			
-
 			@Override
 			public void actionPerformed(ActionEvent ae) {
 				String entityName = entityAndFieldSelectPanel.getSelectedEntity();
 				String fieldName = entityAndFieldSelectPanel.getSelectedField();
 				String fieldModifier = entityAndFieldSelectPanel.getSelectedModifier();
 				String fieldModifierValue = entityAndFieldSelectPanel.getFieldModifierValue(fieldName);
+				System.out.println("field modifier value is " + fieldModifierValue);
 				updateTableProcess = new SwingWorker<Boolean, Void>() {
 
 			        @Override
@@ -449,7 +449,7 @@ public class MainWindow implements ErrorStatusReportable{
 			        	lblLoadingIcon.setVisible(true);
 			        	//update the table and save whether it was successfully updated
 			            boolean success = updateTableBasedOnSelection(entityName, fieldName, fieldModifier, fieldModifierValue);
-			            boolean modifierValueEntered = isModifierValueEntered(fieldModifierValue);
+			            boolean modifierValueEntered = entityAndFieldSelectPanel.isModifierValueEntered();
 		            	String statusMessageEnding = entityName;
 		            	if(modifierValueEntered)
 		            		statusMessageEnding = statusMessageEnding + " with " + fieldName + " " + fieldModifier + " " + fieldModifierValue;
@@ -495,11 +495,7 @@ public class MainWindow implements ErrorStatusReportable{
 		updateButtonPanel.add(rigidAreaRight);
 	}
 	
-	private boolean isModifierValueEntered(String fieldModifierValue)
-	{
-		//		the field isnt null		and the field isnt set to its default value
-		return (fieldModifierValue != null) && (!fieldModifierValue.equals(DBNamesManager.getDefaultFieldModifierValue()));
-	}
+	
 	/**
 	 * Update the table from the database based on the selected entities, fields, and inputs
 	 * @param entityName the type of the entities that will be displayed in the table
@@ -521,7 +517,7 @@ public class MainWindow implements ErrorStatusReportable{
 			//start the query string
 			String query = "SELECT * FROM " + dbEntityName;
 			//if the user has entered a modifier value
-			boolean modifierValueEntered = isModifierValueEntered(fieldModifierValue);
+			boolean modifierValueEntered = entityAndFieldSelectPanel.isModifierValueEntered();
 			if (modifierValueEntered) 
 			{ //if there is a modifier value
 				//get the database variable for the selected field
@@ -692,16 +688,97 @@ public class MainWindow implements ErrorStatusReportable{
 	    
 	    //get the column header
 	    String colHeader = mainTable.getColumnName(viewColIndex);
-	    
+	    WIMSTableModel model = (WIMSTableModel) mainTable.getModel();
 	    //get the corresponding row & col index from the model
 	    int modelRowIndex = mainTable.getRowSorter().convertRowIndexToModel(viewRowIndex);
-	    int modelColIndex = mainTable.getColumn(colHeader).getModelIndex();;
+	    int modelColIndex = mainTable.getColumn(colHeader).getModelIndex();
+	    
+	    //Object[] row = model.getRowAt(modelRowIndex);
+	    
 	    //get the value in this cell in the model
-	    Object value = mainTable.getModel().getValueAt(modelRowIndex, modelColIndex);
+	    Object value = model.getValueAt(modelRowIndex, modelColIndex);
+	    showMenuForValue(colHeader, value);
+	    
 	    System.out.println("Cell selected at (row" + viewRowIndex + ",col" + viewColIndex
 	    		+ ") " + "(" + colHeader + ") " +  value);
-	    System.out.println(mainTable.getModel().getValueAt(modelRowIndex, modelColIndex));
+	    System.out.println(model.getValueAt(modelRowIndex, modelColIndex));
 	}
+	
+	private void showMenuForValue(String header, Object value)
+	{
+		try{
+			String valueString = (String) value;
+			switch(header){
+			case DBNamesManager.ITEM_NUMBER_FIELD_DISPLAYNAME:
+				//TODO display item menu
+				//here valueString = the selected item number
+				System.out.println("Selected Item Number: " + valueString);
+				break;
+			case DBNamesManager.PALLET_ID_FIELD_DISPLAYNAME:
+				//TODO display order menu
+				//here valueString = the selected pallet id
+				System.out.println("Selected Pallet ID: " + valueString);
+				break;
+			case DBNamesManager.ORDER_NUM_FIELD_DISPLAYNAME:
+				//TODO display order menu
+				//here valueString = the selected order number
+				System.out.println("Selected Order Number: " + valueString);
+				break;
+			case DBNamesManager.WAREHOUSE_ID_FIELD_DISPLAYNAME:
+				//TODO display warehouse menu
+				//here valueString = the selected warehouse id
+				System.out.println("Selected Warehouse ID: " + value);
+				break;
+			case DBNamesManager.SUBLOCATION_LOC_COORD_DISPLAYNAME:
+				//TODO sublocation menu/functionality
+				//here valueString = the selected sublocation coordinate
+				System.out.println("Selected Sublocation Coordinate: " + valueString);
+				break;
+			case DBNamesManager.EMPLOYEE_ID_DISPLAYNAME:
+				//TODO display employee menu
+				//here valueString = the selected employeeID
+				System.out.println("Selected Employee ID: " + valueString);
+				break;
+			}
+			
+		}catch (ClassCastException ex)
+		{
+			//do nothing, this means a cell was clicked that was
+			//not an ID. All IDs are strings
+			return;
+		}
+	}
+//	private void showMenuForRow(String[] row)
+//	{
+//		String currentEntity = entityAndFieldSelectPanel.getSelectedEntity();
+//		WIMSTableModel model = (WIMSTableModel) mainTable.getModel();
+//		String entityID;
+//		//
+//		try{
+//		int indexOfID = mainTable.getColumn(colHeader).getModelIndex();
+//		}catch(NullPointerException ex)
+//		{
+//			indexOfID = this.showColumnsForPanel.getDeletedColumn(colHeader);
+//		}
+//		mainTable.getColumn(colHeader).getModelIndex();
+//		switch(currentEntity){
+//		case DBNamesManager.ITEM_ENTITY_DISPLAYNAME:
+//			//TODO diplsay item menu
+//			break;
+//		case DBNamesManager.PALLET_ENTITY_DISPLAYNAME:
+//			//TODO display pallet menu
+//			break;
+//		case DBNamesManager.ORDER_ENTITY_DISPLAYNAME:
+//			//TODO display order menu
+//			break;
+//		case DBNamesManager.SUBLOCATION_ENTITY_DISPLAYNAME:
+//			//TODO sublocation menu/functionality
+//			break;
+//		case DBNamesManager.EMPLOYEE_ENTITY_DISPLAYNAME:
+//			//TODO display employee menu
+//			break;
+//		}
+//	}
 	
 	
 	private void updateTableResizeBasedOnScrollPane() {

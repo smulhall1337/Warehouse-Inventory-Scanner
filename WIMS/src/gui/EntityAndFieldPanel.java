@@ -11,6 +11,7 @@ import java.util.Properties;
 
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JComboBox;
+import javax.swing.JFormattedTextField;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
@@ -24,6 +25,7 @@ import controller.DBNamesManager;
 import controller.DateLabelFormatter;
 import controller.ImprovedFormattedTextField;
 import controller.MainWindowInfoController;
+import controller.NumericDataDocument;
 
 public class EntityAndFieldPanel extends JPanel {
 
@@ -37,6 +39,7 @@ public class EntityAndFieldPanel extends JPanel {
 	
 	private static final String NUMERIC_FIELD_ENTRY_REGEXSTRING = "([+-]?\\d*\\.?\\d*)";
 	private static final DecimalFormat NUMERIC_FIELD_ENTRY_FORMAT = new DecimalFormat(NUMERIC_FIELD_ENTRY_REGEXSTRING);
+	private static final Boolean[] isManagementModifierValues = {true, false};
 	
 	//Combobox to select an entity type to view
 	private JComboBox comboBoxEntityType;
@@ -57,9 +60,12 @@ public class EntityAndFieldPanel extends JPanel {
 	//JTextField to enter a search string when a String type field is selected
 	private JTextField stringFieldTextField;
 	//JFormattedTextField to enter a number when a numeric type field is selected
-	private ImprovedFormattedTextField numericFieldTextField;
+	//TODO difference between improved and regular formatted text field
+	//private ImprovedFormattedTextField numericFieldTextField;
+	private JFormattedTextField numericFieldTextField;
 	
 	private MainWindowInfoController infoController;
+	private JComboBox flagFieldTrueFalseCombo;
 	
 	public EntityAndFieldPanel(MainWindowInfoController infoController)
 	{
@@ -163,6 +169,15 @@ public class EntityAndFieldPanel extends JPanel {
 		case DBNamesManager.ORDER_ENTITY_DISPLAYNAME:
 			comboBoxField.setModel(new DefaultComboBoxModel(DBNamesManager.getAllOrderFieldDisplayNames()));
 			break;
+		case DBNamesManager.WAREHOUSE_ENTITY_DISPLAYNAME:
+			comboBoxField.setModel(new DefaultComboBoxModel(DBNamesManager.getAllWarehouseFieldDisplayNames()));
+			break;
+		case DBNamesManager.SUBLOCATION_ENTITY_DISPLAYNAME:
+			comboBoxField.setModel(new DefaultComboBoxModel(DBNamesManager.getAllSublocationFieldDisplayNames()));
+			break;
+		case DBNamesManager.EMPLOYEE_ENTITY_DISPLAYNAME:
+			comboBoxField.setModel(new DefaultComboBoxModel(DBNamesManager.getAllEmployeeFieldDisplayNames()));
+			break;
 		}
 		//if the combobox for the field modifiers has been initialized, update it 
 		//based on the newly selected entity (it will update based on whatever
@@ -249,6 +264,9 @@ public class EntityAndFieldPanel extends JPanel {
 		case DBNamesManager.DATE_FIELD_TYPE_NAME:
 			comboBoxFieldModifier.setModel(new DefaultComboBoxModel(DBNamesManager.getDateFieldModifierStrings()));
 			break;
+		case DBNamesManager.FLAG_FIELD_TYPE_NAME:
+			comboBoxFieldModifier.setModel(new DefaultComboBoxModel(DBNamesManager.getFlagFieldModifierStrings()));
+			break;
 		}
 	}
 	
@@ -263,12 +281,14 @@ public class EntityAndFieldPanel extends JPanel {
 		clearFieldModifierComponent();
 		//get the data type of the field to update the component based on
 		String fieldType = DBNamesManager.getFieldDataTypeByDisplayName(fieldDisplayName);
+		System.out.println(fieldDisplayName + " IS TYPE " + fieldType);
 		//TODO add documents for text fields
 		//Update the component based on the data type of the field
 		switch (fieldType){
 		case DBNamesManager.NUMERIC_FIELD_TYPE_NAME: 
 			//if numeric, display a number entry text field
-			numericFieldTextField = new ImprovedFormattedTextField(NUMERIC_FIELD_ENTRY_FORMAT);
+			//numericFieldTextField = new JFormattedTextField(NUMERIC_FIELD_ENTRY_FORMAT);;
+			numericFieldTextField.setDocument(new NumericDataDocument());
 			numericFieldTextField.setColumns(FIELD_OPTION_TEXTBOX_COLUMNS);
 			numericFieldTextField.setFont(FIELD_MODIFIER_COMPONENT_FONT);
 			super.add(numericFieldTextField);
@@ -286,6 +306,12 @@ public class EntityAndFieldPanel extends JPanel {
 			dateFieldDatePicker.setFont(FIELD_MODIFIER_COMPONENT_FONT);
 			super.add(dateFieldDatePicker);
 			break;
+		case DBNamesManager.FLAG_FIELD_TYPE_NAME:
+			//if date, display a date picker
+			flagFieldTrueFalseCombo = new JComboBox(isManagementModifierValues);
+			flagFieldTrueFalseCombo.setFont(FIELD_MODIFIER_COMPONENT_FONT);
+			super.add(flagFieldTrueFalseCombo);
+			break;
 		}
 	}
 	
@@ -293,12 +319,21 @@ public class EntityAndFieldPanel extends JPanel {
 	 * Initialize the components for field modifiers
 	 */
 	private void initializeFieldModifierComponents() {
-		numericFieldTextField = new ImprovedFormattedTextField(NUMERIC_FIELD_ENTRY_FORMAT);
+		numericFieldTextField = new JFormattedTextField();
 		stringFieldTextField = new JTextField();
+		flagFieldTrueFalseCombo = new JComboBox();
 		dateFieldDatePicker = ComponentProvider.getDatePicker();
+		
 		numericFieldTextField.setFont(FIELD_MODIFIER_COMPONENT_FONT);
+		numericFieldTextField.setDocument(new NumericDataDocument());
+		numericFieldTextField.setColumns(FIELD_OPTION_TEXTBOX_COLUMNS);
+		numericFieldTextField.setFont(FIELD_MODIFIER_COMPONENT_FONT);
+		
 		stringFieldTextField.setFont(FIELD_MODIFIER_COMPONENT_FONT);
+		
 		dateFieldDatePicker.setFont(FIELD_MODIFIER_COMPONENT_FONT);
+		
+		flagFieldTrueFalseCombo.setFont(FIELD_MODIFIER_COMPONENT_FONT);
 	}
 	
 	/**
@@ -309,6 +344,8 @@ public class EntityAndFieldPanel extends JPanel {
 			super.remove(numericFieldTextField);
 		if(stringFieldTextField.getParent() != null)
 			super.remove(stringFieldTextField);
+		if(flagFieldTrueFalseCombo.getParent() != null)
+			super.remove(flagFieldTrueFalseCombo);
 		if(dateFieldDatePicker.getParent() != null)
 			super.remove(dateFieldDatePicker);
 	}
@@ -346,6 +383,12 @@ public class EntityAndFieldPanel extends JPanel {
 		case DBNamesManager.DATE_FIELD_ON:
 			modifierString = " = " + "\'" + fieldModifierValue + "\'";
 			break;
+		case DBNamesManager.FLAG_FIELD_IS:
+			modifierString = " = " + fieldModifierValue;
+			break;
+		case DBNamesManager.FLAG_FIELD_IS_NOT:
+			modifierString = " != " + fieldModifierValue;
+			break;
 		}
 		return modifierString;
 	}
@@ -381,12 +424,27 @@ public class EntityAndFieldPanel extends JPanel {
 		String fieldType = DBNamesManager.getFieldDataTypeByDisplayName(currentField);
 		switch (fieldType){
 		case DBNamesManager.NUMERIC_FIELD_TYPE_NAME: 
+			System.out.println("value from numeric text field");
 			return numericFieldTextField.getText();
 		case DBNamesManager.STRING_FIELD_TYPE_NAME: 
 			return stringFieldTextField.getText();
 		case DBNamesManager.DATE_FIELD_TYPE_NAME:
 			return dateFieldDatePicker.getJFormattedTextField().getText();
+		case DBNamesManager.FLAG_FIELD_TYPE_NAME:
+			return ((Boolean) flagFieldTrueFalseCombo.getSelectedItem()).toString();
 		}
 		return null; //is not supposed to happen, if this happens there is an error
+	}
+	
+	public String getFieldModifierValue() {
+		return this.getFieldModifierValue(this.getSelectedField());
+	}
+	
+	public boolean isModifierValueEntered()
+	{
+		//		the field isnt null		and the field isnt set to its default value
+		String fieldModifierValue = this.getFieldModifierValue();
+		System.out.println("Value entered=" + fieldModifierValue);
+		return (fieldModifierValue != null) && (!fieldModifierValue.equals(DBNamesManager.getDefaultFieldModifierValue()));
 	}
 }

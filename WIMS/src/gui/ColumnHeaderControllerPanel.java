@@ -47,7 +47,11 @@ public class ColumnHeaderControllerPanel extends JPanel implements ErrorStatusRe
 	//Maps are <Key, Value> = <FieldName, CheckBoxForFieldName>
 	private HashMap<String, JCheckBox> palletFieldsCheckBoxesMap;
 	private HashMap<String, JCheckBox> itemFieldsCheckBoxesMap;
-	private HashMap<String, JCheckBox> orderFieldsCheckBoxesMap;	
+	private HashMap<String, JCheckBox> orderFieldsCheckBoxesMap;
+	private HashMap<String, JCheckBox> warehouseFieldsCheckBoxesMap;
+	private HashMap<String, JCheckBox> sublocationFieldsCheckBoxesMap;
+	private HashMap<String, JCheckBox> employeeFieldsCheckBoxesMap;
+
 	//maps the header to a percentage of where it was in the table columns
 	private HashMap<String, Float> headersToOldColPosMap;
 	//a map where the column header is the key, and the column is the value
@@ -110,6 +114,9 @@ public class ColumnHeaderControllerPanel extends JPanel implements ErrorStatusRe
 		palletFieldsCheckBoxesMap = getCheckBoxHashMap(DBNamesManager.getAllPalletFieldDisplayNames());
 		itemFieldsCheckBoxesMap = getCheckBoxHashMap(DBNamesManager.getAllItemFieldDisplayNames());
 		orderFieldsCheckBoxesMap = getCheckBoxHashMap(DBNamesManager.getAllOrderFieldDisplayNames());
+		warehouseFieldsCheckBoxesMap = getCheckBoxHashMap(DBNamesManager.getAllWarehouseFieldDisplayNames());
+		sublocationFieldsCheckBoxesMap = getCheckBoxHashMap(DBNamesManager.getAllSublocationFieldDisplayNames());
+		employeeFieldsCheckBoxesMap = getCheckBoxHashMap(DBNamesManager.getAllEmployeeFieldDisplayNames());
 	}
 	
 	/**
@@ -237,6 +244,15 @@ public class ColumnHeaderControllerPanel extends JPanel implements ErrorStatusRe
 		case DBNamesManager.ORDER_ENTITY_DISPLAYNAME:
 			displayFieldCheckBoxesOptions(orderFieldsCheckBoxesMap);
 			break;
+		case DBNamesManager.WAREHOUSE_ENTITY_DISPLAYNAME:
+			displayFieldCheckBoxesOptions(warehouseFieldsCheckBoxesMap);
+			break;
+		case DBNamesManager.SUBLOCATION_ENTITY_DISPLAYNAME:
+			displayFieldCheckBoxesOptions(sublocationFieldsCheckBoxesMap);
+			break;
+		case DBNamesManager.EMPLOYEE_ENTITY_DISPLAYNAME:
+			displayFieldCheckBoxesOptions(employeeFieldsCheckBoxesMap);
+			break;
 		}
 		//TODO check this label
 		addRowToFieldCheckBoxes(null,lblCheckBoxesStatus,null);
@@ -251,6 +267,12 @@ public class ColumnHeaderControllerPanel extends JPanel implements ErrorStatusRe
 			return palletFieldsCheckBoxesMap;
 		case DBNamesManager.ORDER_ENTITY_DISPLAYNAME:
 			return orderFieldsCheckBoxesMap;
+		case DBNamesManager.WAREHOUSE_ENTITY_DISPLAYNAME:
+			return warehouseFieldsCheckBoxesMap;
+		case DBNamesManager.SUBLOCATION_ENTITY_DISPLAYNAME:
+			return sublocationFieldsCheckBoxesMap;
+		case DBNamesManager.EMPLOYEE_ENTITY_DISPLAYNAME:
+			return employeeFieldsCheckBoxesMap;
 		}
 		return null; //TODO add error handling or somethin
 	}
@@ -375,5 +397,10 @@ public class ColumnHeaderControllerPanel extends JPanel implements ErrorStatusRe
 	public void displaySuccessStatus(String successText) {
 		lblCheckBoxesStatus.setText(successText);
 		lblCheckBoxesStatus.setForeground(Color.RED);
+	}
+	
+	public TableColumn getDeletedColumn(String header)
+	{
+		return this.headersToDeletedColumnMap.get(header);
 	}
 }
