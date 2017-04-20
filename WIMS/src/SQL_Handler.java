@@ -479,6 +479,31 @@ public abstract class SQL_Handler {
 		stmt.execute();
 	}
 	
+	public static void insertNewPallet(String palletID, int pieceCount, int weight, int length, int width, int height, String receiveDate, String shipDate, String notes, int orderNumber, String Location) throws SQLException {
+		stmt = sql_statements.get("NewPallet");
+		stmt.setString(1,palletID);
+		stmt.setInt(2,pieceCount);
+		stmt.setInt(3,weight);;
+		stmt.setInt(4,length);
+		stmt.setInt(5,width);
+		stmt.setInt(6,height);
+		stmt.setString(7,receiveDate);
+		stmt.setString(8,shipDate);
+		stmt.setString(9,notes);
+		stmt.setInt(10,orderNumber);
+		stmt.setString(11,Location);
+		stmt.execute();
+	}
+	
+	public static void addItemsToPallet(String palletID, String itemNumber, int itemQuantity) throws SQLException {
+		stmt = sql_statements.get("AddItemToPallet");
+		stmt.setString(1, palletID);
+		stmt.setString(2, itemNumber);
+		stmt.setInt(3, itemQuantity);
+		stmt.execute();		
+	}
+	
+	
 	//#############################################Orders
 	public static boolean OrderInDB(String OrderNumber) throws SQLException {
 		stmt = sql_statements.get("OrderInDB");
@@ -502,7 +527,7 @@ public abstract class SQL_Handler {
 		stmt.setString(8, dateDelivered);
 		stmt.execute();
 	}
-	
+		
 	
 	//#############################################Display	
 	/**
