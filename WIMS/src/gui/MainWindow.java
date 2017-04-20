@@ -10,10 +10,13 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.DecimalFormat;
@@ -43,14 +46,18 @@ import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
 import javax.swing.SwingWorker;
 import javax.swing.Timer;
 import javax.swing.border.Border;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
@@ -65,6 +72,7 @@ import controller.DBNamesManager;
 import controller.DateLabelFormatter;
 import controller.ErrorStatusReportable;
 import controller.ImprovedFormattedTextField;
+import controller.MainWindowInfoController;
 import controller.SQL_Handler;
 import controller.WIMSTable;
 import controller.WIMSTableModel;
@@ -73,24 +81,25 @@ import controller.WidthAdjuster;
 public class MainWindow implements ErrorStatusReportable{
 
 	private JFrame frame;
-
-	
 	
 	//Fonts for different UI elements
+	private static final String STANDARD_FONT_NAME = "Tahoma";
 	private static final int SMALLER_COMPONENT_FONT_SIZE = 14;
 	private static final int TABLE_FONT_SIZE = 14;
-	private static final Font LABEL_FONT = new Font("Tahoma", Font.PLAIN, 18);
-	private static final Font MENUBAR_FONT = new Font("Tahoma", Font.PLAIN, SMALLER_COMPONENT_FONT_SIZE);
-	private static final Font CHECKBOX_FONT = new Font("Tahoma", Font.PLAIN, SMALLER_COMPONENT_FONT_SIZE);
-	private static final Font BUTTON_FONT = new Font("Tahoma", Font.PLAIN, 22);
-	private static final Font CHECKBOX_STATUS_FONT = new Font("Tahoma", Font.PLAIN, SMALLER_COMPONENT_FONT_SIZE);
+	private static final Font LABEL_FONT = new Font(STANDARD_FONT_NAME, Font.PLAIN, 18);
+	private static final Font QUERY_RESULT_STATUS_FONT = new Font(STANDARD_FONT_NAME, Font.PLAIN, 16);
+	private static final Font LOADING_STATUS_FONT = new Font(STANDARD_FONT_NAME, Font.PLAIN, 14);
+	private static final Font MENUBAR_FONT = new Font(STANDARD_FONT_NAME, Font.PLAIN, SMALLER_COMPONENT_FONT_SIZE);
+	private static final Font BUTTON_FONT = new Font(STANDARD_FONT_NAME, Font.PLAIN, 26);
+	
 	
 	private static final Font TABLE_FONT = new Font("Tahoma", Font.PLAIN, TABLE_FONT_SIZE);
 	private static final Font TABLE_HEADER_FONT = new Font("Tahoma", Font.PLAIN, TABLE_FONT_SIZE);
 	
 	
 	//Max width for when only max height is going to be restricted (setMaximumSize requires height&width)
-	private static final int IRRELEVANT_MAX_WIDTH = Integer.MAX_VALUE;
+	private static final int IRRELEVANT_MAX_DIMENSION = Integer.MAX_VALUE;
+	private static final int IRRELEVANT_MIN_DIMENSION = 1;
 	
 	//Dimension constants for entire application window
 	private static final int DEFAULT_WINDOW_WIDTH = 925;
@@ -101,23 +110,24 @@ public class MainWindow implements ErrorStatusReportable{
 	//Dimension constants for top menubar
 	private static final int MIN_MENUBAR_PANEL_WIDTH = MIN_WINDOW_WIDTH;
 	private static final int MIN_MENUBAR_PANEL_HEIGHT = 25;
-	private static final int MAX_MENUBAR_PANEL_WIDTH = IRRELEVANT_MAX_WIDTH;
+	private static final int MAX_MENUBAR_PANEL_WIDTH = IRRELEVANT_MAX_DIMENSION;
 	private static final int MAX_MENUBAR_PANEL_HEIGHT = 25;
 	
 	//Dimension constants for options panel (the panel containing checkboxes)
 	private static final int MAX_OPTIONS_PANEL_HEIGHT = 265;
-	private static final int MAX_OPTIONS_PANEL_WIDTH = 750;
+	private static final int MAX_OPTIONS_PANEL_WIDTH = MIN_WINDOW_WIDTH - 35;
 	
 	//How many pixels will be between the table panel and the edge of the window
 	private static final int TABLE_PANEL_MARGIN = 20;
+	//how far with the update button be from the right
+	private static final int UPDATE_BUTTON_RIGHT_SPACING = 50;
+	//how many pixels will be to the left/right of the options panel
+	private static final int OPTIONSPANEL_MAX_LEFT_SPACE = 50;
+	private static final int OPTIONSPANEL_MAX_RIGHT_SPACE = 50;
 		
-	//HashMaps that map each field to a checkbox, used for the "show columns for" checkboxes
-	//Maps are <Key, Value> = <FieldName, CheckBoxForFieldName>
-	private HashMap<String, JCheckBox> palletFieldsCheckBoxesMap;
-	private HashMap<String, JCheckBox> itemFieldsCheckBoxesMap;
-	private HashMap<String, JCheckBox> orderFieldsCheckBoxesMap;
 	
-	private JPanel showColumnsForPanel;
+	
+	private ColumnHeaderControllerPanel showColumnsForPanel;
 	
 	//Wrapper panel for the table scrollpane
 	private JPanel tablePanel;
@@ -127,8 +137,7 @@ public class MainWindow implements ErrorStatusReportable{
 	private WIMSTable mainTable;
 	//width adjuster manager for table
 	private WidthAdjuster TableWidthAdjuster;
-	//a map where the column header is the key, and the column is the value
-	private HashMap <String,TableColumn> headersToDeletedColumnMap; //TODO maybe add a show all columns button
+	
 	
 	//wrapper panel that contains entity&field selection panel, showcolumnsfor panel,
 	//and update button panel
@@ -143,7 +152,12 @@ public class MainWindow implements ErrorStatusReportable{
 	//whether error is active, used so multiple threads arent created
 	private boolean errorIsActive;
 	//how long to display error messages for, in milliseconds
+	private Timer errorDisplayTimer;
 	protected static final int ERROR_DISPLAY_TIME_MS = 7000;
+	protected static final int SUCCESS_DISPLAY_TIME_MS = 15000;
+	protected static final Color ERROR_DISPLAY_COLOR = Color.RED;//new Color(112, 211, 0);
+	protected static final Color SUCCESS_DISPLAY_COLOR = new Color(58, 193, 0);
+	protected static final Color NEUTRAL_DISPLAY_COLOR = Color.BLACK;//new Color(112, 211, 0);
 	private SwingWorker<Boolean, Void> updateTableProcess;
 	
 	
@@ -163,21 +177,10 @@ public class MainWindow implements ErrorStatusReportable{
 	private JMenuItem reportMenu;
 	private JMenuItem manageReports;
 
-	//Panel for "Show columns for:" label
-	private JPanel showColumnsForLabelPanel;
 	
-	//the index of the next option row in the gridbaglayout. Used with addRowToOptions()
-	//to manage the adding of field name checkboxes to that panel
-	private int nextOptionRow;
 
 	private JLabel lblLoadingIcon;
 	private String currentTableEntity; //TODO use this to keep track of the entity currently in the table view
-
-	private JLabel lblCheckBoxesStatus;
-
-	private HashMap<String, Integer> headersToOldIndexMap;
-	//initial starting option row, this is the value the layout defaults to when it is cleared
-	private static final int STARTING_OPTION_ROW = 1;
 
 	private static final String LOADING_GIF_ICON_NAME = "loading.gif";
 
@@ -187,7 +190,9 @@ public class MainWindow implements ErrorStatusReportable{
 
 	private static final String UPDATING_TABLE_STATUS_MESSAGE = "Updating table with data...";
 
-	
+	private MainWindowInfoController infoController;
+
+	private int tableSelectedIndex;
 
 	/**
 	 * Launch the application.
@@ -217,81 +222,19 @@ public class MainWindow implements ErrorStatusReportable{
 	 * Initialize the contents of the frame.
 	 */
 	private void initialize() {
-		nextOptionRow = STARTING_OPTION_ROW;
-		initializeAllHashMaps();
 		initializeMainFrame();
 		initializeMenuBar();
+		initializeInfoController();
 		initializeAllOptionsPanel();
 		initializeTablePanel();
 	}
-	
-	/**
-	 * Initialize the hashmaps for checkboxes and field data types
-	 */
-	private void initializeAllHashMaps()
-	{
-		headersToDeletedColumnMap = new HashMap<String, TableColumn>();
-		headersToOldIndexMap = new HashMap<String, Integer>();
-		palletFieldsCheckBoxesMap = getCheckBoxHashMap(DBNamesManager.getAllPalletFieldDisplayNames());
-		itemFieldsCheckBoxesMap = getCheckBoxHashMap(DBNamesManager.getAllItemFieldDisplayNames());
-		orderFieldsCheckBoxesMap = getCheckBoxHashMap(DBNamesManager.getAllOrderFieldDisplayNames());
-	}
 
-	/**
-	 * Generic method for getting a HashMap of checkboxes for a given
-	 * array of fields
-	 * @param fields the fields to create checkboxes for
-	 * @return a HashMap, where 
-	 * 			key:	a field from the fields[] parameter, and
-	 * 			value:	a checkbox for the field denoted by the key
-	 */
-	private HashMap<String, JCheckBox> getCheckBoxHashMap(String[] fields) {
-		HashMap<String, JCheckBox> map = new HashMap<String, JCheckBox>();
-		for(int i = 0; i < fields.length; i++)
-		{
-			String nextField = fields[i];
-			JCheckBox nextBox = new JCheckBox(nextField);
-			nextBox.setSelected(true);
-			nextBox.setFont(CHECKBOX_FONT);
-			nextBox.addActionListener(new ActionListener() {
-				public void actionPerformed(ActionEvent actionEvent) {
-					AbstractButton abstractButton = (AbstractButton) actionEvent.getSource();
-					boolean selected = abstractButton.getModel().isSelected();
-					TableColumnModel tcm = mainTable.getColumnModel();
-					TableColumn correspondingColumn;
-					int correspondingColNdx;
-					if(!selected)
-					{
-						correspondingColumn = mainTable.getColumn(nextField);//headersToColumnMap.get(nextField);
-						int oldColNdx = tcm.getColumnIndex(nextField);
-						headersToOldIndexMap.put(nextField,mainTable.convertColumnIndexToView(oldColNdx));
-						mainTable.removeColumn(correspondingColumn);
-						headersToDeletedColumnMap.put(nextField, correspondingColumn);
-					}else{
-						correspondingColumn = headersToDeletedColumnMap.get(nextField);
-						correspondingColNdx = headersToOldIndexMap.get(nextField);
-						mainTable.addColumn(correspondingColumn);
-						mainTable.moveColumn(mainTable.getColumnCount(), correspondingColNdx);
-						headersToDeletedColumnMap.remove(nextField);
-						tcm.addColumn(correspondingColumn);
-					}
-				}
-				//TODO add toggle hide/show all columns
-				//TODO fix bug of when a query for an entity type fails, the checkboxes should reset
-			});
-			map.put(nextField, nextBox);
-		}
-		return map;
-	}
-	
-	private void setAreCheckBoxesAreEnabled(boolean areActive)
-	{
-		HashMap<String, JCheckBox> checkBoxes = getCheckBoxMapForEntity((String) comboBoxEntityType.getSelectedItem());
-		Iterator<String> checkBoxItty = checkBoxes.keySet().iterator();
-		while(checkBoxItty.hasNext())
-		{
-			checkBoxes.get(checkBoxItty.next()).setEnabled(areActive);
-		}
+	private void initializeInfoController() {
+		currentTableEntity = "";
+		infoController = new MainWindowInfoController(this);
+		showColumnsForPanel = new ColumnHeaderControllerPanel(infoController);
+		entityAndFieldSelectPanel = new EntityAndFieldPanel(infoController);
+		
 	}
 
 	/**
@@ -421,7 +364,10 @@ public class MainWindow implements ErrorStatusReportable{
 		resizingPanelForOptions.setLayout(resizingPanelLayout);
 		//Add a blank panel so there is a panel on the left that can resize to fill the empty space
 		//needed to keep the main panel in the middle when the window resizes
-		resizingPanelForOptions.add(new JPanel());
+		JPanel leftPanelForSpacing = new JPanel();
+		leftPanelForSpacing.setMaximumSize(new Dimension(OPTIONSPANEL_MAX_LEFT_SPACE, IRRELEVANT_MAX_DIMENSION));
+		leftPanelForSpacing.add(Box.createRigidArea(new Dimension(TABLE_PANEL_MARGIN, IRRELEVANT_MIN_DIMENSION)));
+		resizingPanelForOptions.add(leftPanelForSpacing);
 		//Add the panel to the middle
 		resizingPanelForOptions.add(allOptionsPanel);
 		//Add a blank panel so there is a panel on the right that can resize to fill the empty space
@@ -432,145 +378,23 @@ public class MainWindow implements ErrorStatusReportable{
 		allOptionsPanel.setBorder(borderEtched);
 		frame.getContentPane().add(resizingPanelForOptions);
 		
-		initializeEntityAndFieldSelectPanel();
 		initializeShowColumnsForPanel();
+		initializeEntityAndFieldSelectPanel();
+		
 		initializeUpdateButtonPanel();
 	}
 	
-	/**
-	 * Initialize the panel that contains the "Show columns for:" header label
-	 */
-	private void initializeShowColumnsForLabelPanel()
-	{
-		//Initialize the panel for the "show columns for:" label
-		showColumnsForLabelPanel = new JPanel();
-		allOptionsPanel.add(showColumnsForLabelPanel, BorderLayout.WEST);
-		JLabel showColumnHeaders = new JLabel("Show columns for:");
-		showColumnHeaders.setFont(LABEL_FONT);
-		showColumnsForLabelPanel.add(showColumnHeaders);
+	private void initializeShowColumnsForPanel() {
+		showColumnsForPanel = new ColumnHeaderControllerPanel(infoController);
+		allOptionsPanel.add(showColumnsForPanel, BorderLayout.CENTER);
 	}
-	
+
 	private void initializeEntityAndFieldSelectPanel(){
-		//TODO add this to a field
+		//TODO add this to a fields
+		entityAndFieldSelectPanel = new EntityAndFieldPanel(infoController);
 		allOptionsPanel.add(entityAndFieldSelectPanel, BorderLayout.NORTH);
 	}
 	
-
-	
-	
-	private void displayColumnHeaderCheckboxesStatus(String string, Color color) {
-		// TODO Auto-generated method stub
-		lblCheckBoxesStatus.setText(string);
-		lblCheckBoxesStatus.setForeground(color);
-	}
-	
-	private void clearColumnHeaderCheckboxesStatus() {
-		displayColumnHeaderCheckboxesStatus("", showColumnsForPanel.getBackground());
-	}
-
-	private void initializeShowColumnsForPanel()
-	{
-		//Initialize the "show columns for" label
-		initializeShowColumnsForLabelPanel();
-		//Create an empty panel for spacing on the right of the showColumnsFor panel
-		JPanel emptyPanel = new JPanel();
-		Component rigidAreaRight = Box.createRigidArea(new Dimension(100, 100));
-		emptyPanel.add(rigidAreaRight);
-		allOptionsPanel.add(emptyPanel, BorderLayout.EAST);
-		
-		//Create the showColumnsForPanel
-		showColumnsForPanel = new JPanel();
-		//Give the panel a lowered bevel border
-		Border borderLoweredBevel = BorderFactory.createLoweredBevelBorder();
-		showColumnsForPanel.setBorder(borderLoweredBevel);
-		//Set the panel to have a gridbaglayout
-		GridBagLayout gbl_entityOptionsPanel = new GridBagLayout();
-		gbl_entityOptionsPanel.columnWidths = new int[] {20, 100, 100, 100};
-		gbl_entityOptionsPanel.rowHeights = new int[] {0, 30, 30, 30, 30, 0};
-		gbl_entityOptionsPanel.columnWeights = new double[]{0.0, 0.0, 0.0, Double.MIN_VALUE};
-		gbl_entityOptionsPanel.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0};
-		showColumnsForPanel.setLayout(gbl_entityOptionsPanel);
-		allOptionsPanel.add(showColumnsForPanel, BorderLayout.CENTER);
-		
-		if(lblCheckBoxesStatus == null)
-			initializeCheckBoxStatusLabel();
-		
-		//Set the initial state of the panel to update based on the initial state of the entity combobox
-		displayFieldCheckBoxesForEntity((String) comboBoxEntityType.getSelectedItem());
-	}
-	
-	private void initializeCheckBoxStatusLabel() {
-		lblCheckBoxesStatus = new JLabel("filler text");
-		lblCheckBoxesStatus.setForeground(lblCheckBoxesStatus.getBackground());
-		lblCheckBoxesStatus.setFont(CHECKBOX_STATUS_FONT);
-	}
-
-	/**
-	 * Display the field column header checkboxes for the given entity
-	 * @param entityName the entity for whose fields checkboxes will be displayed
-	 */
-	private void displayFieldCheckBoxesForEntity(String entityName)
-	{
-		//clear the current checkboxes
-		clearCurrentCheckBoxes();
-		//display checkboxes for fields of the given entity
-		switch (entityName){
-		case DBNamesManager.ITEM_ENTITY_DISPLAYNAME: 
-			displayFieldCheckBoxesOptions(itemFieldsCheckBoxesMap);
-			break;
-		case DBNamesManager.PALLET_ENTITY_DISPLAYNAME: 
-			displayFieldCheckBoxesOptions(palletFieldsCheckBoxesMap);
-			break;
-		case DBNamesManager.ORDER_ENTITY_DISPLAYNAME:
-			displayFieldCheckBoxesOptions(orderFieldsCheckBoxesMap);
-			break;
-		}
-		//TODO check this label
-		addRowToFieldCheckBoxes(null,lblCheckBoxesStatus,null);
-	}
-	
-	private HashMap<String,JCheckBox> getCheckBoxMapForEntity(String entityName)
-	{
-		switch (entityName){
-		case DBNamesManager.ITEM_ENTITY_DISPLAYNAME: 
-			return itemFieldsCheckBoxesMap;
-		case DBNamesManager.PALLET_ENTITY_DISPLAYNAME: 
-			return palletFieldsCheckBoxesMap;
-		case DBNamesManager.ORDER_ENTITY_DISPLAYNAME:
-			return orderFieldsCheckBoxesMap;
-		}
-		return null; //TODO add error handling or somethin
-	}
-	
-	/**
-	 * Display the field checkboxes that are in the given map.
-	 * @param map the map containing the checkboxes to display
-	 */
-	private void displayFieldCheckBoxesOptions(HashMap<String, JCheckBox> map) {
-		Iterator<String> itty = map.keySet().iterator();
-		while(itty.hasNext())
-		{
-			JCheckBox firstBox = map.get(itty.next());
-			JCheckBox secondBox = null;
-			JCheckBox thirdBox = null;
-			if(itty.hasNext())
-				secondBox = map.get(itty.next());
-			if(itty.hasNext())
-				thirdBox = map.get(itty.next());
-			addRowToFieldCheckBoxes(firstBox, secondBox, thirdBox);
-		}
-	}
-
-	/**
-	 * Clear the current checkboxes from the showColumnsForPanel
-	 */
-	private void clearCurrentCheckBoxes()
-	{
-		nextOptionRow = STARTING_OPTION_ROW;
-		showColumnsForPanel.removeAll();
-		showColumnsForPanel.revalidate();
-		showColumnsForPanel.repaint();
-	}
 	
 	/**
 	 * Initialize the update button panel and its update button.
@@ -584,12 +408,10 @@ public class MainWindow implements ErrorStatusReportable{
 		BoxLayout updatePanelLayout = new BoxLayout(updateButtonPanel, BoxLayout.X_AXIS);
 		updateButtonPanel.setLayout(updatePanelLayout);
 		
-		
-		
 		//create a new label for error status and make the text invisible at first
 		lblErrorStatus = new JLabel("Placeholder text");
 		lblErrorStatus.setForeground(updateButtonPanel.getBackground());
-		lblErrorStatus.setFont(LABEL_FONT);
+		lblErrorStatus.setFont(QUERY_RESULT_STATUS_FONT);
 		//make the error status stick to the left
 		Box errorStatusBox = Box.createHorizontalBox();
 	    errorStatusBox.add(lblErrorStatus);
@@ -600,7 +422,7 @@ public class MainWindow implements ErrorStatusReportable{
 		lblLoadingIcon = new JLabel("Getting info...");
 		ImageIcon loadingGif = new ImageIcon(getClass().getClassLoader().getResource(LOADING_GIF_ICON_NAME));
 		//lblLoadingIcon.setForeground(updateButtonPanel.getBackground());
-		lblLoadingIcon.setFont(LABEL_FONT);
+		lblLoadingIcon.setFont(LOADING_STATUS_FONT);
 		lblLoadingIcon.setIcon(loadingGif);
 		lblLoadingIcon.setVisible(false);
 		lblLoadingIcon.setHorizontalTextPosition(SwingConstants.LEFT);
@@ -616,69 +438,68 @@ public class MainWindow implements ErrorStatusReportable{
 
 			@Override
 			public void actionPerformed(ActionEvent ae) {
-				String entityName = (String) comboBoxEntityType.getSelectedItem();
-				String fieldName = (String) comboBoxField.getSelectedItem();
-				String fieldModifier = (String) comboBoxFieldModifier.getSelectedItem();
-				String fieldModifierValue = getFieldModifierValue(fieldName);
+				String entityName = entityAndFieldSelectPanel.getSelectedEntity();
+				String fieldName = entityAndFieldSelectPanel.getSelectedField();
+				String fieldModifier = entityAndFieldSelectPanel.getSelectedModifier();
+				String fieldModifierValue = entityAndFieldSelectPanel.getFieldModifierValue(fieldName);
 				updateTableProcess = new SwingWorker<Boolean, Void>() {
 
 			        @Override
 			        protected Boolean doInBackground() throws Exception {
 			        	lblLoadingIcon.setVisible(true);
+			        	//update the table and save whether it was successfully updated
 			            boolean success = updateTableBasedOnSelection(entityName, fieldName, fieldModifier, fieldModifierValue);
-			            if(success)
+			            boolean modifierValueEntered = isModifierValueEntered(fieldModifierValue);
+		            	String statusMessageEnding = entityName;
+		            	if(modifierValueEntered)
+		            		statusMessageEnding = statusMessageEnding + " with " + fieldName + " " + fieldModifier + " " + fieldModifierValue;
+		            	statusMessageEnding += ".";
+			            if(success) //if the table was successfully updated
 			            {
-				            currentTableEntity = entityName;
-							setAreCheckBoxesAreEnabled(true); //TODO double check this
-							displayColumnHeaderCheckboxesStatus("", lblCheckBoxesStatus.getBackground()); //TODO this is bad
+			            	//activate the checkboxes for this entity and clear the checkbox warning
+				            showColumnsForPanel.setAreCheckBoxesAreEnabled(entityName, true); //TODO double check this
+				            showColumnsForPanel.clearErrorStatus(); 
+				            //clear the current error status
 							clearErrorStatus();
+							//update the column widths of the table
 							mainTable.updateColumnWidths();
-			            }else{
-			            	boolean modifierValueEntered = (fieldModifierValue == null) 
-									|| (!fieldModifierValue.equals(DBNamesManager.getDefaultFieldModifierValue()));
-			            	String error = "There are no results for " + entityName;
-							if(modifierValueEntered)
-								error = error + " with " + fieldName + " " + fieldModifier + " " + fieldModifierValue;
-							error += ".";
+							//if there are results, display the success message for the input query
+							String successMessage = "Displaying results for " + statusMessageEnding;
+							displaySuccessStatus(successMessage);
+			            }else{ //if the table was not successfully updated 
+			            	//show the error that there were no results for the input query
+			            	String error = "There are no results for " + statusMessageEnding;
 							displayErrorStatus(error);
-							setAreCheckBoxesAreEnabled(false); //TODO double check this
 			            }
 			            return success;
 			        }
 
 			        @Override
 			        protected void done() {
-			           // System.out.println("you gotta make this work correctly");  
+			        	//System.out.println("done!!!!!!!!!!!!!!!!!");
+			        	//when the update finishes
+			        	//ugly fix to bug of scrollpane not showing scrollbar unless you resize it after updating the table
+			        	int scrollPaneOrigWidth = mainTableScrollPane.getWidth();
+			        	int scrollPaneOrigHeight = mainTableScrollPane.getHeight();
+			        	mainTableScrollPane.setSize(scrollPaneOrigWidth+1, scrollPaneOrigHeight+1);
+			        	mainTableScrollPane.setSize(scrollPaneOrigWidth, scrollPaneOrigHeight);
+			        	//update the current table entity to whatever entity was selected when the table updated
+			        	//making the loading icon invisible
 			        	lblLoadingIcon.setVisible(false);
-			        	updateFieldModifierComponent(fieldName);
 			        }
 			    };
 			    updateTableProcess.execute();
 			}
 		});
+		Component rigidAreaRight = Box.createRigidArea(new Dimension(UPDATE_BUTTON_RIGHT_SPACING, UPDATE_BUTTON_RIGHT_SPACING));
+		updateButtonPanel.add(rigidAreaRight);
 	}
 	
-	public void displayErrorStatus(String errorText)
+	private boolean isModifierValueEntered(String fieldModifierValue)
 	{
-		if(!errorText.equals(lblErrorStatus.getText()))
-		{
-			lblErrorStatus.setForeground(Color.RED);
-    		lblErrorStatus.setText(errorText);
-			Timer errorDisplayTimer = new Timer(ERROR_DISPLAY_TIME_MS, new ActionListener() {
-			    public void actionPerformed(ActionEvent evt) {
-		    		clearErrorStatus();
-		    }
-		});
-			errorDisplayTimer.setRepeats(false);
-			errorDisplayTimer.start();
-		}
+		//		the field isnt null		and the field isnt set to its default value
+		return (fieldModifierValue != null) && (!fieldModifierValue.equals(DBNamesManager.getDefaultFieldModifierValue()));
 	}
-	
-	public void clearErrorStatus()
-	{
-		lblErrorStatus.setText("");
-	}
-	
 	/**
 	 * Update the table from the database based on the selected entities, fields, and inputs
 	 * @param entityName the type of the entities that will be displayed in the table
@@ -692,91 +513,106 @@ public class MainWindow implements ErrorStatusReportable{
 		if (entityName.equals(DBNamesManager.getAllEntitySpecifierDisplayname())) 
 		{
 			return false; //TODO finish
-		} else {
+		} else { //we are looking at an actual entity
+			//say that the query is being built on the loading status
 			lblLoadingIcon.setText(BUILDING_QUERY_STATUS_MESSAGE);
+			//get the database variable for the selected entity
 			String dbEntityName = DBNamesManager.getEntityDatabaseVariableByDisplayName(entityName);
+			//start the query string
 			String query = "SELECT * FROM " + dbEntityName;
 			//if the user has entered a modifier value
-			boolean modifierValueEntered = (fieldModifierValue == null) 
-										|| (!fieldModifierValue.equals(DBNamesManager.getDefaultFieldModifierValue()));
+			boolean modifierValueEntered = isModifierValueEntered(fieldModifierValue);
 			if (modifierValueEntered) 
-			{
+			{ //if there is a modifier value
+				//get the database variable for the selected field
 				String dbFieldName = DBNamesManager.getFieldDatabaseVariableFieldByDisplayName(fieldName);
-				String modifierString = getQueryModifierString(fieldModifier,
+				//get the modifier string, i.e. "less than 10"
+				String modifierString = entityAndFieldSelectPanel.getQueryModifierString(fieldModifier,
 						fieldModifierValue);
+				//add the field modifier where clause to the end of the query
 				query = query + " WHERE " + dbFieldName + modifierString;
 			}
-			try {
+			try { //try executing the query
+			//say that the query is being executed on the loading status
 			lblLoadingIcon.setText(EXECUTING_QUERY_STATUS_MESSAGE);
-			//TODO sysout delete
-			System.out.println(query);
+			
+			//TODO delete VVV printing of query
+			System.out.println(query); //what query are we executing
+			
+			//TODO vulnerable to sql inject
+			//execute the query
 			ResultSet result = controller.SQL_Handler.executeCustomQuery(query);
-			//ResultSet result = controller.SQL_Handler.getAllItems();
+			//save the data and column names into arrays
+			Object[][] data = controller.SQL_Handler.getResultSetAs2DObjArray(result);			
+			String[] columnNames = controller.SQL_Handler.getColumnNamesFromResultSet(result);
+			
+			//TODO delete VVV printing of data results length
+//			System.out.println("data length:" + data.length);
+//			System.out.println("====printing data right after query====");
+//			for(int col = 0; col < data.length; col++)
+//				for(int row = 0; row < data[col].length; row++)
+//				{
+//					System.out.println(columnNames[row] + ": " + data[col][row]);
+//				}
+//			System.out.println("==end of data printed right after query==");
+			
+			//if the results arent empty, if there is a next value
 			if(result.next())
 			{
-				result.beforeFirst();
+				//move up one so we dont skip the first value
+				//result.previous();
+				
+				//TODO delete this debug sysout
+				//System.out.println("TABLE RESULT SET COLUMN STRING: " + result.getString(3));
+				
+				//say that the table is being updated on the loading status
 				lblLoadingIcon.setText(UPDATING_TABLE_STATUS_MESSAGE);
-				Object[][] data = controller.SQL_Handler.getResultSetAs2DObjArray(result);			
-				String[] columnNames = controller.SQL_Handler.getColumnNamesFromResultSet(result);
+				
+				//change the DB variable column names to the display names
 				SQL_Handler.updateColumnNamesToDisplayNames(columnNames);
+				//update the data in the table to have the queried data and display column names
+				//TODO comment out or delete this printing of data's contents
+				//System.out.println("data length:" + data.length);
+				//System.out.println("~~ASDASD~~~printing data RIGHTB4 update table~ASDASD~~~~");
+				//for(int col = 0; col < data.length; col++)
+				//	for(int row = 0; row < data[col].length; row++)
+				//		System.out.println(columnNames[row] + ": " + data[col][row]);
+				//System.out.println("~~~ASDSADAS~~~~~~~~~~~~end of data~~~~~~~ASDASD~~~~~~~~~");
+				int updateTableRows = data.length;
+				//System.out.println("UPDATE TABLE ROWS " + updateTableRows);
 				updateTable(data, columnNames);
-				//headersToColumnMap = mainTable.getTableColumnByHeaderMap();
-				//((WIMSTableModel) mainTable.getModel()).updateTable(data, columnNames);
-//				for(int col = 0; col < data.length; col++)
-//					for(int row = 0; row < data[col].length; row++)
-//						System.out.println(data[col][row]);
-				return true;
-			}else{
+	        	currentTableEntity = entityName;
+				
+				//TODO comment out or delete this printing of data's contents
+				//System.out.println("data length:" + data.length);
+				//System.out.println("~~~~~printing data after update table~~~~~");
+				//for(int row = 0; row < data.length; row++)
+				//	for(int col = 0; col < data[col].length; col++)
+				//		System.out.println(columnNames[col] + ": " + data[row][col]);
+				//System.out.println("~~~~~~~~~~~~~~~end of data~~~~~~~~~~~~~~~~");
+				//now that we have the data, return whether it actually has data in it just in case
+				boolean success = updateTableRows > 0;
+				return success;
+			}
+			else{ //the query result was empty, return false
+				//TODO delete this sysout
+				System.out.println("UHHHHH says the query is empty?");
 				return false;
 			}
 			} catch (SQLException e) {
 				// TODO Auto-generated catch block
+				//TODO just show a database error on the label
 				e.printStackTrace();
+				System.out.println("sql exception caught");
+				JOptionPane.showMessageDialog(frame, 
+						"Error connecting to database. Check your connection and the database status.", 
+						"Database Error", JOptionPane.ERROR_MESSAGE);
 				return false; //TODO handle returning false on SQL error vs no query results
 			}
 			
 		}
 		//TODO make it update the table neatly, probably in another method
 		//TODO THISIS BAD
-	}
-	
-	
-
-	private String getQueryModifierString(String fieldModifier, String fieldModifierValue) {
-		String modifierString = "";
-		switch (fieldModifier){
-		case DBNamesManager.NUMERIC_FIELD_LESS_THAN: 
-			modifierString = " < " + fieldModifierValue;
-			break;
-		case DBNamesManager.NUMERIC_FIELD_GREATER_THAN: 
-			modifierString = " > " + fieldModifierValue;
-			break;
-		case DBNamesManager.NUMERIC_FIELD_EQUAL_TO:
-			modifierString = " = " + fieldModifierValue;
-			break;
-		case DBNamesManager.STRING_FIELD_STARTING_WITH:
-			modifierString = " LIKE " + fieldModifierValue + "%";
-			break;
-		case DBNamesManager.STRING_FIELD_ENDING_WITH:
-			modifierString = " LIKE " + "%" + fieldModifierValue;
-			break;
-		case DBNamesManager.STRING_FIELD_CONTAINS:
-			modifierString = " LIKE " + "%" + fieldModifierValue + "%"; //TODO check syntaxes for all of these
-			break;
-		case DBNamesManager.STRING_FIELD_THAT_IS:
-			modifierString = " = " + fieldModifierValue;
-			break;
-		case DBNamesManager.DATE_FIELD_BEFORE:
-			modifierString = " < " + "\'" + fieldModifierValue + "\')";
-			break;
-		case DBNamesManager.DATE_FIELD_AFTER:
-			modifierString = " > " + "\'" + fieldModifierValue + "\')";
-			break;
-		case DBNamesManager.DATE_FIELD_ON:
-			modifierString = " = " + "\'" + fieldModifierValue + "\')";
-			break;
-		}
-		return modifierString;
 	}
 	
 	/**
@@ -792,13 +628,21 @@ public class MainWindow implements ErrorStatusReportable{
 		tablePanel = new JPanel();
 		resizingPanelForTable.add(tablePanel);
 		tablePanel.setLayout(new BorderLayout(0, 0));
+		initializeTableScrollPane();
+		
 		String[] initColNames = getTestTableColumnNames();
 		Object[][] initData = getTestTableData();
 		updateTable(initData, initColNames);
-		
-		initializeTableScrollPane();
+
 		//mainTableScrollPane.setViewportView(mainTable);
 		initializeTablePanelBorderSpacing();
+	}
+	
+	protected void handleSelectionEvent(ListSelectionEvent e) {
+	    if (e.getValueIsAdjusting())
+	        return;
+	    //get the row and column in the view
+	    
 	}
 	
 	private void updateTable(Object[][] data, String[] columnNames)
@@ -808,104 +652,82 @@ public class MainWindow implements ErrorStatusReportable{
 		mainTable.setFont(TABLE_FONT);
 		WIMSTableModel tabelModel = new WIMSTableModel(data, columnNames);
 		
-		mainTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+		updateTableResizeBasedOnScrollPane();
+		
 		mainTable.setFillsViewportHeight(true);
 		mainTable.setModel(tabelModel);
+		tableSelectedIndex =-1;
+		mainTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		ListSelectionModel selectionModel = mainTable.getSelectionModel();
+
+		selectionModel.addListSelectionListener(new ListSelectionListener() {
+		    public void valueChanged(ListSelectionEvent e) {
+		        handleSelectionEvent(e);
+		    }
+		});
+		mainTable.addMouseListener(new MouseAdapter() {
+		    public void mousePressed(MouseEvent me) {
+		        JTable table =(JTable) me.getSource();
+		        Point p = me.getPoint();
+		        int row = table.rowAtPoint(p);
+		        int col = table.columnAtPoint(p);
+		        if (me.getClickCount() == 2) {
+		        	showOptionMenuForDataAt(row, col);
+		        }
+		    }
+		});
+		
 		mainTable.setRowSorter(new TableRowSorter(tabelModel));
 		//TODO investigate use of width adjuster
 		TableWidthAdjuster = new WidthAdjuster(mainTable);
-	
+		
 		mainTable.updateColumnWidths();
 		if(mainTableScrollPane != null)
 			mainTableScrollPane.setViewportView(mainTable);
 	}
 	
+	private void showOptionMenuForDataAt(int viewRowIndex, int viewColIndex){
+//		int viewRowIndex = mainTable.getSelectedRow();
+//	    int viewColIndex = mainTable.getSelectedColumn();
+	    
+	    //get the column header
+	    String colHeader = mainTable.getColumnName(viewColIndex);
+	    
+	    //get the corresponding row & col index from the model
+	    int modelRowIndex = mainTable.getRowSorter().convertRowIndexToModel(viewRowIndex);
+	    int modelColIndex = mainTable.getColumn(colHeader).getModelIndex();;
+	    //get the value in this cell in the model
+	    Object value = mainTable.getModel().getValueAt(modelRowIndex, modelColIndex);
+	    System.out.println("Cell selected at (row" + viewRowIndex + ",col" + viewColIndex
+	    		+ ") " + "(" + colHeader + ") " +  value);
+	    System.out.println(mainTable.getModel().getValueAt(modelRowIndex, modelColIndex));
+	}
+	
+	
+	private void updateTableResizeBasedOnScrollPane() {
+		//mainTable.updateColumnWidths();
+		if (mainTable.getPreferredSize().width < mainTableScrollPane.getWidth()) {
+        	mainTable.setAutoResizeMode(JTable.AUTO_RESIZE_NEXT_COLUMN);//TODO edit this
+        } else {
+        	mainTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        }
+	}
+
 	private void initializeTableScrollPane()
 	{
 		mainTableScrollPane = new JScrollPane(mainTable);
 		tablePanel.add(mainTableScrollPane);
 		mainTableScrollPane.setViewportView(mainTable);
-		
+		mainTableScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+		mainTableScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
 		mainTableScrollPane.addComponentListener(new ComponentAdapter() {
 		    @Override
 		    public void componentResized(final ComponentEvent e) {
-		        if (mainTable.getPreferredSize().width < mainTableScrollPane.getWidth()) {
-		        	mainTable.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
-		        } else {
-		        	mainTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-		        }
+		    	updateTableResizeBasedOnScrollPane();
 		    }
 		});
 	}
 
-	/**
-	 * Add a row of components to the checkbox display panel. Any or all components can be null,
-	 * and (a) blank space(s) will be left in the row.
-	 * @param firstColumn	the component to add in the first column of this row
-	 * @param secondColumn	the component to add in the second column of this row
-	 */
-	private void addRowToFieldCheckboxes(Component firstColumn, Component secondColumn)
-	{
-		//add a rigid area to the left to put a slight left margin before the checkboxes
-		Component rigidAreaLeft = Box.createRigidArea(new Dimension(20, 20));
-		GridBagConstraints gbc_rigidAreaLeft = new GridBagConstraints();
-		gbc_rigidAreaLeft.anchor = GridBagConstraints.WEST;
-		gbc_rigidAreaLeft.insets = new Insets(0, 0, 5, 5);
-		gbc_rigidAreaLeft.gridx = 0;
-		gbc_rigidAreaLeft.gridy = nextOptionRow;
-		showColumnsForPanel.add(rigidAreaLeft, gbc_rigidAreaLeft);
-		
-		//if the first column is null, add nothing
-		if(firstColumn != null)
-		{
-			GridBagConstraints gbc_firstColumn = new GridBagConstraints();
-			gbc_firstColumn.anchor = GridBagConstraints.WEST;
-			gbc_firstColumn.insets = new Insets(0, 0, 5, 5);
-			gbc_firstColumn.gridx = 1; //first column
-			gbc_firstColumn.gridy = nextOptionRow; //add on the nextOptionRow. this keeps track of the next row
-			showColumnsForPanel.add(firstColumn, gbc_firstColumn);
-		}
-		
-		//if the second column is null, add nothing
-		if(secondColumn != null)
-		{
-			GridBagConstraints gbc_secondColumn = new GridBagConstraints();
-			gbc_secondColumn.fill = GridBagConstraints.HORIZONTAL;
-			gbc_secondColumn.insets = new Insets(0, 0, 5, 5);
-			gbc_secondColumn.anchor = GridBagConstraints.WEST;
-			gbc_secondColumn.gridx = 2; //second column
-			gbc_secondColumn.gridy = nextOptionRow; //add on the nextOptionRow. this keeps track of the next row
-			showColumnsForPanel.add(secondColumn, gbc_secondColumn);
-		}
-		//now that we are done adding to this row, increment the counter that tracks the next row index
-		nextOptionRow++;
-	}
-	
-	/**
-	 * Add a row of components to the checkbox display panel. Any or all components can be null,
-	 * and (a) blank space(s) will be left in the row.
-	 * @param firstColumn	the component to add in the first column of this row
-	 * @param secondColumn	the component to add in the second column of this row
-	 * @param thirdColumn	the component to add in the third column of this row
-	 */
-	private void addRowToFieldCheckBoxes(Component firstColumn, Component secondColumn, Component thirdColumn)
-	{
-		//if the given thirdcolumn is null, just add nothing
-		if(thirdColumn != null)
-		{
-			//get the gridbag layout constraints 
-			GridBagConstraints gbc_thirdColumn = new GridBagConstraints();
-			gbc_thirdColumn.anchor = GridBagConstraints.WEST;
-			gbc_thirdColumn.insets = new Insets(0, 0, 5, 5);
-			gbc_thirdColumn.gridx = 3; //3rd column
-			gbc_thirdColumn.gridy = nextOptionRow; //add on the nextOptionRow. this keeps track of the next row
-			showColumnsForPanel.add(thirdColumn, gbc_thirdColumn);
-		}
-		
-		//add the first two columns to the row
-		addRowToFieldCheckboxes(firstColumn, secondColumn);
-	}
-	
 	/**
 	 * Initialize the RigidAreas that form the margin around the table view
 	 */
@@ -977,6 +799,58 @@ public class MainWindow implements ErrorStatusReportable{
 		return testColNames;
 	}
 	
+	public void displayErrorStatus(String errorText)
+	{
+		displayStatusForTime(errorText, ERROR_DISPLAY_COLOR, ERROR_DISPLAY_TIME_MS);
+	}
+	
+	public void clearErrorStatus()
+	{
+		lblErrorStatus.setText("");
+	}
 	
 
+	@Override
+	public void displayNeutralStatus(String neutralText) {
+		displayStatusForTime(neutralText, NEUTRAL_DISPLAY_COLOR, ERROR_DISPLAY_TIME_MS);
+	}
+	
+
+	@Override
+	public void displaySuccessStatus(String successText) {
+		displayStatusForTime(successText, SUCCESS_DISPLAY_COLOR, SUCCESS_DISPLAY_TIME_MS);
+	}
+	
+	public void displayStatusForTime(String statusText, Color textColor, int milliseconds)
+	{
+		if(!statusText.equals(lblErrorStatus.getText()))
+		{
+			lblErrorStatus.setForeground(textColor);
+    		lblErrorStatus.setText(statusText);
+			errorDisplayTimer = new Timer(milliseconds, new ActionListener() {
+			    public void actionPerformed(ActionEvent evt) {
+		    		clearErrorStatus();
+		    }
+		});
+			errorDisplayTimer.setRepeats(false);
+			errorDisplayTimer.start();
+		}
+	}
+
+	public JTable getDisplayTable() {
+		return mainTable;
+	}
+
+	public EntityAndFieldPanel getEntityAndFieldPanel() {
+		return entityAndFieldSelectPanel;
+	}
+
+	public ColumnHeaderControllerPanel getColumnCheckBoxesPanel() {
+		return showColumnsForPanel;
+	}
+	
+	public String getCurrentTableEntity()
+	{
+		return currentTableEntity;
+	}
 }

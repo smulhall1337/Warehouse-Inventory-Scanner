@@ -23,6 +23,7 @@ import controller.ComponentProvider;
 import controller.DBNamesManager;
 import controller.DateLabelFormatter;
 import controller.ImprovedFormattedTextField;
+import controller.MainWindowInfoController;
 
 public class EntityAndFieldPanel extends JPanel {
 
@@ -47,6 +48,10 @@ public class EntityAndFieldPanel extends JPanel {
 	private JLabel lblDisplayInfoFor;
 	private JLabel lblFieldWith; 
 	
+	
+	//TODO fix this to come from a handler between the mainwindow and the columnheader
+	private String currentTableEntity;
+	
 	//DatePicker to select date when a Date type field is selected
 	private JDatePickerImpl dateFieldDatePicker;
 	//JTextField to enter a search string when a String type field is selected
@@ -54,9 +59,13 @@ public class EntityAndFieldPanel extends JPanel {
 	//JFormattedTextField to enter a number when a numeric type field is selected
 	private ImprovedFormattedTextField numericFieldTextField;
 	
-	public EntityAndFieldPanel()
+	private MainWindowInfoController infoController;
+	
+	public EntityAndFieldPanel(MainWindowInfoController infoController)
 	{
 		super();
+		this.infoController = infoController;
+		infoController.setEntityAndFieldPanel(this);
 		FlowLayout fl_entitySelectPanel = (FlowLayout) super.getLayout();
 		fl_entitySelectPanel.setVgap(10);
 		fl_entitySelectPanel.setAlignment(FlowLayout.LEFT);
@@ -76,8 +85,6 @@ public class EntityAndFieldPanel extends JPanel {
 		initializeFieldModifierComboBox();
 	}
 	
-	
-	
 	/**
 	 * Initialize the combobox of entities.
 	 */
@@ -96,15 +103,15 @@ public class EntityAndFieldPanel extends JPanel {
 					//display checkboxes for the newly selected entity's fields
 					//and update the fields combobox to display these fields
 					setFieldOptionVisibility(true);
-					displayFieldCheckBoxesForEntity(currentEntity);
+					infoController.getColumnCheckBoxesPanel().displayFieldCheckBoxesForEntity(currentEntity);
 					updateFieldsComboBox(currentEntity);
 					if(currentEntity.equals(currentTableEntity))
 					{
-						setAreCheckBoxesAreEnabled(true); //TODO double check this
-						clearColumnHeaderCheckboxesStatus();
+						infoController.getColumnCheckBoxesPanel().setAreCheckBoxesAreEnabled(currentEntity, true); //TODO double check this
+						infoController.getColumnCheckBoxesPanel().clearErrorStatus();
 					}else{
-						setAreCheckBoxesAreEnabled(false);
-						displayColumnHeaderCheckboxesStatus("Make a query first to show/hide columns", Color.RED);
+						infoController.getColumnCheckBoxesPanel().setAreCheckBoxesAreEnabled(currentEntity, false);
+						infoController.getColumnCheckBoxesPanel().displayErrorStatus("Make a query first to show/hide columns");
 					}
 				}
 			}
@@ -112,10 +119,10 @@ public class EntityAndFieldPanel extends JPanel {
 		comboBoxEntityType.setFont(COMBOBOX_FONT);
 		//display the entities from the entity array
 		comboBoxEntityType.setModel(new DefaultComboBoxModel(DBNamesManager.getEntityDisplayNames()));
-		if(lblCheckBoxesStatus == null)
-			initializeCheckBoxStatusLabel();
-		setAreCheckBoxesAreEnabled(false);
-		displayColumnHeaderCheckboxesStatus("Make a query first to show/hide columns", Color.RED); //TODO add these to be constants
+//		if(lblCheckBoxesStatus == null)
+//			initializeCheckBoxStatusLabel();
+		infoController.getColumnCheckBoxesPanel().setAreCheckBoxesAreEnabled(this.getSelectedEntity(), false);
+		infoController.getColumnCheckBoxesPanel().displayErrorStatus("Make a query first to show/hide columns"); //TODO add these to be constants
 		super.add(comboBoxEntityType);
 	}
 	
@@ -187,8 +194,8 @@ public class EntityAndFieldPanel extends JPanel {
 		updateFieldModifierComboBox(currentField);
 	}
 	
-private void setFieldOptionVisibility(boolean visibility) {
-		
+	private void setFieldOptionVisibility(boolean visibility) {
+			
 		//set the other comboboxes to the given visibility
 		comboBoxField.setVisible(visibility);
 		comboBoxFieldModifier.setVisible(visibility);
@@ -201,10 +208,10 @@ private void setFieldOptionVisibility(boolean visibility) {
 		setFieldModifierVisibility(visibility);
 		
 		//set the show columns for components to the given visibility
-		showColumnsForLabelPanel.setVisible(visibility);
-		showColumnsForPanel.setVisible(visibility);
+		infoController.getColumnCheckBoxesPanel().setVisible(visibility);
+		//showColumnsForPanel.setVisible(visibility);
 	}
-	
+
 
 	/**
 	 * Set the visibility of the field modifier components to the given visibilty
@@ -228,7 +235,7 @@ private void setFieldOptionVisibility(boolean visibility) {
 	 * Update the field modifiers combobox based on the given field
 	 * @param fieldDisplayName the field to display modifiers for
 	 */
-	private void updateFieldModifierComboBox(String fieldDisplayName) {
+	public void updateFieldModifierComboBox(String fieldDisplayName) {
 		//get the data type of the given field
 		String fieldType = DBNamesManager.getFieldDataTypeByDisplayName(fieldDisplayName);
 		//fill the combobox based on the field data type
@@ -251,7 +258,7 @@ private void setFieldOptionVisibility(boolean visibility) {
 	 * entry component, etc.
 	 * @param fieldDisplayName the field to use to determine how to update the field modifier component
 	 */
-	private void updateFieldModifierComponent(String fieldDisplayName) {
+	public void updateFieldModifierComponent(String fieldDisplayName) {
 		//clear the current field modifier component
 		clearFieldModifierComponent();
 		//get the data type of the field to update the component based on
@@ -297,13 +304,67 @@ private void setFieldOptionVisibility(boolean visibility) {
 	/**
 	 * Clear the current field modifier component
 	 */
-	private void clearFieldModifierComponent() {
+	public void clearFieldModifierComponent() {
 		if(numericFieldTextField.getParent() != null)
 			super.remove(numericFieldTextField);
 		if(stringFieldTextField.getParent() != null)
 			super.remove(stringFieldTextField);
 		if(dateFieldDatePicker.getParent() != null)
 			super.remove(dateFieldDatePicker);
+	}
+	
+	public String getQueryModifierString(String fieldModifier, String fieldModifierValue) {
+		String modifierString = "";
+		switch (fieldModifier){
+		case DBNamesManager.NUMERIC_FIELD_LESS_THAN: 
+			modifierString = " < " + fieldModifierValue;
+			break;
+		case DBNamesManager.NUMERIC_FIELD_GREATER_THAN: 
+			modifierString = " > " + fieldModifierValue;
+			break;
+		case DBNamesManager.NUMERIC_FIELD_EQUAL_TO:
+			modifierString = " = " + fieldModifierValue;
+			break;
+		case DBNamesManager.STRING_FIELD_STARTING_WITH:
+			modifierString = " LIKE " + "\"" + fieldModifierValue + "%" + "\"";
+			break;
+		case DBNamesManager.STRING_FIELD_ENDING_WITH:
+			modifierString = " LIKE " + "\"" + "%" + fieldModifierValue + "\"";
+			break;
+		case DBNamesManager.STRING_FIELD_CONTAINS:
+			modifierString = " LIKE " + "\"" + "%" + fieldModifierValue + "%" + "\""; //TODO check syntaxes for all of these
+			break;
+		case DBNamesManager.STRING_FIELD_THAT_IS:
+			modifierString = " = " + fieldModifierValue;
+			break;
+		case DBNamesManager.DATE_FIELD_BEFORE:
+			modifierString = " < " + "\'" + fieldModifierValue + "\'";
+			break;
+		case DBNamesManager.DATE_FIELD_AFTER:
+			modifierString = " > " + "\'" + fieldModifierValue + "\'";
+			break;
+		case DBNamesManager.DATE_FIELD_ON:
+			modifierString = " = " + "\'" + fieldModifierValue + "\'";
+			break;
+		}
+		return modifierString;
+	}
+	
+	public String getSelectedField()
+	{
+		return (String) comboBoxField.getSelectedItem();
+	}
+	
+	public String getSelectedEntity()
+	{
+		return (String) comboBoxEntityType.getSelectedItem();
+
+	}
+	
+	public String getSelectedModifier()
+	{
+		return (String) comboBoxFieldModifier.getSelectedItem();
+
 	}
 	
 	/**
@@ -316,7 +377,7 @@ private void setFieldOptionVisibility(boolean visibility) {
 	 * 			if the type of the currentField does not match any of the possible data types,
 	 * 			this method will return null
 	 */
-	private String getFieldModifierValue(String currentField) {
+	public String getFieldModifierValue(String currentField) {
 		String fieldType = DBNamesManager.getFieldDataTypeByDisplayName(currentField);
 		switch (fieldType){
 		case DBNamesManager.NUMERIC_FIELD_TYPE_NAME: 
