@@ -46,5 +46,15 @@ public class WIMSTableModel extends DefaultTableModel {
     	}
     	return null;
     }
+    
+    public Object[] getRowAt(int row)
+    {
+    	Object[] rowValues = new Object[this.getColumnCount()];
+    	for(int col = 0; col < rowValues.length; col++)
+    	{
+    		rowValues[col] = this.getValueAt(row, col);
+    	}
+    	return rowValues;
+    }
       
 }
