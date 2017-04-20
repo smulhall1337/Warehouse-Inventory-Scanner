@@ -17,8 +17,8 @@ public class DBNamesManager {
 	public static final String ITEM_SIMPLE_INDEX_DISPLAYNAME = "Simple Item Index";
 	public static final String ITEM_NAME_FIELD_DISPLAYNAME = "Name";
 	public static final String ITEM_NUMBER_FIELD_DISPLAYNAME = "Item Number";
-	public static final String ITEM_PRICE_FIELD_DISPLAYNAME = "Price";
-	public static final String ITEM_WEIGHT_FIELD_DISPLAYNAME = "Weight";
+	public static final String ITEM_PRICE_FIELD_DISPLAYNAME = "Price (USD)";
+	public static final String ITEM_WEIGHT_FIELD_DISPLAYNAME = "Weight (lb)";
 	public static final String ITEM_CURR_STOCK_FIELD_DISPLAYNAME = "Current Stock";
 	public static final String ITEM_RESTOCK_FIELD_DISPLAYNAME = "Restock Threshold";
 	//TODO handle item categories--get from SQL handler as 1 string with commas, display in one column
@@ -32,10 +32,10 @@ public class DBNamesManager {
 	public static final String PALLET_ORDER_NUM_FIELD_DISPLAYNAME = "Order Number";
 	public static final String PALLET_LOC_FIELD_DISPLAYNAME = "Location";
 	public static final String PALLET_PIECE_COUNT_FIELD_DISPLAYNAME = "Piece Count";
-	public static final String PALLET_WEIGHT_FIELD_DISPLAYNAME = "Weight";
-	public static final String PALLET_LENGTH_FIELD_DISPLAYNAME = "Length";
-	public static final String PALLET_WIDTH_FIELD_DISPLAYNAME = "Width";
-	public static final String PALLET_HEIGHT_FIELD_DISPLAYNAME = "Height";
+	public static final String PALLET_WEIGHT_FIELD_DISPLAYNAME = "Weight (lb)";
+	public static final String PALLET_LENGTH_FIELD_DISPLAYNAME = "Length (in)";
+	public static final String PALLET_WIDTH_FIELD_DISPLAYNAME = "Width (in)";
+	public static final String PALLET_HEIGHT_FIELD_DISPLAYNAME = "Height (in)";
 	public static final String PALLET_RECEIVE_DATE_FIELD_DISPLAYNAME = "Receival Date";
 	public static final String PALLET_SHIP_DATE_FIELD_DISPLAYNAME = "Ship Date";
 	public static final String PALLET_NOTES_FIELD_DISPLAYNAME = "Notes";

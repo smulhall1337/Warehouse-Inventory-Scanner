@@ -391,7 +391,8 @@ public class SQL_Handler {
 		reStock = rs.getInt("restock_threshold");
 		return reStock;
 	}
-	//TODO BAD
+	
+	//TODO BAD -- move this into something usable with the same connection
 	public static ResultSet executeCustomQuery(String query)
 	{
 		Connection conn = getConnection();
@@ -399,7 +400,7 @@ public class SQL_Handler {
 			stmt = conn.prepareStatement(query);
 			rs = stmt.executeQuery(); 
 			rs.next();
-			System.out.println("RESULT SET COLUMN STRING: " + rs.getString(3));
+			//System.out.println("RESULT SET COLUMN STRING: " + rs.getString(3));
 		return rs;
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
@@ -435,6 +436,7 @@ public class SQL_Handler {
 		    data[ndx] = row;
 		    ndx++;
 		}
+		
 		result.beforeFirst();
 		return data;
 	}

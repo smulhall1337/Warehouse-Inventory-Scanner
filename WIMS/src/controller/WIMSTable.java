@@ -4,6 +4,7 @@ import java.awt.Component;
 import java.util.HashMap;
 
 import javax.swing.JTable;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 
@@ -14,13 +15,40 @@ public class WIMSTable extends JTable{
 	private HashMap<String, TableColumn> headersToColumnsMap;
 	private HashMap<String, Integer> headerToColumnIndexMap; 
 	
-	public void updateColumnWidths() {
+	@Override
+	public Component prepareRenderer(TableCellRenderer renderer, int row, int column)
+	{
+		if(getValueAt(row, column) != null)
+		{
+			Component c = super.prepareRenderer(renderer, row, column);
+			DefaultTableCellRenderer cellRenderer = new DefaultTableCellRenderer(){
+			    @Override
+			    public Component getTableCellRendererComponent(JTable arg0,Object arg1, boolean arg2, boolean arg3, int arg4, int arg5) {
+			         Component tableCellRendererComponent = super.getTableCellRendererComponent(arg0, arg1, arg2, arg3, arg4, arg5);
+			         int align = DefaultTableCellRenderer.CENTER;
+			         //if(condition){
+			         //    align = DefaultTableCellRenderer.LEFT;
+			         //}
+			        ((DefaultTableCellRenderer)tableCellRendererComponent).setHorizontalAlignment(align);
+			         return tableCellRendererComponent;
+			    }
+			};
+			 this.getColumnModel().getColumn(column).setCellRenderer(cellRenderer);
+				return c;
+		}else
+			return new DefaultTableCellRenderer();
+		
+	}
+	 
+	public void updateColumnWidths() 
+	{
 		for(int i =0; i <	this.getColumnCount(); i++)
 		{
 			//TODO sort this out, maybe check the difference between column header and data widths and do margins from that
 			//TODO maybe make a method that lets you right click to change whether data is centered, etc.
 			int headerWidth = this.getColumnHeaderWidth(i);
 			int dataWidth = this.getColumnDataWidth(i);
+			//System.out.println("(((IN UPDATECOLUMNWIDTHS))) GOT COLUMN WIDTH STUFF !!!");
 			//double column margin to not have any hidden text when the black arrow appears
 			//after double clicking to sort. this leaves room for the arrow
 			int columnWidth = headerWidth; 
@@ -32,7 +60,10 @@ public class WIMSTable extends JTable{
 		    column.setMinWidth(columnWidth + TABLE_COLUMN_MARGIN);
 		    column.setPreferredWidth(columnWidth + TABLE_COLUMN_MARGIN);
 		    column.setWidth(columnWidth + TABLE_COLUMN_MARGIN);
+			//System.out.println("(((IN UPDATECOLUMNWIDTHS))) FINISHED SETTING WIDTH STUFF !!!");
 		}
+		//System.out.println("(((IN UPDATECOLUMNWIDTHS))) DONE METHOD WHAT HAPPENS NOW !!!");
+
 	}
 	/**
 	 * @param update whether to update the map based on table contents before getting it
@@ -128,6 +159,11 @@ public class WIMSTable extends JTable{
 
 		for (int row = 0; row < this.getRowCount(); row++)
 		{
+			if(this.getModel().getValueAt(row, column) == null)
+			{
+				return 10;
+			}
+			
 			preferredWidth = Math.max(preferredWidth, this.getCellDataWidth(row, column));
 
 			//  We've exceeded the maximum width, no need to check other rows
