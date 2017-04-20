@@ -19,6 +19,7 @@ import java.awt.Component;
 
 public class PalletInOrderPanel extends JPanel {
 
+	private String[][] allPalletsList;
 	private Container palletCont = new Container();
 	private Dimension pref = new Dimension(325,700);
 	private JButton btnAddPallet;
@@ -59,6 +60,7 @@ public class PalletInOrderPanel extends JPanel {
 		});
 		bottomPanel.add(btnAddPallet);
 	}
+	
 	
 	
 

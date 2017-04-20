@@ -14,6 +14,7 @@ import javax.swing.JTextField;
 import javax.swing.border.TitledBorder;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
+import java.util.ArrayList;
 import java.awt.event.ActionEvent;
 import org.eclipse.wb.swing.FocusTraversalOnArray;
 import java.awt.Component;
@@ -21,6 +22,8 @@ import java.awt.event.KeyAdapter;
 
 public class PalletPanel extends JPanel {
 
+	private static final int ARRAYWIDTH = 2;
+	private String[][] palletList;
 	private Container itemCont = new Container();
 	private Dimension pref = new Dimension(275,300);
 	private JTextField txtPalletID;
@@ -111,6 +114,65 @@ public class PalletPanel extends JPanel {
 		});
 		bottomPanel.add(btnAddItem);
 		setFocusTraversalPolicy(new FocusTraversalOnArray(new Component[]{txtPalletID, scrollPane, topPanel}));
+	}
+	
+	/**
+	 * Gets all the items from the ItemPanels of this PalletPanel
+	 * @return
+	 */
+	public ArrayList<String> getAllItems() {
+		ArrayList<String> itemList = new ArrayList<String>();							//this is what you return
+		String temp = "";  									  							//temp to hold the string to add
+		for (Component c : itemCont.getComponents()) {		  							//for each component in the container holding ItemPanels
+			if (c instanceof JTextField && c.getName().equals("txtItemNumber")) {		//if the selected Component is a JTextField and txtItemNumber
+				temp = ((ItemPanel) c).getItemNumber();		  							//set temp to txtItemNumber.getText() and add it to the list
+				if (!(temp.equals("")))													//as long as its not empty
+					itemList.add(temp);
+			}
+		}
+		return itemList;
+	}
+	
+	/**
+	 * Gets all the item quantities from the ItemPanels of this PalletPanel
+	 * @return
+	 */
+	public ArrayList<String> getAllItemQuantities() {
+		ArrayList<String> itemQList = new ArrayList<String>();							//this is what you return
+		String temp = "";  									  							//temp to hold the string to add
+		for (Component c : itemCont.getComponents()) {		  							//for each component in the container holding ItemPanels
+			if (c instanceof JTextField && c.getName().equals("txtItemQuantity")) {		//if the selected Component is a JTextField and txtItemQuantity
+				temp = ((ItemPanel) c).getItemNumber();		  							//set temp to txtItemQuantity.getText() and add it to the list
+				if (!(temp.equals("")))													//as long as its not empty
+					itemQList.add(temp);
+			}
+		}
+		return itemQList;
+	}
+	
+	public void createPalletList() {
+		ArrayList<String> itemList = getAllItems();
+		ArrayList<String> itemQList = getAllItemQuantities();
+		
+		if (itemList.size() != itemQList.size()) {  //if the two are not equal sizes DO NOT CONTINUE THERE IS AN ERROR IN THE ENTRIES
+			JOptionPane.showMessageDialog(this.getParent(), "WARNING! THE ITEM FIELDS MUST BE COMPLETELY FILLED OUT OR COMPLETELY BLANK \nPLEASE CHECK OVER YOUR ENTIRES");
+			return;
+		}
+		
+		for (int row = 0; row < itemList.size(); row++) {
+			for (int col = 0; col < ARRAYWIDTH; col++) {
+				if (col % 2 == 1) { //if the column is odd add itemList
+					palletList[row][col] = itemList.get(row);
+				}
+				else {  //else add itemQList
+					palletList[row][col] = itemQList.get(row);
+				}
+			}//for col end
+		}//for row end
+	}//createPalletList end
+	
+	public String[][] getPalletList() {
+		return palletList;
 	}
 	
 

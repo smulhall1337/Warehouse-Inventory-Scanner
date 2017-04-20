@@ -58,6 +58,28 @@ public class ItemPanel extends JPanel{
 		setFocusTraversalPolicy(new FocusTraversalOnArray(new Component[]{txtItemNumber, txtItemQuantity}));
 	}
 	
+	/**
+	 * Getter method for txtItemNumber
+	 * @return User input
+	 */
+	public String getItemNumber() {
+		String itemNumberInput = txtItemNumber.getText();
+		if (Valid.validItemNumber(itemNumberInput))
+			return itemNumberInput;
+		else
+			return "";
+	}
 	
+	/**
+	 * Getter method for txtItemQuantity
+	 * @return User input
+	 */
+	public String getItemQuantity() {
+		String itemQuantityInput = txtItemQuantity.getText();
+		if (Valid.validInt(itemQuantityInput))
+			return itemQuantityInput;
+		else
+			return "";
+	}	
 	
 }//Class end
