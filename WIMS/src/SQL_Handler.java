@@ -1,4 +1,6 @@
+
 package controller;
+
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -7,14 +9,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 /**
  * This class is used to handle common SQL operations for the WIMS application
+ * 
  * @author Jon Spratt
  * @version WIMS_v1
  */
 public abstract class SQL_Handler {
-	
-	private static final int MAX = 7;
+
 	/**
 	 * A collection of prepared SQL statements
 	 */
@@ -23,6 +26,7 @@ public abstract class SQL_Handler {
 	 * Holds a prepared SQL statement
 	 */
 	private static PreparedStatement stmt;
+	private static Connection customConnection = getConnection(); //TODO THIS IS BAD AND IS A TIME-CRUNCH FIX
 	/**
 	 * Holds results sets from SQL queries
 	 */
@@ -36,7 +40,7 @@ public abstract class SQL_Handler {
 	 * @return the connection to the database, null if connection cannot be established
 	 */
 	public static Connection getConnection() {
-		final String SQL_DRIVER = "com.mysql.jdbc.Driver";
+		final String SQL_DRIVER = "com.mysql.cj.jdbc.Driver";
 		final String URL = "jdbc:mysql://swenggseanmulhall.cdyrbvongw5v.us-east-1.rds.amazonaws.com:3306/swenggdb";
 		final String DB_USER = "seansgroup";
 		final String DB_PW = "Sssh.It'sasecret";
@@ -94,6 +98,8 @@ public abstract class SQL_Handler {
 		Connection conn = getConnection();
 		
 		try {			
+			//#############################################All Entities
+			
 			//#############################################Employees
 			//Key for storage in HashMap
 			stmt_key = "EmpByID";
@@ -112,6 +118,10 @@ public abstract class SQL_Handler {
 			statements.put(stmt_key, statement);
 			
 			stmt_key = "AllEmp";
+			statement = conn.prepareStatement("SELECT * FROM employees");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "AllEmpWithModifier";
 			statement = conn.prepareStatement("SELECT * FROM employees");
 			statements.put(stmt_key, statement);
 			
@@ -149,6 +159,10 @@ public abstract class SQL_Handler {
 			statement = conn.prepareStatement("SELECT current_stock FROM items WHERE item_number = ?");
 			statements.put(stmt_key, statement);
 			
+			stmt_key = "All Items";
+			statement = conn.prepareStatement("SELECT * FROM items");
+			statements.put(stmt_key, statement);
+			
 			//#############################################Pallets
 			stmt_key = "PalletInDB";
 			statement = conn.prepareStatement("SELECT * FROM pallets WHERE pallet_id = ?");
@@ -178,7 +192,6 @@ public abstract class SQL_Handler {
 			statement = conn.prepareStatement("INSERT INTO swenggdb.pallets_items (pallet_id, item_number, item_quantity) " +
 												"VALUES (?, ?, ?)");
 			statements.put(stmt_key, statement);
-			
 			//#############################################Orders
 			stmt_key = "OrderInDB";
 			statement = conn.prepareStatement("SELECT * FROM orders WHERE order_number = ?");
@@ -188,7 +201,8 @@ public abstract class SQL_Handler {
 			statement = conn.prepareStatement("INSERT INTO swenggdb.orders (order_number, origin, destination, received_by_emp_id, shipped_by_emp_id, date_placed, date_shipped, date_delivered) " +
 												"VALUES(?, ?,?, ?, ?, ?, ?, ?)");
 			statements.put(stmt_key, statement);
-			//#############################################Display		
+			//#############################################Warehouses
+			//#############################################Sublocations		
 			
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -212,6 +226,23 @@ public abstract class SQL_Handler {
 		return sql_statements;
 	}
 	
+	//#############################################All Entities
+	public static ResultSet getAllFromTable(String tableName) throws SQLException{
+		String query = "SELECT * FROM " + tableName;
+			stmt = customConnection.prepareStatement(query);
+			rs = stmt.executeQuery();
+			return rs;
+	}
+	
+	public static ResultSet getAllFromTable(String tableName, String fieldName, 
+			String fieldModifier, String fieldValue) throws SQLException{
+		String query = "SELECT * FROM " + tableName + " WHERE " 
+			+ fieldName + getQueryModifierString(fieldModifier, sanitizeInput(fieldValue));
+		stmt = customConnection.prepareStatement(query);
+		rs = stmt.executeQuery();
+		return rs;
+	}
+	
 	//#############################################Employees
 	/**
 	 * Check whether the entered employee_id/password combination is valid
@@ -226,6 +257,31 @@ public abstract class SQL_Handler {
 		if (rs.next()) {			// Returns true if the current row is not past the last row
 			sql_salt = rs.getString("salt");
 			if (sql_salt.equals(md5_hash(password+salt))) {
+				// employee_id found with matching salted pw
+				return true;
+			}
+		}
+		// Employee ID not found or Invalid username/password combo
+		return false;
+	}
+	
+	/**
+	 * Check whether the entered employee_id/password combination is valid
+	 * 
+	 * @param employee_id
+	 *            the in-bound unique employee_id
+	 * @param pw
+	 *            the inputed password
+	 * @return returns true if the employee_id/password combination is valid,
+	 *         false otherwise
+	 */
+	public static boolean isValidUsernamePassword(String employee_id, String pw) throws SQLException {
+		String sql_salt = "";
+		rs = getEmpRowByID(employee_id);
+		if (rs.next()) { // Returns true if the current row is not past the last
+							// row
+			sql_salt = rs.getString("salt");
+			if (sql_salt.equals(md5_hash(pw + salt))) {
 				// employee_id found with matching salted pw
 				return true;
 			}
@@ -430,6 +486,31 @@ public abstract class SQL_Handler {
 		return itemTypeList;
 	}
 	
+	public static String getItemTypesAsOneString(String itemNumber) throws SQLException{
+		String itemTypesString = "";
+		try{
+		ArrayList<String> itemTypeList = getItemTypes(itemNumber);
+		for(int ndx = 0; ndx < itemTypeList.size(); ndx++){
+			itemTypesString = itemTypesString + itemTypeList.get(ndx) + ",";
+		}
+		itemTypesString = itemTypesString.substring(0, itemTypesString.length() - 1);
+		}catch(SQLException sqlEx){
+			throw sqlEx;
+		}
+		return itemTypesString;
+	}
+	
+	/**
+	 * Get all items in the database
+	 * @return a resultset containing all items in the database (all columns)
+	 * @throws SQLException
+	 */
+	public static ResultSet getAllItems() throws SQLException {
+		stmt = sql_statements.get("AllItems");
+		rs = stmt.executeQuery();
+		return rs;
+	}
+	
 	
 	//#############################################Pallets
 		public static boolean palletInDB(String palletID) throws SQLException {
@@ -564,5 +645,104 @@ public abstract class SQL_Handler {
 		 return columnNames;
 	}
 	
+	/**
+	 * 
+	 * @param result
+	 *            the result set to convert to a list of arrays
+	 * @return a list containing String arrays, where every index in the list is
+	 *         a row, where the String arrays each represent a row
+	 * @throws SQLException
+	 */
+	public static Object[][] getResultSetAs2DObjArray(ResultSet result) throws SQLException {
+		int nCol = result.getMetaData().getColumnCount();
+		// set the resultset to the last row
+		result.last();
+		// save the row number of the last row
+		int nRow = result.getRow();
+		// set the cursor back to the top
+		result.beforeFirst();
+		Object[][] data = new Object[nRow][nCol];
+		int ndx = 0;
+		while (result.next()) {
+			Object[] row = new Object[nCol];
+			for (int iCol = 1; iCol <= nCol; iCol++) {
+				Object obj = result.getObject(iCol);
+				row[iCol - 1] = obj;
+			}
+			data[ndx] = row;
+			ndx++;
+		}
+
+		result.beforeFirst();
+		return data;
+	}
+
+	public static void updateColumnNamesToDisplayNames(String[] columnNames) {
+		// TODO Auto-generated method stub
+		for (int i = 0; i < columnNames.length; i++) {
+			columnNames[i] = DBNamesManager.getFieldDisplayNameByDatabaseVariable(columnNames[i]);
+		}
+	}
+
+	public static String getQueryModifierString(String fieldModifier, String fieldModifierValue) {
+		String modifierString = "";
+		switch (fieldModifier){
+		case DBNamesManager.NUMERIC_FIELD_LESS_THAN: 
+			modifierString = " < " + "\'" + fieldModifierValue + "\'";
+			break;
+		case DBNamesManager.NUMERIC_FIELD_GREATER_THAN: 
+			modifierString = " > " + "\'" + fieldModifierValue + "\'";
+			break;
+		case DBNamesManager.NUMERIC_FIELD_EQUAL_TO:
+			modifierString = " = " + "\'" + fieldModifierValue + "\'";
+			break;
+		case DBNamesManager.STRING_FIELD_STARTING_WITH:
+			modifierString = " LIKE " + "\"" + fieldModifierValue + "%" + "\"";
+			break;
+		case DBNamesManager.STRING_FIELD_ENDING_WITH:
+			modifierString = " LIKE " + "\"" + "%" + fieldModifierValue + "\"";
+			break;
+		case DBNamesManager.STRING_FIELD_CONTAINS:
+			modifierString = " LIKE " + "\"" + "%" + fieldModifierValue + "%" + "\""; //TODO check syntaxes for all of these
+			break;
+		case DBNamesManager.STRING_FIELD_THAT_IS:
+			modifierString = " = " + "\'" + fieldModifierValue + "\'";
+			break;
+		case DBNamesManager.DATE_FIELD_BEFORE:
+			modifierString = " < " + "\'" + fieldModifierValue + "\'";
+			break;
+		case DBNamesManager.DATE_FIELD_AFTER:
+			modifierString = " > " + "\'" + fieldModifierValue + "\'";
+			break;
+		case DBNamesManager.DATE_FIELD_ON:
+			modifierString = " = " + "\'" + fieldModifierValue + "\'";
+			break;
+		case DBNamesManager.FLAG_FIELD_IS:
+			modifierString = " = " + "\'" + fieldModifierValue + "\'";
+			break;
+		case DBNamesManager.FLAG_FIELD_IS_NOT:
+			modifierString = " != " + "\'" + fieldModifierValue + "\'";
+			break;
+		}
+		return modifierString;
+	}
 	
+	/**
+	 * Sanitize the given input to be used as a query. This is bad but oh well. 
+	 * @param userInput the query input to sanitize
+	 * @return the sanitized query input
+	 */
+	private static String sanitizeInput(String userInput) {
+
+		  //Replace all apostrophes with double apostrophes
+		  String safeStr = userInput.replace("'", "''");
+
+		  //Replace all backslashes with double backslashes
+		  safeStr = safeStr.replace("\\", "\\\\");
+
+		  //Replace all non-alphanumeric and punctuation characters (per ASCII only)
+		  safeStr = safeStr.replaceAll("[^\\p{Alnum}\\p{Punct}]", "");
+
+		  return safeStr;
+		}
 }
