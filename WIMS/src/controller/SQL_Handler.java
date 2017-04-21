@@ -26,6 +26,7 @@ public abstract class SQL_Handler {
 	 * Holds a prepared SQL statement
 	 */
 	private static PreparedStatement stmt;
+	private static Connection customConnection = getConnection(); //TODO THIS IS BAD AND IS A TIME-CRUNCH FIX
 	/**
 	 * Holds results sets from SQL queries
 	 */
@@ -98,20 +99,13 @@ public abstract class SQL_Handler {
 		
 		try {			
 			//#############################################All Entities
-			//Key for storage in HashMap
-			stmt_key = "AllFromTable";
-			//Prepared SQL statement with wildcard (?)
-			statement = conn.prepareStatement("SELECT * FROM ?");
-			//Add the prepared statement to the HashMap
-			statements.put(stmt_key, statement);
-			
-			stmt_key = "AllFromTableWithModifier";
-			statement = conn.prepareStatement("SELECT * FROM ? WHERE ? ?");
-			statements.put(stmt_key, statement);
 			
 			//#############################################Employees
+			//Key for storage in HashMap
 			stmt_key = "EmpByID";
+			//Prepared SQL statement with wildcard (?)
 			statement = conn.prepareStatement("SELECT * FROM employees WHERE employee_id = ?");
+			//Add the prepared statement to the HashMap
 			statements.put(stmt_key, statement);
 			
 			stmt_key = "EmpSalt";
@@ -127,7 +121,7 @@ public abstract class SQL_Handler {
 			statement = conn.prepareStatement("SELECT * FROM employees");
 			statements.put(stmt_key, statement);
 			
-			stmt_key = "AllEmp";
+			stmt_key = "AllEmpWithModifier";
 			statement = conn.prepareStatement("SELECT * FROM employees");
 			statements.put(stmt_key, statement);
 			
@@ -234,26 +228,17 @@ public abstract class SQL_Handler {
 	
 	//#############################################All Entities
 	public static ResultSet getAllFromTable(String tableName) throws SQLException{
-		// The prepared statement to be executed
-		stmt = sql_statements.get("AllFromTable");
-		// Set the statements wildcards. Starts @ index 1 and increments by 1
-		stmt.setString(1, tableName);
-		//TODO delete sysout
-		System.out.println(stmt);
-		rs = stmt.executeQuery();
-		return rs;
+		String query = "SELECT * FROM " + tableName;
+			stmt = customConnection.prepareStatement(query);
+			rs = stmt.executeQuery();
+			return rs;
 	}
 	
 	public static ResultSet getAllFromTable(String tableName, String fieldName, 
 			String fieldModifier, String fieldValue) throws SQLException{
-		stmt = sql_statements.get("AllFromTableWithModifier");
-		String queryModifier = getQueryModifierString(fieldModifier, fieldValue);
-		// Set the statements wildcards. Starts @ index 1 and increments by 1
-		stmt.setString(1, tableName);
-		stmt.setString(2, fieldName);
-		stmt.setString(3, queryModifier);
-		//TODO delete sysout
-		System.out.println(stmt);
+		String query = "SELECT * FROM " + tableName + " WHERE " 
+			+ fieldName + getQueryModifierString(fieldModifier, sanitizeInput(fieldValue));
+		stmt = customConnection.prepareStatement(query);
 		rs = stmt.executeQuery();
 		return rs;
 	}
@@ -703,13 +688,13 @@ public abstract class SQL_Handler {
 		String modifierString = "";
 		switch (fieldModifier){
 		case DBNamesManager.NUMERIC_FIELD_LESS_THAN: 
-			modifierString = " < " + fieldModifierValue;
+			modifierString = " < " + "\'" + fieldModifierValue + "\'";
 			break;
 		case DBNamesManager.NUMERIC_FIELD_GREATER_THAN: 
-			modifierString = " > " + fieldModifierValue;
+			modifierString = " > " + "\'" + fieldModifierValue + "\'";
 			break;
 		case DBNamesManager.NUMERIC_FIELD_EQUAL_TO:
-			modifierString = " = " + fieldModifierValue;
+			modifierString = " = " + "\'" + fieldModifierValue + "\'";
 			break;
 		case DBNamesManager.STRING_FIELD_STARTING_WITH:
 			modifierString = " LIKE " + "\"" + fieldModifierValue + "%" + "\"";
@@ -721,7 +706,7 @@ public abstract class SQL_Handler {
 			modifierString = " LIKE " + "\"" + "%" + fieldModifierValue + "%" + "\""; //TODO check syntaxes for all of these
 			break;
 		case DBNamesManager.STRING_FIELD_THAT_IS:
-			modifierString = " = " + fieldModifierValue;
+			modifierString = " = " + "\'" + fieldModifierValue + "\'";
 			break;
 		case DBNamesManager.DATE_FIELD_BEFORE:
 			modifierString = " < " + "\'" + fieldModifierValue + "\'";
@@ -733,30 +718,31 @@ public abstract class SQL_Handler {
 			modifierString = " = " + "\'" + fieldModifierValue + "\'";
 			break;
 		case DBNamesManager.FLAG_FIELD_IS:
-			modifierString = " = " + fieldModifierValue;
+			modifierString = " = " + "\'" + fieldModifierValue + "\'";
 			break;
 		case DBNamesManager.FLAG_FIELD_IS_NOT:
-			modifierString = " != " + fieldModifierValue;
+			modifierString = " != " + "\'" + fieldModifierValue + "\'";
 			break;
 		}
 		return modifierString;
 	}
 	
-	// TODO BAD -- move this into something usable with the same connection
-	public static ResultSet executeCustomQuery(String query) {
-		Connection conn = getConnection();
-		try {
-			stmt = conn.prepareStatement(query);
-			rs = stmt.executeQuery();
-			rs.next();
-			// System.out.println("RESULT SET COLUMN STRING: " +
-			// rs.getString(3));
-			return rs;
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			return null;
-		}
-	}
+	/**
+	 * Sanitize the given input to be used as a query. This is bad but oh well. 
+	 * @param userInput the query input to sanitize
+	 * @return the sanitized query input
+	 */
+	private static String sanitizeInput(String userInput) {
 
+		  //Replace all apostrophes with double apostrophes
+		  String safeStr = userInput.replace("'", "''");
+
+		  //Replace all backslashes with double backslashes
+		  safeStr = safeStr.replace("\\", "\\\\");
+
+		  //Replace all non-alphanumeric and punctuation characters (per ASCII only)
+		  safeStr = safeStr.replaceAll("[^\\p{Alnum}\\p{Punct}]", "");
+
+		  return safeStr;
+		}
 }
