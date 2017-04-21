@@ -71,7 +71,6 @@ import org.jdatepicker.impl.UtilDateModel;
 import controller.DBNamesManager;
 import controller.DateLabelFormatter;
 import controller.ErrorStatusReportable;
-import controller.ImprovedFormattedTextField;
 import controller.MainWindowInfoController;
 import controller.SQL_Handler;
 import controller.WIMSTable;

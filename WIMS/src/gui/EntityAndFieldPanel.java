@@ -23,7 +23,6 @@ import org.jdatepicker.impl.UtilDateModel;
 import controller.ComponentProvider;
 import controller.DBNamesManager;
 import controller.DateLabelFormatter;
-import controller.ImprovedFormattedTextField;
 import controller.MainWindowInfoController;
 import controller.NumericDataDocument;
 
