@@ -138,6 +138,9 @@ public class MainWindow implements ErrorStatusReportable{
 	//width adjuster manager for table
 	private WidthAdjuster TableWidthAdjuster;
 	
+	private String loggedInEmpID;
+	private boolean loggedInIsManager;
+	
 	
 	//wrapper panel that contains entity&field selection panel, showcolumnsfor panel,
 	//and update button panel
@@ -175,7 +178,7 @@ public class MainWindow implements ErrorStatusReportable{
 	private JMenuItem extraMenuItem;
 	private JMenu reportsMenu;
 	private JMenuItem reportMenu;
-	private JMenuItem manageReports;
+	private JMenuItem modifyPallet;
 
 	
 
@@ -194,6 +197,9 @@ public class MainWindow implements ErrorStatusReportable{
 
 	private int tableSelectedIndex;
 
+	private static final String TEST_EMP_ID = "894189";
+	private static final boolean TEST_EMP_ISMANAGER = true;
+	
 	/**
 	 * Launch the application.
 	 */
@@ -202,7 +208,7 @@ public class MainWindow implements ErrorStatusReportable{
 			@Override
 			public void run() {
 				try {
-					MainWindow window = new MainWindow();
+					MainWindow window = new MainWindow("894189",true);
 					window.frame.setVisible(true);
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -211,10 +217,10 @@ public class MainWindow implements ErrorStatusReportable{
 		});
 	}
 
-	/**
-	 * Create the application.
-	 */
-	public MainWindow() {
+	//TODO change to query database
+	public MainWindow(String loggedInEmpID, boolean loggedInIsManager){
+		this.loggedInEmpID = loggedInEmpID;
+		this.loggedInIsManager = loggedInIsManager;
 		initialize();
 	}
 
@@ -270,7 +276,8 @@ public class MainWindow implements ErrorStatusReportable{
 		initializeItemsMenu();
 		initializeOrdersMenu();
 		initializeEmployeesMenu();
-		initializeReportsMenu();
+		if(this.loggedInIsManager)
+			initializeManagerMenu();
 	}
 	
 	/**
@@ -282,11 +289,17 @@ public class MainWindow implements ErrorStatusReportable{
 		manageItemsMenu.setFont(MENUBAR_FONT);
 		menubar.add(manageItemsMenu);
 		
-		addItem = new JMenuItem("Add Item to Database");
+		addItem = new JMenuItem("Add or Edit Item");
 		manageItemsMenu.add(addItem);
+		addItem.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent ae) {
+				launchScanWindow();
+			}
+		});
 		
-		updateItem = new JMenuItem("Update Item in Database");
-		manageItemsMenu.add(updateItem);
+//		updateItem = new JMenuItem("Update Item in Database");
+//		manageItemsMenu.add(updateItem);
 	}
 	
 	/**
@@ -303,6 +316,13 @@ public class MainWindow implements ErrorStatusReportable{
 		
 		scanInOrderMenuItem = new JMenuItem("Scan in Order");
 		ordersMenu.add(scanInOrderMenuItem);
+		scanInOrderMenuItem.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent ae) {
+				launchOrderWindow();
+			}
+		});
+		
 	}
 	
 	/**
@@ -319,30 +339,72 @@ public class MainWindow implements ErrorStatusReportable{
 		manageEmployeesItem.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent ae) {
-				ManageEmployees manageEmployeesWindow = new ManageEmployees();
-				manageEmployeesWindow.getFrame().setVisible(true);
-				//TODO update when manageemployees is updated
+				launchManageEmployees(loggedInEmpID);
 			}
 		});
 		
 		extraMenuItem = new JMenuItem("An extra menu item to be filled out later");
 		manageEmployeesMenu.add(extraMenuItem);
 	}
+
+	//TODO update when manageemployees is updated
+	private void launchManageEmployees(String initializerEmpID)
+	{
+		ManageEmployees manageEmployeesWindow = new ManageEmployees(this.loggedInEmpID, this.loggedInIsManager, initializerEmpID);
+		manageEmployeesWindow.getFrame().setVisible(true);
+	}
 	
+	private void launchScanWindow(String initialItemNumber){
+		ScanWindow scanWindow = new ScanWindow(this.loggedInIsManager, initialItemNumber);
+		scanWindow.getFrame().setVisible(true);
+	}
+	
+	private void launchScanWindow(){
+		ScanWindow scanWindow = new ScanWindow(this.loggedInIsManager);
+		scanWindow.getFrame().setVisible(true);
+	}
+	
+	private void launchPalletWindow(String initialPalletNumber){
+		if(this.loggedInIsManager){
+		PalletWindow palletWindow = new PalletWindow(initialPalletNumber);
+		palletWindow.getFrame().setVisible(true);
+		}
+	}
+	
+	private void launchPalletWindow(){
+		if(this.loggedInIsManager){
+		PalletWindow palletWindow = new PalletWindow();
+		palletWindow.getFrame().setVisible(true);
+		}
+	}
+	
+	private void launchOrderWindow(){
+		OrderWindow orderWindow = new OrderWindow();
+		orderWindow.getFrame().setVisible(true);
+	}
 	/**
 	 * Initialize the reports submenu (and all of its JMenuItems) on the menubar
 	 */
-	private void initializeReportsMenu()
+	private void initializeManagerMenu()
 	{
-		reportsMenu = new JMenu("Reports");
+		reportsMenu = new JMenu("Manager Options");
 		reportsMenu.setFont(MENUBAR_FONT);
 		menubar.add(reportsMenu);
 		
-		reportMenu = new JMenuItem("Create Reports");
+		reportMenu = new JMenuItem("Reports");
 		reportsMenu.add(reportMenu);
 		
-		manageReports = new JMenuItem("Manage Reports");
-		reportsMenu.add(manageReports);
+		modifyPallet = new JMenuItem("Modify Pallet");
+		reportsMenu.add(modifyPallet);
+		modifyPallet.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent ae) {
+				launchPalletWindow();
+			}
+		});
+		
+		reportsMenu.add(manageEmployeesItem);
+		menubar.remove(manageEmployeesMenu);
 	}
 	
 	/**
@@ -514,87 +576,64 @@ public class MainWindow implements ErrorStatusReportable{
 			lblLoadingIcon.setText(BUILDING_QUERY_STATUS_MESSAGE);
 			//get the database variable for the selected entity
 			String dbEntityName = DBNamesManager.getEntityDatabaseVariableByDisplayName(entityName);
-			//start the query string
-			String query = "SELECT * FROM " + dbEntityName;
-			//if the user has entered a modifier value
+
 			boolean modifierValueEntered = entityAndFieldSelectPanel.isModifierValueEntered();
-			if (modifierValueEntered) 
-			{ //if there is a modifier value
-				//get the database variable for the selected field
-				String dbFieldName = DBNamesManager.getFieldDatabaseVariableFieldByDisplayName(fieldName);
-				//get the modifier string, i.e. "less than 10"
-				String modifierString = entityAndFieldSelectPanel.getQueryModifierString(fieldModifier,
-						fieldModifierValue);
-				//add the field modifier where clause to the end of the query
-				query = query + " WHERE " + dbFieldName + modifierString;
-			}
-			try { //try executing the query
-			//say that the query is being executed on the loading status
-			lblLoadingIcon.setText(EXECUTING_QUERY_STATUS_MESSAGE);
+			ResultSet queryResult;
+			try {
+				//try executing the query
+				//say that the query is being executed on the loading status
+				lblLoadingIcon.setText(EXECUTING_QUERY_STATUS_MESSAGE);
+				if (modifierValueEntered) 
+				{ //if there is a modifier value
+					//get the database variable for the selected field
+					String dbFieldName = DBNamesManager.getFieldDatabaseVariableFieldByDisplayName(fieldName);
+					//get the modifier string, i.e. "less than 10"
+					queryResult = SQL_Handler.getAllFromTable(dbEntityName, dbFieldName, fieldModifier, fieldModifierValue);
+				}else{//there is no modifier value
+					queryResult = SQL_Handler.getAllFromTable(dbEntityName);
+				}
 			
-			//TODO delete VVV printing of query
-			System.out.println(query); //what query are we executing
-			
-			//TODO vulnerable to sql inject
-			//execute the query
-			ResultSet result = controller.SQL_Handler.executeCustomQuery(query);
-			//save the data and column names into arrays
-			Object[][] data = controller.SQL_Handler.getResultSetAs2DObjArray(result);			
-			String[] columnNames = controller.SQL_Handler.getColumnNamesFromResultSet(result);
-			
-			//TODO delete VVV printing of data results length
-//			System.out.println("data length:" + data.length);
-//			System.out.println("====printing data right after query====");
-//			for(int col = 0; col < data.length; col++)
-//				for(int row = 0; row < data[col].length; row++)
-//				{
-//					System.out.println(columnNames[row] + ": " + data[col][row]);
-//				}
-//			System.out.println("==end of data printed right after query==");
-			
-			//if the results arent empty, if there is a next value
-			if(result.next())
-			{
-				//move up one so we dont skip the first value
-				//result.previous();
+				//save the data and column names into arrays
+				Object[][] data = controller.SQL_Handler.getResultSetAs2DObjArray(queryResult);			
+				String[] columnNames = controller.SQL_Handler.getColumnNamesFromResultSet(queryResult);
 				
-				//TODO delete this debug sysout
-				//System.out.println("TABLE RESULT SET COLUMN STRING: " + result.getString(3));
 				
-				//say that the table is being updated on the loading status
-				lblLoadingIcon.setText(UPDATING_TABLE_STATUS_MESSAGE);
-				
-				//change the DB variable column names to the display names
-				SQL_Handler.updateColumnNamesToDisplayNames(columnNames);
-				//update the data in the table to have the queried data and display column names
-				//TODO comment out or delete this printing of data's contents
-				//System.out.println("data length:" + data.length);
-				//System.out.println("~~ASDASD~~~printing data RIGHTB4 update table~ASDASD~~~~");
-				//for(int col = 0; col < data.length; col++)
-				//	for(int row = 0; row < data[col].length; row++)
-				//		System.out.println(columnNames[row] + ": " + data[col][row]);
-				//System.out.println("~~~ASDSADAS~~~~~~~~~~~~end of data~~~~~~~ASDASD~~~~~~~~~");
-				int updateTableRows = data.length;
-				//System.out.println("UPDATE TABLE ROWS " + updateTableRows);
-				updateTable(data, columnNames);
-	        	currentTableEntity = entityName;
-				
-				//TODO comment out or delete this printing of data's contents
-				//System.out.println("data length:" + data.length);
-				//System.out.println("~~~~~printing data after update table~~~~~");
-				//for(int row = 0; row < data.length; row++)
-				//	for(int col = 0; col < data[col].length; col++)
-				//		System.out.println(columnNames[col] + ": " + data[row][col]);
-				//System.out.println("~~~~~~~~~~~~~~~end of data~~~~~~~~~~~~~~~~");
-				//now that we have the data, return whether it actually has data in it just in case
-				boolean success = updateTableRows > 0;
-				return success;
-			}
-			else{ //the query result was empty, return false
-				//TODO delete this sysout
-				System.out.println("UHHHHH says the query is empty?");
-				return false;
-			}
+				//if the results arent empty, if there is a next value
+				if(queryResult.next())
+				{
+					//move up one so we dont skip the first value
+					//result.previous();
+					
+					//TODO delete this debug sysout
+					//System.out.println("TABLE RESULT SET COLUMN STRING: " + result.getString(3));
+					
+					//say that the table is being updated on the loading status
+					lblLoadingIcon.setText(UPDATING_TABLE_STATUS_MESSAGE);
+					
+					//change the DB variable column names to the display names
+					SQL_Handler.updateColumnNamesToDisplayNames(columnNames);
+					//update the data in the table to have the queried data and display column names
+					
+					int updateTableRows = data.length;
+					updateTable(data, columnNames);
+		        	currentTableEntity = entityName;
+					
+					//TODO comment out or delete this printing of data's contents
+					//System.out.println("data length:" + data.length);
+					//System.out.println("~~~~~printing data after update table~~~~~");
+					//for(int row = 0; row < data.length; row++)
+					//	for(int col = 0; col < data[col].length; col++)
+					//		System.out.println(columnNames[col] + ": " + data[row][col]);
+					//System.out.println("~~~~~~~~~~~~~~~end of data~~~~~~~~~~~~~~~~");
+					//now that we have the data, return whether it actually has data in it just in case
+					boolean success = updateTableRows > 0;
+					return success;
+				}
+				else{ //the query result was empty, return false
+					//TODO delete this sysout
+					System.out.println("UHHHHH says the query is empty?");
+					return false;
+				}
 			} catch (SQLException e) {
 				// TODO Auto-generated catch block
 				//TODO just show a database error on the label
@@ -713,16 +752,19 @@ public class MainWindow implements ErrorStatusReportable{
 				//TODO display item menu
 				//here valueString = the selected item number
 				System.out.println("Selected Item Number: " + valueString);
+				launchScanWindow(valueString);
 				break;
 			case DBNamesManager.PALLET_ID_FIELD_DISPLAYNAME:
 				//TODO display order menu
 				//here valueString = the selected pallet id
 				System.out.println("Selected Pallet ID: " + valueString);
+				launchPalletWindow(valueString);
 				break;
 			case DBNamesManager.ORDER_NUM_FIELD_DISPLAYNAME:
 				//TODO display order menu
 				//here valueString = the selected order number
 				System.out.println("Selected Order Number: " + valueString);
+				launchOrderWindow();
 				break;
 			case DBNamesManager.WAREHOUSE_ID_FIELD_DISPLAYNAME:
 				//TODO display warehouse menu
@@ -738,6 +780,7 @@ public class MainWindow implements ErrorStatusReportable{
 				//TODO display employee menu
 				//here valueString = the selected employeeID
 				System.out.println("Selected Employee ID: " + valueString);
+				launchManageEmployees(valueString);
 				break;
 			}
 			

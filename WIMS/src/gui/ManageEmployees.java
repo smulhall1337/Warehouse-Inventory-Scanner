@@ -32,6 +32,7 @@ import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.border.Border;
 
+import controller.DBNamesManager;
 import controller.EmployeeIDDocument;
 import controller.NameDocument;
 import controller.SQL_Handler;
@@ -56,6 +57,7 @@ public class ManageEmployees extends JFrame{
 	private static final String UPDATE_EMPLOYEE_BUTTON_TEXT = "Update";
 	private static final String DEFAULT_BUTTON_TEXT = "Perform";
 	
+	private static final String DEFAULT_EMPLOYEE_ID = "";
 	private static final int EMPLOYEE_NAME_TEXTFIELD_COLUMNS = 25;
 	private static final int EMPLOYEE_ID_TEXTFIELD_COLUMNS = 25;
 	private static final int PASSWORD_FIELD_COLUMNS = 25;
@@ -72,7 +74,9 @@ public class ManageEmployees extends JFrame{
 			+ "\n" + "one upper case letter, one lower case letter,"
 	 		+ "\n" + "and one special symbol (“@#$%”)";
 	
-	private boolean isManager;
+	private boolean loggedInEmpIsManager;
+	private String loggedInEmployeeID;
+	private String initialEmployeeID;
 	
 	private JFrame frame;
 	private JTextField textFieldTempPassword;
@@ -92,6 +96,9 @@ public class ManageEmployees extends JFrame{
 	private JPanel panelPerformAction;
 	private int nextOptionRow; //the index of the next option row in the gridbaglayout
 	
+	private static final String TEST_EMP_ID = "894189";
+	private static final boolean TEST_EMP_ISMANAGER = true;
+	
 	/**
 	 * Launch the application.
 	 */
@@ -99,7 +106,7 @@ public class ManageEmployees extends JFrame{
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
-					ManageEmployees window = new ManageEmployees();
+					ManageEmployees window = new ManageEmployees(TEST_EMP_ID, TEST_EMP_ISMANAGER);
 					window.frame.setVisible(true);
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -111,16 +118,26 @@ public class ManageEmployees extends JFrame{
 	/**
 	 * Create the application.
 	 */
-	//public ManageEmployees(String loggedInEmployeeID, boolean isManager)
-	public ManageEmployees() {
-		isManager = true;
-		initialize(isManager);
+	public ManageEmployees(String loggedInEmployeeID, boolean loggedInEmpIsManager) {
+		this.loggedInEmpIsManager = loggedInEmpIsManager;
+		this.loggedInEmployeeID = loggedInEmployeeID;
+		this.initialEmployeeID = loggedInEmployeeID;
+		
+		initialize();
+	}
+	
+	public ManageEmployees(String loggedInEmployeeID, boolean isManager, String initializerEmployeeID)
+	{
+		this.loggedInEmpIsManager = isManager;
+		this.loggedInEmployeeID = loggedInEmployeeID;
+		this.initialEmployeeID = initializerEmployeeID;
+		initialize();
 	}
 
 	/**
 	 * Initialize the contents of the frame.
 	 */
-	private void initialize(boolean isManager) {
+	private void initialize() {
 		frame = new JFrame("WIMS - Manage Employees");
 		frame.setBounds(700, 400, 450, 260);
 		frame.setResizable(false);
@@ -129,13 +146,14 @@ public class ManageEmployees extends JFrame{
 		passwordPattern = Pattern.compile(PASSWORD_PATTERN);
 		nextOptionRow = STARTING_OPTION_ROW;
 		initializeLabels();
-		if(isManager)
+		//if the current user is a manager, show all options
+		if(loggedInEmpIsManager)
 		{
 			initializeActionSelection();
 			initializeActionOptionsPanel();
 			initializePerformActionPanel();
 			initializePerfomActionButton((String) comboBoxSelectAction.getSelectedItem());
-		}else{
+		}else{ //if the current user is a regular employee, only show change password options
 			initializeActionOptionsPanel(CHANGE_EMPLOYEE_PASS_ACTION_NAME);
 			initializePerformActionPanel();
 			initializePerfomActionButton(CHANGE_EMPLOYEE_PASS_ACTION_NAME);
@@ -143,8 +161,8 @@ public class ManageEmployees extends JFrame{
 	}
 	
 	private void initializeLabels() {
-		labelEmployeeID = new JLabel("Employee ID:");
-		labelEmployeeName = new JLabel("Name:");
+		labelEmployeeID = new JLabel(DBNamesManager.getEmployeeIdDisplayname() + ":");
+		labelEmployeeName = new JLabel(DBNamesManager.getEmployeeNameDisplayname()+":");
 		labelCurrentPassword = new JLabel("Current Password:");
 		labelTempPassword = new JLabel("Temporary Password:");
 		labelNewPassword = new JLabel("New Password:");
@@ -235,20 +253,20 @@ public class ManageEmployees extends JFrame{
 		final String currentPass = String.valueOf(passFieldCurrentPass.getPassword());
 		final String newPass = String.valueOf(passFieldNewPass.getPassword());
 		try{
-		//TODO check if employee ID exists, check 
-		String currentID = formattedTextFieldEmployeeID.getText();
-		//boolean employeeExists = 
-		boolean validCurrentPass = SQL_Handler.isValidUsernamePassword(currentID, currentPass);
-		boolean validNewPass = validatePassword(newPass);
-		if(!validCurrentPass){
-			JOptionPane.showMessageDialog(frame, "The entered password is incorrect.", 
-			 		"Incorrect Password", JOptionPane.ERROR_MESSAGE);
-		}else if(!validNewPass)
-		{
-			 JOptionPane.showMessageDialog(frame, "The newly entered password is invalid."
-			 		+ PASSWORD_REQUIREMENT_DESCRIPTION, 
-			 		"Invalid Password", JOptionPane.ERROR_MESSAGE);
-		}
+			//TODO check if employee ID exists, check 
+			String currentID = formattedTextFieldEmployeeID.getText();
+			//boolean employeeExists = 
+			boolean validCurrentPass = SQL_Handler.isValidUsernamePassword(currentID, currentPass);
+			boolean validNewPass = validatePassword(newPass);
+			if(!validCurrentPass){
+				JOptionPane.showMessageDialog(frame, "The entered password is incorrect.", 
+				 		"Incorrect Password", JOptionPane.ERROR_MESSAGE);
+			}else if(!validNewPass)
+			{
+				 JOptionPane.showMessageDialog(frame, "The newly entered password is invalid."
+				 		+ PASSWORD_REQUIREMENT_DESCRIPTION, 
+				 		"Invalid Password", JOptionPane.ERROR_MESSAGE);
+			}
 		}catch(SQLException ex)
 		{
 			//TODO what if the current employee has been removed
@@ -339,9 +357,11 @@ public class ManageEmployees extends JFrame{
 	private JFormattedTextField getEmployeeIDTextField()
 	{
 		formattedTextFieldEmployeeID = new JFormattedTextField();
+		formattedTextFieldEmployeeID.setEditable(this.loggedInEmpIsManager); 
 		EmployeeIDDocument idDoc = new EmployeeIDDocument();
 		formattedTextFieldEmployeeID.setDocument(idDoc);
 		formattedTextFieldEmployeeID.setColumns(EMPLOYEE_ID_TEXTFIELD_COLUMNS);
+		formattedTextFieldEmployeeID.setText(this.initialEmployeeID);
 		return formattedTextFieldEmployeeID;
 	}
 	
@@ -351,7 +371,6 @@ public class ManageEmployees extends JFrame{
 		passField.setColumns(PASSWORD_FIELD_COLUMNS);
 		return passField;
 	}
-	
 	
 	private void displayUpdateEmployeeOptions() {
 		formattedTextFieldEmployeeID = getEmployeeIDTextField();
@@ -374,12 +393,12 @@ public class ManageEmployees extends JFrame{
 
 	private void displayChangeEmployeePassOptions() {
 		
-	    formattedTextFieldEmployeeID = getEmployeeIDTextField();
-	    formattedTextFieldEmployeeID.setEditable(this.isManager); //managers can edit anyones password
-	    
-	    //TODO make the employee ID field start as currently logged in employee's ID
-	    //if they arent a manager, it will be uneditable / a label
-	    //also managers shouldnt have to enter the current password to change a password
+		formattedTextFieldEmployeeID = this.getEmployeeIDTextField();
+		//managers can edit anyones password
+		
+		//TODO make the employee ID field start as currently logged in employee's ID
+		//if they arent a manager, it will be uneditable / a label
+		//also managers shouldnt have to enter the current password to change a password
 		addRowToOptions(labelEmployeeID, formattedTextFieldEmployeeID);
 		
 		//TODO if current entered employee ID is a manager, make this require their password
@@ -391,7 +410,7 @@ public class ManageEmployees extends JFrame{
 	}
 
 	private void displayDeleteEmployeeOptions() {
-		formattedTextFieldEmployeeID = new JFormattedTextField();
+		formattedTextFieldEmployeeID = getEmployeeIDTextField();
 		
 		addRowToOptions(labelEmployeeID, formattedTextFieldEmployeeID);
 		
@@ -461,9 +480,24 @@ public class ManageEmployees extends JFrame{
 	   * @param password password for validation
 	   * @return true valid password, false invalid password
 	   */
-	  public boolean validatePassword(final String password){
+	public boolean validatePassword(final String password){
 		  passwordMatcher = passwordPattern.matcher(password);
 		  return passwordMatcher.matches();
+	  }
+	  
+	  /**
+	   * Get the current employee ID for actions
+	   * @return
+	   */
+	public String getCurrentEmployeeID()
+	  {
+		  //if the logged in exployee is a manager
+		  if(this.loggedInEmpIsManager)
+			  return formattedTextFieldEmployeeID.getText();
+		  else{//otherwise they are a regular employee
+			  //so return the ID of the employee that is logged in
+			  return this.loggedInEmployeeID;
+		  }
 	  }
 	
 	public JFrame getFrame()

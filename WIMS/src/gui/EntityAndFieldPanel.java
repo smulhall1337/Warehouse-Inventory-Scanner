@@ -350,49 +350,6 @@ public class EntityAndFieldPanel extends JPanel {
 			super.remove(dateFieldDatePicker);
 	}
 	
-	public String getQueryModifierString(String fieldModifier, String fieldModifierValue) {
-		String modifierString = "";
-		switch (fieldModifier){
-		case DBNamesManager.NUMERIC_FIELD_LESS_THAN: 
-			modifierString = " < " + fieldModifierValue;
-			break;
-		case DBNamesManager.NUMERIC_FIELD_GREATER_THAN: 
-			modifierString = " > " + fieldModifierValue;
-			break;
-		case DBNamesManager.NUMERIC_FIELD_EQUAL_TO:
-			modifierString = " = " + fieldModifierValue;
-			break;
-		case DBNamesManager.STRING_FIELD_STARTING_WITH:
-			modifierString = " LIKE " + "\"" + fieldModifierValue + "%" + "\"";
-			break;
-		case DBNamesManager.STRING_FIELD_ENDING_WITH:
-			modifierString = " LIKE " + "\"" + "%" + fieldModifierValue + "\"";
-			break;
-		case DBNamesManager.STRING_FIELD_CONTAINS:
-			modifierString = " LIKE " + "\"" + "%" + fieldModifierValue + "%" + "\""; //TODO check syntaxes for all of these
-			break;
-		case DBNamesManager.STRING_FIELD_THAT_IS:
-			modifierString = " = " + fieldModifierValue;
-			break;
-		case DBNamesManager.DATE_FIELD_BEFORE:
-			modifierString = " < " + "\'" + fieldModifierValue + "\'";
-			break;
-		case DBNamesManager.DATE_FIELD_AFTER:
-			modifierString = " > " + "\'" + fieldModifierValue + "\'";
-			break;
-		case DBNamesManager.DATE_FIELD_ON:
-			modifierString = " = " + "\'" + fieldModifierValue + "\'";
-			break;
-		case DBNamesManager.FLAG_FIELD_IS:
-			modifierString = " = " + fieldModifierValue;
-			break;
-		case DBNamesManager.FLAG_FIELD_IS_NOT:
-			modifierString = " != " + fieldModifierValue;
-			break;
-		}
-		return modifierString;
-	}
-	
 	public String getSelectedField()
 	{
 		return (String) comboBoxField.getSelectedItem();
