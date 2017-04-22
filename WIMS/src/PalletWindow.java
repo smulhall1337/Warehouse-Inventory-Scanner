@@ -17,19 +17,21 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 
-public class PalletWindow {
+public class PalletWindow extends JFrame{
 
 	private static final String NUMREGEX = "\\d+", FIRSTLINE = "Search for a different pallet id ",
 			SECONDLINE = "WARNING: THIS WILL NOT SAVE ANY MODIFICATIONS THAT HAVEN'T BEEN UPDATED YET!";
+	private int changed = 0;
 	private JFrame frame;	
-	private JLabel lblIOP, lblPalletID, lblItemNumber, lblItemCount;
+	private JLabel lblIOP, lblPalletID, lblItemNumber, lblItemCount, lblLocation;
 	private JComboBox cbOnPallet;
-	private JTextField txtPalletID, txtItemNumber, txtItemCount;
+	private JTextField txtPalletID, txtItemNumber, txtItemCount, txtLocation;
 	private JButton btnExit, btnChange, btnS, btnUp, btnDown;
 	private boolean found = false;
 	private ArrayList<String> itemNumberList = new ArrayList<String>();
 	private ArrayList<String> itemNameList = new ArrayList<String>();
 	private ArrayList<Integer> itemCountList = new ArrayList<Integer>();
+
 
 	/**
 	 * Launch the application.
@@ -54,6 +56,13 @@ public class PalletWindow {
 		initialize();
 		SearchScreen();
 	}
+	
+	public PalletWindow(String initialPalletID){
+		initialize();
+		SearchScreen();
+		this.txtPalletID.setText(initialPalletID);
+		this.btnS.doClick();
+	}
 
 	/**
 	 * Initialize the contents of the frame.
@@ -67,13 +76,18 @@ public class PalletWindow {
 		
 		lblPalletID = new JLabel("Pallet ID");
 		lblPalletID.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		lblPalletID.setBounds(35, 60, 45, 15);
+		lblPalletID.setBounds(35, 47, 45, 15);
 		lblPalletID.setToolTipText("Please enter the pallet ID number using a BarCode Scanner or the key pad.");
 		frame.getContentPane().add(lblPalletID);
 		
+		lblLocation = new JLabel("Pallet Location");
+		lblLocation.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		lblLocation.setBounds(35, 78, 79, 15);
+		frame.getContentPane().add(lblLocation);
+		
 		lblIOP = new JLabel("Items on Pallet");
 		lblIOP.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		lblIOP.setBounds(35, 100, 82, 15);
+		lblIOP.setBounds(35, 109, 82, 15);
 		lblIOP.setToolTipText("A list of all items currently on the selected pallet.");
 		frame.getContentPane().add(lblIOP);
 		
@@ -91,7 +105,7 @@ public class PalletWindow {
 		
 		txtPalletID = new JTextField();
 		txtPalletID.setTransferHandler(null); //prevent copy paste into the field
-		txtPalletID.setBounds(160, 58, 199, 20);
+		txtPalletID.setBounds(160, 45, 199, 20);
 		frame.getContentPane().add(txtPalletID);
 		txtPalletID.setColumns(10);
 		txtPalletID.addKeyListener(new KeyAdapter() {
@@ -100,6 +114,11 @@ public class PalletWindow {
 				IntInput(evt.getKeyChar(), evt);
 			}
 		});
+		
+		txtLocation = new JTextField();
+		txtLocation.setBounds(160, 76, 199, 20);
+		frame.getContentPane().add(txtLocation);
+		txtLocation.setColumns(10);
 		
 		txtItemNumber = new JTextField();
 		txtItemNumber.setBounds(160, 138, 199, 20);
@@ -129,12 +148,13 @@ public class PalletWindow {
 		});
 		
 		cbOnPallet = new JComboBox();		
-		cbOnPallet.setBounds(160, 98, 199, 20);
+		cbOnPallet.setBounds(160, 107, 199, 20);
 		cbOnPallet.setToolTipText("WARNING: CHANGING SELECTIONS BEFORE UPDATING WILL NOT SAVE INFORMATION!");
 		frame.getContentPane().add(cbOnPallet);
 		cbOnPallet.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				if (found)
+					changed = 0;
 					setFields();
 			}
 		});
@@ -164,6 +184,7 @@ public class PalletWindow {
 		btnS = new JButton("S");		
 		btnS.setBounds(270, 236, 89, 23);
 		frame.getContentPane().add(btnS);
+		frame.getRootPane().setDefaultButton(btnS);
 		btnS.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				if (found) {
@@ -200,8 +221,9 @@ public class PalletWindow {
 			public void actionPerformed(ActionEvent e) {
 				modifyCount("down");
 			}
-		});
-		frame.getRootPane().setDefaultButton(btnS);
+		});		
+		
+		
 	}//initialize end
 	
 	//#############################################SQL Calls
@@ -213,8 +235,9 @@ public class PalletWindow {
 	private void searchForPallet(String palletID) throws SQLException {
 		found = SQL_Handler.palletInDB(palletID); //check db for palletID
 		if (found){
-			populateLists(palletID);
+			populateLists(palletID);			
 			EditScreen(); //change the screen
+			txtLocation.setText(SQL_Handler.getPalletLocation(palletID));  
 		}//if end
 		else{ //otherwise tell user and reset the text field to try again
 			JOptionPane.showMessageDialog(frame, "Pallet ID " + palletID + " is not found. Please try again or search a different Pallet ID.");
@@ -242,14 +265,18 @@ public class PalletWindow {
 	
 	private void update() throws SQLException {
 		if (validString(txtItemCount.getText()) && validInt(txtItemCount.getText())) {
-			itemCountList.set(cbOnPallet.getSelectedIndex(), Integer.parseInt(txtItemCount.getText()));
+			int currentIndex = cbOnPallet.getSelectedIndex();
+			int intItemCountEntry = Integer.parseInt(txtItemCount.getText());
 			int totalPieceCount = 0;
+			itemCountList.set(currentIndex, intItemCountEntry);
 			for (int i : itemCountList) {
 				totalPieceCount += i;
 			}
 			SQL_Handler.updateItemOnPallet(txtPalletID.getText(), txtItemNumber.getText(), Integer.parseInt(txtItemCount.getText()));
 			SQL_Handler.updatePieceCount(txtPalletID.getText(), totalPieceCount);
+			SQL_Handler.updateItemQtyByItemNum(changed, txtItemNumber.getText());
 			JOptionPane.showMessageDialog(frame, "Updated " + cbOnPallet.getSelectedItem().toString() + ".");
+			changed = 0;  //after you update changed needs to be zero because whatever is currently on screen is the zero
 		}
 		else {
 			JOptionPane.showMessageDialog(frame, "Cannot Accept the input in the Item Count Field.");
@@ -312,10 +339,14 @@ public class PalletWindow {
 	private void modifyCount(String modify) {
 		int temp = Integer.parseInt(txtItemCount.getText());
 		switch (modify) {
-		case "up" : temp++;
-		break;
-		case "down" : temp--;		
-		break;
+		case "up" : 
+			temp++;
+			changed++;
+			break;
+		case "down" : 
+			temp--;	
+			changed--;
+			break;
 		}
 		if (temp < 0) { //cant go negative
 			temp = 0;
@@ -346,18 +377,21 @@ public class PalletWindow {
 		itemNameList.clear();
 		itemCountList.clear();
 		cbOnPallet.removeAllItems();
+		changed = 0;
 	}
 	
 	private void SearchScreen() {
 		frame.setTitle("Enter or Scan Pallet ID");
 		lblIOP.setVisible(false);
 		lblPalletID.setVisible(true);
+		lblLocation.setVisible(false);
 		lblItemNumber.setVisible(false);
 		lblItemCount.setVisible(false);		
 		cbOnPallet.setVisible(false);
 		txtPalletID.setVisible(true);
 		txtPalletID.requestFocus();
 		txtPalletID.setEditable(true);
+		txtLocation.setVisible(false);
 		txtItemNumber.setVisible(false);
 		txtItemCount.setVisible(false);
 		btnChange.setVisible(false);
@@ -385,10 +419,15 @@ public class PalletWindow {
 		btnUp.setVisible(true);
 		btnDown.setVisible(true);	
 	}//EditScreen end
+	
+	public JFrame getFrame() {
+		return this.frame;
+	}
 }//Pallet Window end
 
 
 	/**
-	 * TO DO:
-	 * update pallet on db
+	 * TODO: 
+	 * error in change pallet logic
+	 * remove validation section and use Valid class
 	 */

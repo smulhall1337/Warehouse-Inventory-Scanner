@@ -6,6 +6,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 /**
  * This class is used to handle common SQL operations for the WIMS application
  * @author Jon Spratt
@@ -17,7 +18,7 @@ public abstract class SQL_Handler {
 	/**
 	 * A collection of prepared SQL statements
 	 */
-	private static HashMap<String, PreparedStatement> sql_statements = populatePreparedStatements();
+	private static Map<String, PreparedStatement> sql_statements = populatePreparedStatements();
 	/**
 	 * Holds a prepared SQL statement
 	 */
@@ -81,7 +82,7 @@ public abstract class SQL_Handler {
 	 * Populate a hash map of prepared SQL statements
 	 * @return returns a collection of key - prepared SQL statement pairs
 	 */
-	private static HashMap<String, PreparedStatement> populatePreparedStatements() {
+	private static Map<String, PreparedStatement> populatePreparedStatements() {
 		String stmt_key = "";
 		PreparedStatement statement;
 		HashMap<String, PreparedStatement> statements = new HashMap<String, PreparedStatement>();
@@ -144,28 +145,47 @@ public abstract class SQL_Handler {
 			//#############################################Pallets
 			stmt_key = "PalletInDB";
 			statement = conn.prepareStatement("SELECT * FROM pallets WHERE pallet_id = ?");
-			statements.put(stmt_key, statement); //added
+			statements.put(stmt_key, statement);
 			
 			stmt_key = "NewPallet";
 			statement = conn.prepareStatement("INSERT INTO pallets (pallet_id, piece_cound, weight, length, width, height, receival_date, ship_date, notes, order_number, Location_coordinate" + 
 												"VALUES (?,?,?,?,?,?,?,?,?,?,?)");
-			statements.put(stmt_key, statement); //added
+			statements.put(stmt_key, statement);
 			
 			stmt_key = "GetItemsOnPallet";
 			statement = conn.prepareStatement("SELECT * FROM swenggdb.pallets_items WHERE pallet_id = ?");
-			statements.put(stmt_key, statement); //added
+			statements.put(stmt_key, statement);
 			
 			stmt_key = "GetItemCountOnPallet";
 			statement = conn.prepareStatement("SELECT * FROM swenggdb.pallets_items WHERE pallet_id = ? AND item_number = ?");
-			statements.put(stmt_key, statement); //added
+			statements.put(stmt_key, statement); 
 			
 			stmt_key = "UpdatePieceCount";
 			statement = conn.prepareStatement("UPDATE swenggdb.pallets SET piece_count = ? WHERE pallet_id = ?");
-			statements.put(stmt_key, statement);//added
+			statements.put(stmt_key, statement);
 			
 			stmt_key = "UpdateItemOnPallet";
 			statement = conn.prepareStatement("UPDATE swenggdb.pallets_items SET item_quantity = ? WHERE pallet_id = ? AND item_number = ?");
-			statements.put(stmt_key, statement);//added
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "AddItemToPallet";
+			statement = conn.prepareStatement("INSERT INTO swenggdb.pallets_items (pallet_id, item_number, item_quantity) " +
+												"VALUES (?, ?, ?)");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "GetPalletLocation";
+			statement = conn.prepareStatement("SELECT pallet_location FROM swenggdb.pallets WHERE pallet_id = ?");
+			statements.put(stmt_key, statement);
+			
+			//#############################################Orders
+			stmt_key = "OrderInDB";
+			statement = conn.prepareStatement("SELECT * FROM orders WHERE order_number = ?");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "NewOrder";
+			statement = conn.prepareStatement("INSERT INTO swenggdb.orders (order_number, origin, destination, received_by_emp_id, shipped_by_emp_id, date_placed, date_shipped, date_delivered) " +
+												"VALUES(?, ?,?, ?, ?, ?, ?, ?)");
+			statements.put(stmt_key, statement);
 			
 			//#############################################Display
 			stmt_key = "TableColNames";
@@ -193,7 +213,7 @@ public abstract class SQL_Handler {
 	 * Standard Accessor - for the collection of prepared SQL statements 
 	 * @return returns the collection of prepared SQL statements
 	 */
-	public static HashMap<String, PreparedStatement> getSQLStatements() {
+	public static Map<String, PreparedStatement> getSQLStatements() {
 		return sql_statements;
 	}
 	
@@ -311,6 +331,36 @@ public abstract class SQL_Handler {
 		stmt.execute();
 	}
 	
+	public static String getItemName(String itemNumber) throws SQLException {
+		String name;
+		stmt = sql_statements.get("ItemInfo");
+		stmt.setString(1, itemNumber);
+		rs = stmt.executeQuery();
+		rs.next();
+		name = rs.getString("name");
+		return name;
+	}
+	
+	public static int getItemWeight(String itemNumber) throws SQLException {
+		int weight = 0;
+		stmt = sql_statements.get("ItemInfo");
+		stmt.setString(1, itemNumber);
+		rs = stmt.executeQuery();
+		rs.next();
+		weight = rs.getInt("weight");
+		return weight;
+	}
+	
+	public static String getItemPrice(String itemNumber) throws SQLException {
+		String price;
+		stmt = sql_statements.get("ItemInfo");
+		stmt.setString(1, itemNumber);
+		rs = stmt.executeQuery();
+		rs.next();
+		price = rs.getString("price");
+		return price;
+	}
+	
 	/**
 	 * Get the current stock for an item specified by the item number
 	 * @param itemNumber the item number of the item to get current stock for
@@ -337,34 +387,17 @@ public abstract class SQL_Handler {
 		return reStock;
 	}
 	
-	public static int getItemWeight(String itemNumber) throws SQLException {
-		int weight = 0;
-		stmt = sql_statements.get("ItemInfo");
-		stmt.setString(1, itemNumber);
-		rs = stmt.executeQuery();
-		rs.next();
-		weight = rs.getInt("weight");
-		return weight;
-	}	
-	
-	public static String getItemPrice(String itemNumber) throws SQLException {
-		String price;
-		stmt = sql_statements.get("ItemInfo");
-		stmt.setString(1, itemNumber);
-		rs = stmt.executeQuery();
-		rs.next();
-		price = rs.getString("price");
-		return price;
-	}
-	
-	public static String getItemName(String itemNumber) throws SQLException {
-		String name;
-		stmt = sql_statements.get("ItemInfo");
-		stmt.setString(1, itemNumber);
-		rs = stmt.executeQuery();
-		rs.next();
-		name = rs.getString("name");
-		return name;
+	public static void fullItemUpdate(String name, String price, 
+			int weight, int currentStock, int restockThreshold, String itemNumber) throws SQLException
+	{
+		stmt = sql_statements.get("FullUpdate");		
+		stmt.setString(1, name);
+		stmt.setString(2, price);
+		stmt.setInt(3, weight);
+		stmt.setInt(4, currentStock);
+		stmt.setInt(5, restockThreshold);
+		stmt.setString(6, itemNumber);
+		stmt.execute();
 	}
 	
 	/**
@@ -378,6 +411,13 @@ public abstract class SQL_Handler {
 		stmt = sql_statements.get("UpdateItemQty");
 		stmt.setInt(1, currentStock + amount);
 		stmt.setString(2, itemNumber);
+		stmt.execute();
+	}
+	
+	public static void insertItemType(String itemNumber, String itemType) throws SQLException {
+		stmt = sql_statements.get("ItemType");
+		stmt.setString(1, itemNumber);
+		stmt.setString(2, itemType);
 		stmt.execute();
 	}
 	
@@ -396,26 +436,6 @@ public abstract class SQL_Handler {
 			itemTypeList.add(rs.getString("type"));
 		}
 		return itemTypeList;
-	}
-	
-	public static void fullItemUpdate(String name, String price, 
-			int weight, int currentStock, int restockThreshold, String itemNumber) throws SQLException
-	{
-		stmt = sql_statements.get("FullUpdate");		
-		stmt.setString(1, name);
-		stmt.setString(2, price);
-		stmt.setInt(3, weight);
-		stmt.setInt(4, currentStock);
-		stmt.setInt(5, restockThreshold);
-		stmt.setString(6, itemNumber);
-		stmt.execute();
-	}
-	
-	public static void insertItemType(String itemNumber, String itemType) throws SQLException {
-		stmt = sql_statements.get("ItemType");
-		stmt.setString(1, itemNumber);
-		stmt.setString(2, itemType);
-		stmt.execute();
 	}
 	
 	//#############################################Pallets
@@ -465,6 +485,62 @@ public abstract class SQL_Handler {
 		stmt.setString(2, palletID);
 		stmt.execute();
 	}
+	
+	public static void insertNewPallet(String palletID, int pieceCount, int weight, int length, int width, int height, String receiveDate, String shipDate, String notes, int orderNumber, String Location) throws SQLException {
+		stmt = sql_statements.get("NewPallet");
+		stmt.setString(1,palletID);
+		stmt.setInt(2,pieceCount);
+		stmt.setInt(3,weight);;
+		stmt.setInt(4,length);
+		stmt.setInt(5,width);
+		stmt.setInt(6,height);
+		stmt.setString(7,receiveDate);
+		stmt.setString(8,shipDate);
+		stmt.setString(9,notes);
+		stmt.setInt(10,orderNumber);
+		stmt.setString(11,Location);
+		stmt.execute();
+	}
+	
+	public static void addItemsToPallet(String palletID, String itemNumber, int itemQuantity) throws SQLException {
+		stmt = sql_statements.get("AddItemToPallet");
+		stmt.setString(1, palletID);
+		stmt.setString(2, itemNumber);
+		stmt.setInt(3, itemQuantity);
+		stmt.execute();		
+	}
+	
+	public static String getPalletLocation(String palletID) throws SQLException {
+		stmt = sql_statements.get("getPalletLocation");
+		stmt.setString(1, palletID);
+		rs = stmt.executeQuery();
+		return rs.getString("pallet_location");
+	}
+	
+	//#############################################Orders
+	public static boolean OrderInDB(String OrderNumber) throws SQLException {
+		stmt = sql_statements.get("OrderInDB");
+		stmt.setString(1, OrderNumber);
+		rs = stmt.executeQuery();
+		if (rs.next())
+			return true;
+		else
+			return false;
+	}
+	
+	public static void insertNewOrder(int orderNumber, String origin, String destination, String receiveEmployeeID, String shipEmployeeID, String datePlaced, String dateShipped, String dateDelivered) throws SQLException {
+		stmt = sql_statements.get("NewOrder");
+		stmt.setInt(1, orderNumber);
+		stmt.setString(2, origin);
+		stmt.setString(3, destination);
+		stmt.setString(4, receiveEmployeeID);
+		stmt.setString(5, shipEmployeeID);
+		stmt.setString(6, datePlaced);
+		stmt.setString(7, dateShipped);
+		stmt.setString(8, dateDelivered);
+		stmt.execute();
+	}
+	
 	//#############################################Display
 	/**
 	 * @param result the result set to convert to a list of arrays
