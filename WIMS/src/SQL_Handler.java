@@ -571,7 +571,7 @@ public abstract class SQL_Handler {
 		stmt.setString(7,receiveDate);
 		stmt.setString(8,shipDate);
 		stmt.setString(9,notes);
-		stmt.setInt(10,orderNumber);
+		stmt.setString(10,orderNumber);
 		stmt.setString(11,Location);
 		stmt.execute();
 	}
