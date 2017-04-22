@@ -560,7 +560,7 @@ public abstract class SQL_Handler {
 		stmt.execute();
 	}
 	
-	public static void insertNewPallet(String palletID, int pieceCount, int weight, int length, int width, int height, String receiveDate, String shipDate, String notes, int orderNumber, String Location) throws SQLException {
+	public static void insertNewPallet(String palletID, int pieceCount, int weight, int length, int width, int height, String receiveDate, String shipDate, String notes, String orderNumber, String Location) throws SQLException {
 		stmt = sql_statements.get("NewPallet");
 		stmt.setString(1,palletID);
 		stmt.setInt(2,pieceCount);
