@@ -31,7 +31,7 @@ import java.awt.event.ActionEvent;
  * @author Brian Krick
  *
  */
-public class ScanWindow {
+public class ScanWindow extends JFrame {
 	private int itemWeight = 1, itemStock = 0, itemRestock = 0, itemAdd = 0;
 	private String itemNumber, itemName, itemPrice = "0.00", input = ""; 	
 	private boolean found, isM;
@@ -56,7 +56,7 @@ public class ScanWindow {
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
-					ScanWindow window = new ScanWindow();
+					ScanWindow window = new ScanWindow(true);  //shouldnt leave default to true
 					window.frame.setVisible(true);
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -65,12 +65,19 @@ public class ScanWindow {
 		});
 	}//main end
 
+	public ScanWindow(boolean isManagement, String initialItemNumber) {
+		this.itemNumber = initialItemNumber;
+		this.isM = isManagement;
+		initialize();
+		btnSearch.doClick();
+	}
+	
 	/**
 	 * Create the application.
 	 */
-	public ScanWindow(/**boolean isManagement*/) {
-		//isM = isManagement
-		isM = true;
+	public ScanWindow(boolean isManagement) {
+		this.isM = isManagement;
+		//this.isM = true;
 		initialize();
 	}//ScanWindow end
 
@@ -80,7 +87,7 @@ public class ScanWindow {
 	private void initialize() {
 		frame = new JFrame();
 		frame.setBounds(100, 100, 400, 550);
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		frame.getContentPane().setLayout(null);
 		frame.setResizable(false);
 		frame.setTitle("Please Scan or Enter Item Number");
@@ -423,7 +430,7 @@ public class ScanWindow {
 		try {			
 			found = SQL_Handler.itemInDB(input);  //search the database using SQL_Handler for user input, set boolean found to result of search
 			if (found) {	 //if the item is already in the database, notify the user and retrieve the info from the database assigning it accordingly
-				JOptionPane.showMessageDialog(frame, "Item Number " + txtItemNumber.getText() + " is in the inventory.");
+				//JOptionPane.showMessageDialog(frame, "Item Number " + txtItemNumber.getText() + " is in the inventory.");
 				itemNumber = input;
 				itemName = SQL_Handler.getItemName(input);
 				itemPrice = SQL_Handler.getItemPrice(input);
@@ -433,7 +440,7 @@ public class ScanWindow {
 				frame.setTitle("Edit Item Information");
 			}
 			else {//if the item is not in the database, notify the user
-				JOptionPane.showMessageDialog(frame, "Item Number " + txtItemNumber.getText() + " is not in the inventory. Please enter that Item's Information");
+				//JOptionPane.showMessageDialog(frame, "Item Number " + txtItemNumber.getText() + " is not in the inventory. Please enter that Item's Information");
 				frame.setTitle("Enter New Item Information");				
 			}
 		} catch (SQLException e) {
@@ -526,7 +533,7 @@ public class ScanWindow {
 	
 	//#############################################Setters
 	public void setTxtItemNumber(String S) {
-		if (Valid.validInt(S))
+		if (Valid.validID(S))
 			txtItemNumber.setText(S);
 	}
 	
@@ -969,6 +976,10 @@ public class ScanWindow {
 		txtCurrentStock.setText("");
 		txtRestock.setText("");
 		txtAdd.setText("");
+	}
+	
+	public JFrame getFrame() {
+		return this.frame;
 	}
 }//ScanWindow end
 

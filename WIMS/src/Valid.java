@@ -1,5 +1,6 @@
 import java.awt.event.KeyEvent;
 
+import javax.swing.DefaultListModel;
 import javax.swing.JOptionPane;
 
 /**
@@ -31,7 +32,7 @@ abstract public class Valid {
 	 * @return boolean
 	 */
 	public static boolean validDouble(String s) {
-		/**try {
+		/*try {
 			Double.parseDouble(s);
 			return true;
 		} catch (Exception ee) {
@@ -47,24 +48,26 @@ abstract public class Valid {
 	 * @param s
 	 * @return boolean
 	 */
+	public static boolean validID(String s) {	
+		return (s.matches(NUMREGEX));
+	}//validID end
+	
 	public static boolean validInt(String s) {
-		/**try {
+		try {
 			Integer.parseInt(s);
 			return true;
 		} catch (Exception ee) {
 			System.out.println("Error: Input not valid, requires Integer");
 			return false;
-		}*/
-		
-		return (s.matches(NUMREGEX));
-	}//validInt end
+		}		
+	}
 	
 	/**
 	 * True if itemNumber text field is not empty and has an integer
 	 * @return
 	 */
 	public static boolean validItemNumber(String s) {
-		if (validString(s) && validInt(s)) {
+		if (validString(s) && validID(s)) {
 			return true;
 		} 
 		else {
@@ -92,7 +95,7 @@ abstract public class Valid {
 	 * @return
 	 */
 	public static boolean validItemWeight(String s) {
-		if (validString(s) && validInt(s)) {
+		if (validString(s) && validID(s)) {
 				return true;
 			} 
 			else {
@@ -120,7 +123,7 @@ abstract public class Valid {
 	 * @return
 	 */
 	public static boolean validCStock(String s) {
-		if (validString(s) && validInt(s)) {
+		if (validString(s) && validID(s)) {
 				return true;
 			} 
 			else {
@@ -134,7 +137,7 @@ abstract public class Valid {
 	 * @return
 	 */
 	public static boolean validRStock(String s) {
-		if (validString(s) && validInt(s)) {
+		if (validString(s) && validID(s)) {
 				return true;
 			} 
 			else {
@@ -148,7 +151,7 @@ abstract public class Valid {
 	 * @return
 	 */
 	public static boolean validAdd(String s) {
-		if (validString(s) && validInt(s)) {
+		if (validString(s) && validID(s)) {
 				return true;
 			} 
 			else {
@@ -205,5 +208,22 @@ abstract public class Valid {
 			evt.consume();
 		}
 	}//DblInput end
+	
+	/**
+	 * This method loops through the current listModel and compares the input
+	 * to make sure it is not already present in the list
+	 * @param palletID
+	 * @return true if the input is NOT FOUND
+	 */
+	public static boolean notInCurrentList(String ID, DefaultListModel listModel) {
+		boolean NotInCurrentList = true; //assume its not in the list
+		
+		for (int i=0; i < listModel.getSize(); i++) {
+			if (ID.equals(listModel.getElementAt(i))) //if it is return false
+				NotInCurrentList = false;
+		}
+		
+		return NotInCurrentList;
+	}
 
 }
