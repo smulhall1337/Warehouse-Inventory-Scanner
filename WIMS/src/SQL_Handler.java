@@ -47,10 +47,7 @@ public abstract class SQL_Handler {
 		
 		try {
 			Class.forName(SQL_DRIVER);
-			Connection conn = DriverManager.getConnection(URL, DB_USER, DB_PW);
-			
-			//Must remove for final version, left here for testing connection to DB. (No I/O from anything but driver)
-			//System.out.println("Connected!"); 
+			Connection conn = DriverManager.getConnection(URL, DB_USER, DB_PW); 
 			return conn;
 			
 		} catch(SQLException e)
@@ -115,6 +112,10 @@ public abstract class SQL_Handler {
 			stmt_key = "NewEmp";
 			statement = conn.prepareStatement("INSERT INTO employees (employee_id, name, is_management, salt, warehouse_id) " + 
 											  "VALUES (?,?,?,?,?)");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "UpdateEmpPW";
+			statement = conn.prepareStatement("UPDATE employees SET salt = ? WHERE employee_id = ?");
 			statements.put(stmt_key, statement);
 			
 			stmt_key = "AllEmp";
@@ -328,14 +329,21 @@ public abstract class SQL_Handler {
 	 * @param warehouse_id the warehouse id that the new employee will be employed
 	 */
 	public static void insertNewEmployee(String employee_id, String name, boolean isManagement, 
-								 String salt, String warehouse_id) throws SQLException
+								 String pw, String warehouse_id) throws SQLException
 	{
 		stmt = sql_statements.get("NewEmp");
 		stmt.setString(1, employee_id);
 		stmt.setString(2, name);
 		stmt.setBoolean(3, isManagement);
-		stmt.setString(4, salt);
+		stmt.setString(4, md5_hash(pw+salt));
 		stmt.setString(5, warehouse_id);
+		stmt.execute();
+	}
+	
+	public static void updateEmployeePW(String employee_id, String pw) throws SQLException {
+		stmt = sql_statements.get("UpdateEmpPW");
+		stmt.setString(1, md5_hash(pw+salt));
+		stmt.setString(2, employee_id);
 		stmt.execute();
 	}
 	
