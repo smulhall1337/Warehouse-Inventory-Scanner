@@ -102,8 +102,6 @@ public class ReportsWindow implements ErrorStatusReportable{
 	 */
 	private void initialize() {
 		
-		DBConnection = SQL_Handler.getConnection();
-		SQLHandler = new SQL_Handler();
 		initializeReportFrame();
 		
 		initializeReportSelectionOptionsPanel();

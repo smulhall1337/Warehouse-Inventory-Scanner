@@ -441,6 +441,7 @@ public class ManageEmployees extends JFrame implements ErrorStatusReportable {
 		}catch(SQLException ex)
 		{
 			//TODO what if the current employee has been removed
+			ex.printStackTrace();
 			JOptionPane.showMessageDialog(frame, "There was a problem reaching the database.", 
 			 		"Database Error", JOptionPane.ERROR_MESSAGE);
 		}
@@ -503,7 +504,7 @@ public class ManageEmployees extends JFrame implements ErrorStatusReportable {
 			    	displaySuccessStatus("Employee "  + employeeName + " deleted.");
 			    }
 		} catch (SQLException e) {
-			//e.printStackTrace();
+			e.printStackTrace();
 			ComponentProvider.showDBConnectionError(frame);
 		}
 	}
@@ -582,6 +583,7 @@ public class ManageEmployees extends JFrame implements ErrorStatusReportable {
 	private void displayUpdateEmployeeOptions() {
 		
 		formattedTextFieldEmployeeName.setEditable(true);
+		//formattedTextFieldEmployeeName.setEnabled(true);
 		comboBoxWarehouseID.setEnabled(true);
 		checkBoxIsManager.setEnabled(true);
 		addIDActionListener();
@@ -607,7 +609,7 @@ public class ManageEmployees extends JFrame implements ErrorStatusReportable {
 		//TODO
 		//also managers shouldnt have to enter the current password to change a password
 		//TODO if current entered employee ID is a manager, make this require their password
-		formattedTextFieldEmployeeID.setEnabled(true);
+		//formattedTextFieldEmployeeID.setEnabled(true);
 		formattedTextFieldEmployeeID.setEditable(true);
 		addIDActionListener();
 		addRowToOptions(labelEmployeeID, formattedTextFieldEmployeeID);
@@ -623,7 +625,7 @@ public class ManageEmployees extends JFrame implements ErrorStatusReportable {
 	private void displayDeleteEmployeeOptions() {
 
 		formattedTextFieldEmployeeName.setEditable(false);
-		formattedTextFieldEmployeeName.setEnabled(false);
+		//formattedTextFieldEmployeeName.setEnabled(false);
 		comboBoxWarehouseID.setEnabled(false);
 		checkBoxIsManager.setEnabled(false);
 		addIDActionListener();
@@ -724,7 +726,7 @@ public class ManageEmployees extends JFrame implements ErrorStatusReportable {
 		formattedTextFieldEmployeeID.setText("");
 		formattedTextFieldEmployeeName.setText("");
 		formattedTextFieldEmployeeName.setEditable(true);
-		formattedTextFieldEmployeeName.setEnabled(true);
+		//formattedTextFieldEmployeeName.setEnabled(true);
 		comboBoxWarehouseID.setEnabled(true);
 		checkBoxIsManager.setSelected(false);
 		addRowToOptions(labelEmployeeID, formattedTextFieldEmployeeID);

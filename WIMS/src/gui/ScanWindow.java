@@ -5,20 +5,20 @@ import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JTextField;
 import javax.swing.ListCellRenderer;
-
-import controller.SQL_Handler;
-import controller.Valid;
-
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
+
+import controller.SQL_Handler;
+import controller.Valid;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -53,7 +53,7 @@ public class ScanWindow extends JFrame {
 	private JCheckBox chckbxFragile, chckbxFlammable, chckbxCorrosive, chckbxRadioActive, chckbxGlass, chckbxFurniture, chckbxOther;
 	private JComboBox cbItemTypes;
 	private JButton btnExit, btnSearch, btnSearchAgain, btnSubmit;
-
+	
 	/**
 	 * Launch the application.
 	 */
@@ -62,7 +62,7 @@ public class ScanWindow extends JFrame {
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
-					ScanWindow window = new ScanWindow(true);
+					ScanWindow window = new ScanWindow(true);  //shouldnt leave default to true
 					window.frame.setVisible(true);
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -71,19 +71,19 @@ public class ScanWindow extends JFrame {
 		});
 	}//main end
 
-	public ScanWindow(boolean isManagement, String initialItemNumber)
-	{
+	public ScanWindow(boolean isManagement, String initialItemNumber) {
 		this.itemNumber = initialItemNumber;
 		this.isM = isManagement;
 		initialize();
 		btnSearch.doClick();
 	}
+	
 	/**
 	 * Create the application.
 	 */
 	public ScanWindow(boolean isManagement) {
-		isM = isManagement;
-		//isM = true;
+		this.isM = isManagement;
+		//this.isM = true;
 		initialize();
 	}//ScanWindow end
 
@@ -436,7 +436,6 @@ public class ScanWindow extends JFrame {
 		try {			
 			found = SQL_Handler.itemInDB(input);  //search the database using SQL_Handler for user input, set boolean found to result of search
 			if (found) {	 //if the item is already in the database, notify the user and retrieve the info from the database assigning it accordingly
-				//TODO maybe renable this?
 				//JOptionPane.showMessageDialog(frame, "Item Number " + txtItemNumber.getText() + " is in the inventory.");
 				itemNumber = input;
 				itemName = SQL_Handler.getItemName(input);
@@ -447,7 +446,7 @@ public class ScanWindow extends JFrame {
 				frame.setTitle("Edit Item Information");
 			}
 			else {//if the item is not in the database, notify the user
-				JOptionPane.showMessageDialog(frame, "Item Number " + txtItemNumber.getText() + " is not in the inventory. Please enter that Item's Information");
+				//JOptionPane.showMessageDialog(frame, "Item Number " + txtItemNumber.getText() + " is not in the inventory. Please enter that Item's Information");
 				frame.setTitle("Enter New Item Information");				
 			}
 		} catch (SQLException e) {
@@ -540,7 +539,7 @@ public class ScanWindow extends JFrame {
 	
 	//#############################################Setters
 	public void setTxtItemNumber(String S) {
-		if (Valid.validInt(S))
+		if (Valid.validID(S))
 			txtItemNumber.setText(S);
 	}
 	
@@ -985,7 +984,7 @@ public class ScanWindow extends JFrame {
 		txtAdd.setText("");
 	}
 	
-	public JFrame getFrame(){
+	public JFrame getFrame() {
 		return this.frame;
 	}
 }//ScanWindow end

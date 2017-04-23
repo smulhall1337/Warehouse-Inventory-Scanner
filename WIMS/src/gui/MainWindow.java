@@ -7,9 +7,6 @@ import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.FlowLayout;
 import java.awt.Font;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
 import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -19,38 +16,22 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Hashtable;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Properties;
-import java.util.regex.Pattern;
 
-import javax.swing.AbstractButton;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
-import javax.swing.DefaultComboBoxModel;
-import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JComboBox;
-import javax.swing.JFormattedTextField;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
-import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
 import javax.swing.SwingWorker;
@@ -58,19 +39,10 @@ import javax.swing.Timer;
 import javax.swing.border.Border;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
-import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableCellRenderer;
-import javax.swing.table.TableColumn;
-import javax.swing.table.TableColumnModel;
 import javax.swing.table.TableRowSorter;
-
-import org.jdatepicker.impl.JDatePanelImpl;
-import org.jdatepicker.impl.JDatePickerImpl;
-import org.jdatepicker.impl.UtilDateModel;
 
 import controller.ComponentProvider;
 import controller.DBNamesManager;
-import controller.DateLabelFormatter;
 import controller.ErrorStatusReportable;
 import controller.MainWindowInfoController;
 import controller.SQL_Handler;
@@ -102,9 +74,9 @@ public class MainWindow implements ErrorStatusReportable{
 	private static final int IRRELEVANT_MIN_DIMENSION = 1;
 	
 	//Dimension constants for entire application window
-	private static final int DEFAULT_WINDOW_WIDTH = 950;
+	private static final int DEFAULT_WINDOW_WIDTH = 1000;
 	private static final int DEFAULT_WINDOW_HEIGHT = 700;
-	private static final int MIN_WINDOW_WIDTH = 930;
+	private static final int MIN_WINDOW_WIDTH = 975;
 	private static final int MIN_WINDOW_HEIGHT = 675;
 	
 	//Dimension constants for top menubar
@@ -379,7 +351,7 @@ public class MainWindow implements ErrorStatusReportable{
 	}
 	
 	private void launchOrderWindow(){
-		OrderWindow orderWindow = new OrderWindow();
+		OrderWindow orderWindow = new OrderWindow(this.loggedInIsManager);
 		orderWindow.getFrame().setVisible(true);
 	}
 	/**
@@ -635,7 +607,7 @@ public class MainWindow implements ErrorStatusReportable{
 					return false;
 				}
 			} catch (SQLException e) {
-				//e.printStackTrace();
+				e.printStackTrace();
 				//System.out.println("sql exception caught");
 				ComponentProvider.showDBConnectionError(frame);
 				return false; 

@@ -1,13 +1,10 @@
 package gui;
 
-import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.text.DecimalFormat;
-import java.util.Properties;
 
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JComboBox;
@@ -16,13 +13,10 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 
-import org.jdatepicker.impl.JDatePanelImpl;
 import org.jdatepicker.impl.JDatePickerImpl;
-import org.jdatepicker.impl.UtilDateModel;
 
 import controller.ComponentProvider;
 import controller.DBNamesManager;
-import controller.DateLabelFormatter;
 import controller.MainWindowInfoController;
 import controller.NumericDataDocument;
 
