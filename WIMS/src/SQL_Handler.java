@@ -189,9 +189,14 @@ public abstract class SQL_Handler {
 			stmt_key = "UpdateItemOnPallet";
 			statement = conn.prepareStatement("UPDATE swenggdb.pallets_items SET item_quantity = ? WHERE pallet_id = ? AND item_number = ?");
 			statements.put(stmt_key, statement);
+			
 			stmt_key = "AddItemToPallet";
 			statement = conn.prepareStatement("INSERT INTO swenggdb.pallets_items (pallet_id, item_number, item_quantity) " +
 												"VALUES (?, ?, ?)");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "GetPalletLocation";
+			statement = conn.prepareStatement("SELECT pallet_location FROM swenggdb.pallets WHERE pallet_id = ?");
 			statements.put(stmt_key, statement);
 			//#############################################Orders
 			stmt_key = "OrderInDB";
@@ -204,6 +209,22 @@ public abstract class SQL_Handler {
 			statements.put(stmt_key, statement);
 			//#############################################Warehouses
 			//#############################################Sublocations		
+			stmt_key = "GetAvailableSubLocations";
+			statement = conn.prepareStatement("SELECT * FROM swenggdb.sublocation WHERE max_pallet_qty <> current_pallet_qty");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "GetSubLocationName";
+			statement = conn.prepareStatement("SELECT * FROM swenggdb.sublocation where simple_sublo_index = ?");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "GetSubLocationInfo";
+			statement = conn.prepareStatement("SELECT * FROM swenggdb.sublocation where location_coordinate = ?");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "ChangeSubLocationCurrentQty";
+			statement = conn.prepareStatement("UPDATE swenggdb.sublocation SET current_pallet_qty = ? WHERE location_coordinate = ?");
+			statements.put(stmt_key, statement);
+			
 			
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -592,6 +613,19 @@ public abstract class SQL_Handler {
 		stmt.execute();		
 	}
 	
+	public static String getPalletLocation(String palletID) throws SQLException {
+		stmt = sql_statements.get("GetPalletLocation");
+		stmt.setString(1, palletID);
+		rs = stmt.executeQuery();
+		rs.next();
+		String index = rs.getString("pallet_location");
+		int temp = Integer.parseInt(index);
+		stmt = sql_statements.get("GetSubLocationName");
+		stmt.setInt(1, temp);
+		rs = stmt.executeQuery();
+		rs.next();
+		return rs.getString("location_coordinate");
+	}
 	
 	//#############################################Orders
 	public static boolean OrderInDB(String OrderNumber) throws SQLException {
@@ -753,4 +787,43 @@ public abstract class SQL_Handler {
 
 		  return safeStr;
 		}
+	//#############################################Sublocation
+	
+	public static ArrayList<String> getAvailableSubLocations() throws SQLException {
+		ArrayList<String> subLocationList = new ArrayList<String>();
+		stmt = sql_statements.get("GetAvailableSubLocations");
+		rs = stmt.executeQuery();				//execute
+		while (rs.next()) {
+			subLocationList.add(rs.getString("location_coordinate"));
+		}
+		return subLocationList;
+	}
+	
+	public void incrementSubLocationPalletQuantity(String sublocation) throws SQLException {
+		stmt = sql_statements.get("GetSubLocationInfo");
+		stmt.setString(1, sublocation);
+		rs = stmt.executeQuery();								//get the info
+		int currentQuantity = rs.getInt("current_pallet_qty");	//set the variables
+		int maxQuantity = rs.getInt("max_pallet_qty");
+		if (maxQuantity != currentQuantity) { //if the current isnt maxed out increment
+			stmt = sql_statements.get("ChangeSubLocationCurrentQuantity");
+			stmt.setInt(1, currentQuantity + 1);
+			stmt.setString(2, sublocation);
+			stmt.execute();
+		}
+	}
+
+	public void decrementSubLocationPalletQuantity(String sublocation) throws SQLException {
+		stmt = sql_statements.get("GetSubLocationInfo");
+		stmt.setString(1, sublocation);
+		rs = stmt.executeQuery();
+		int currentQuantity = rs.getInt("current_pallet_qty");
+		if (currentQuantity != 0) { //if the current isnt 0 decrement
+			stmt = sql_statements.get("ChangeSubLocationCurrentQuantity");
+			stmt.setInt(1, currentQuantity - 1);
+			stmt.setString(2, sublocation);
+			stmt.execute();
+		}
+	}
+
 }
