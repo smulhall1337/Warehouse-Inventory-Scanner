@@ -135,7 +135,11 @@ public abstract class SQL_Handler {
 			stmt_key = "UpdateEmp";
 			statement = conn.prepareStatement("UPDATE employes SET name = ?,"
 					+ " is_management = ?, warehouse_id = ? WHERE employee_id = ?");
-			statements.put(stmt_key, statement);			  
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "DelEmp";
+			statement = conn.prepareStatement("DELETE FROM employees WHERE employee_id = ?");
+			statements.put(stmt_key, statement);
 			//#############################################Items
 			stmt_key = "InDB";
 			statement = conn.prepareStatement("SELECT * from items WHERE item_number = ?");
@@ -416,8 +420,7 @@ public static boolean employeeExists(String employee_id) throws SQLException {
 	public static boolean deleteEmployee(String employee_id) throws SQLException{
 		stmt = sql_statements.get("DelEmp");
 		stmt.setString(1, employee_id);
-		rs = stmt.executeQuery();
-		return employeeExists(employee_id);
+		return stmt.execute();
 	}
 	
 	public static String getEmployeeNameByID(String employee_id) throws SQLException{
