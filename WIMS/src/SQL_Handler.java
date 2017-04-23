@@ -6,6 +6,8 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.*;
 import java.util.ArrayList;
+						
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,6 +50,9 @@ public abstract class SQL_Handler {
 		try {
 			Class.forName(SQL_DRIVER);
 			Connection conn = DriverManager.getConnection(URL, DB_USER, DB_PW); 
+   
+																											 
+									   
 			return conn;
 			
 		} catch(SQLException e)
@@ -97,6 +102,7 @@ public abstract class SQL_Handler {
 		try {			
 			//#############################################All Entities
 			
+													   
 			//#############################################Employees
 			//Key for storage in HashMap
 			stmt_key = "EmpByID";
@@ -126,6 +132,10 @@ public abstract class SQL_Handler {
 			statement = conn.prepareStatement("SELECT * FROM employees");
 			statements.put(stmt_key, statement);
 			
+			stmt_key = "UpdateEmp";
+			statement = conn.prepareStatement("UPDATE employes SET name = ?,"
+					+ " is_management = ?, warehouse_id = ? WHERE employee_id = ?");
+			statements.put(stmt_key, statement);			  
 			//#############################################Items
 			stmt_key = "InDB";
 			statement = conn.prepareStatement("SELECT * from items WHERE item_number = ?");
@@ -208,6 +218,21 @@ public abstract class SQL_Handler {
 												"VALUES(?, ?,?, ?, ?, ?, ?, ?)");
 			statements.put(stmt_key, statement);
 			//#############################################Warehouses
+			stmt_key = "GetWHNamesIDs";
+			statement = conn.prepareStatement("SELECT warehouse_id, name FROM warehouses");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "GetWHNames";
+			statement = conn.prepareStatement("SELECT name FROM warehouses");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "GetWHIDs";
+			statement = conn.prepareStatement("SELECT warehouse_id FROM warehouses");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "GetWHCities";
+			statement = conn.prepareStatement("SELECT city FROM warehouses");
+			statements.put(stmt_key, statement);				  
 			//#############################################Sublocations		
 			stmt_key = "GetAvailableSubLocations";
 			statement = conn.prepareStatement("SELECT * FROM swenggdb.sublocation WHERE max_pallet_qty <> current_pallet_qty");
@@ -224,8 +249,8 @@ public abstract class SQL_Handler {
 			stmt_key = "ChangeSubLocationCurrentQty";
 			statement = conn.prepareStatement("UPDATE swenggdb.sublocation SET current_pallet_qty = ? WHERE location_coordinate = ?");
 			statements.put(stmt_key, statement);
-			
-			
+   
+   
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}	
@@ -346,7 +371,7 @@ public abstract class SQL_Handler {
 	 * @param employee_id the employee id to set for the new employee
 	 * @param name the full name of the new employee
 	 * @param isManagement whether or not the new employee is management
-	 * @param salt the encrypted and salted pw for the new employee
+	 * @param pw the employee's password
 	 * @param warehouse_id the warehouse id that the new employee will be employed
 	 */
 	public static void insertNewEmployee(String employee_id, String name, boolean isManagement, 
@@ -374,6 +399,68 @@ public abstract class SQL_Handler {
 		return rs;
 	}
 	
+public static boolean employeeExists(String employee_id) throws SQLException {
+		rs = getEmpRowByID(employee_id);
+		if (!rs.isBeforeFirst() ) {    
+		    return false; 
+		} 
+		return true;
+	}
+	
+	/**
+	 * Deletes the employee with the given ID from the database
+	 * @param employee_id the ID of the employee to delete
+	 * @return true if the employee was successfully deleted, false otherwise
+	 * @throws SQLException
+	 */
+	public static boolean deleteEmployee(String employee_id) throws SQLException{
+		stmt = sql_statements.get("DelEmp");
+		stmt.setString(1, employee_id);
+		rs = stmt.executeQuery();
+		return employeeExists(employee_id);
+	}
+	
+	public static String getEmployeeNameByID(String employee_id) throws SQLException{
+		rs = getEmpRowByID(employee_id);
+		rs.next();
+		String name = rs.getString(DBNamesManager.getEmployeeNameDbField());
+		return name;
+	}
+	
+	public static String getEmployeeWarehouseByEmpID(String employee_id) throws SQLException{
+		rs = getEmpRowByID(employee_id);
+		rs.next();
+		String name = rs.getString(DBNamesManager.getEmployeeWarehouseIdDbField());
+		return name;
+	}
+	
+	public static boolean isEmployeeManager(String employee_id) throws SQLException{
+		rs = getEmpRowByID(employee_id);
+		rs.next();
+		boolean isManager = rs.getBoolean(DBNamesManager.getEmployeeIsManagerDbField());
+		return isManager;
+	}
+	
+	/**
+	 * Insert a new employee to the DB
+	 * @param employee_id the employee id to set for the new employee
+	 * @param name the full name of the new employee
+	 * @param isManagement whether or not the new employee is management
+	 * @param warehouse_id the warehouse id that the new employee will be employed
+	 */
+	public static void updateEmployee(String employeeID, String new_name, boolean new_isManagement,
+			String new_warehouse_id) throws SQLException
+	{
+		//UPDATE employees name = ?, is_management = ?, warehouse_id = ? WHERE employee_id = ?
+		stmt = sql_statements.get("UpdateEmp");
+		stmt.setString(1, new_name);
+		stmt.setBoolean(2, new_isManagement);
+		stmt.setString(3, new_warehouse_id);
+		stmt.setString(4, employeeID);
+		stmt.execute();
+	}
+		
+ 
 	//#############################################Items
 	public static boolean itemInDB(String itemNumber) throws SQLException {
 			stmt = sql_statements.get("InDB");
@@ -625,7 +712,7 @@ public abstract class SQL_Handler {
 		rs = stmt.executeQuery();
 		rs.next();
 		return rs.getString("location_coordinate");
-	}
+	}																		  
 	
 	//#############################################Orders
 	public static boolean OrderInDB(String OrderNumber) throws SQLException {
@@ -651,20 +738,70 @@ public abstract class SQL_Handler {
 		stmt.execute();
 	}
 		
+	//#############################################Warehouses
+	public ResultSet getWarehouseNamesAndIDs() throws SQLException {
+		stmt = sql_statements.get("GetWHNamesIDs");
+		rs = stmt.executeQuery();
+		return rs;
+	}
 	
+	public static String[] getWarehouseNames() throws SQLException {
+		stmt = sql_statements.get("GetWHNames");
+		rs = stmt.executeQuery();
+		Object[] array = getColumnAsArray(rs, 1);
+		String[] names = Arrays.copyOf(array, array.length, String[].class);
+		return names;
+	}
+	
+	public static String[] getWarehouseIDs() throws SQLException {
+		stmt = sql_statements.get("GetWHIDs");
+		rs = stmt.executeQuery();
+		Object[] array = getColumnAsArray(rs, 1);
+		String[] IDs = Arrays.copyOf(array, array.length, String[].class);
+		return IDs;
+	}
+	
+	public static String[] getWarehouseCities() throws SQLException {
+		stmt = sql_statements.get("GetWHCities");
+		rs = stmt.executeQuery();
+		Object[] array = getColumnAsArray(rs, 1);
+		String[] cities = Arrays.copyOf(array, array.length, String[].class);
+		return cities;
+	}
+ 
 	//#############################################Display	
+	/**
+	 * @param result
+	 *            the result set to convert to a list of arrays
+	 * @return a list containing String arrays, where every index in the list is
+	 *         a row, where the String arrays each represent a row
+	 * @throws SQLException
+	 */
+	public static List<Object> getColumnAsList(ResultSet result, int col) throws SQLException {
+		List<Object> list = new ArrayList<>();
+		while( result.next()) {
+			Object next = result.getObject(col);
+		    list.add(next);
+		}
+		return list;
+	}
+	
+	public static Object[] getColumnAsArray(ResultSet result, int col) throws SQLException {
+		return getColumnAsList(result,col).toArray();
+	}
+	
 	/**
 	 * @param result the result set to convert to a list of arrays
 	 * @return a list containing String arrays, where every index in the list is a row,
 	 * where the String arrays each represent a row
 	 * @throws SQLException
 	 */
-	public static List<String[]> getResultSetAsListOfArrays(ResultSet result) throws SQLException
+public static List<Object[]> getResultSetAsListOfArrays(ResultSet result) throws SQLException
 	{
 		int nCol = result.getMetaData().getColumnCount();
-		List<String[]> table = new ArrayList<>();
+		List<Object[]> table = new ArrayList<>();
 		while( result.next()) {
-		    String[] row = new String[nCol];
+			Object[] row = new Object[nCol];
 		    for( int iCol = 1; iCol <= nCol; iCol++ ){
 		            Object obj = result.getObject( iCol );
 		            row[iCol-1] = (obj == null) ?null:obj.toString();
@@ -824,6 +961,6 @@ public abstract class SQL_Handler {
 			stmt.setString(2, sublocation);
 			stmt.execute();
 		}
-	}
+	}			
 
 }
