@@ -1,23 +1,21 @@
-package gui;
-
-import java.awt.Dimension;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.FocusAdapter;
-import java.awt.event.FocusEvent;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
-import java.sql.SQLException;
-
-import javax.swing.JButton;
+import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.border.TitledBorder;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.sql.SQLException;
+import java.util.ArrayList;
 
-import controller.SQL_Handler;
-import controller.Valid;
+import javax.swing.JButton;
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 
 @SuppressWarnings("serial")
 public class ItemPanel extends JPanel{
@@ -26,6 +24,7 @@ public class ItemPanel extends JPanel{
 	private static JButton btnCheck, btnEdit, btnDelete, btnAdd;
 	private JLabel lblItemNumber, lblItemQuantity;
 	private Dimension pref = new Dimension(270,100);
+	private Order currentOrder;
 
 	public ItemPanel(){
 		super();
@@ -65,6 +64,7 @@ public class ItemPanel extends JPanel{
 				Valid.intInput(evt.getKeyChar(), evt);
 			}
 		});
+		//disable add and itemqty until checked again
 		
 		txtItemQuantity = new JTextField();
 		txtItemQuantity.setEditable(false);		
@@ -120,9 +120,10 @@ public class ItemPanel extends JPanel{
 				int itemQty = Integer.parseInt(itemQuantity);
 				boolean allGood = Valid.validInt(itemID);
 				if (allGood) { //the itemNumber has already been verified to turn this button on so if the itemQty is okay					
-					OrderWindow.addID(itemID, ItemsInPalletPanel.getCurrentList(),ItemsInPalletPanel.getListModel()); //if so add the item to the list below
+					//OrderWindow.addID(itemID, ItemsInPalletPanel.getCurrentList(),ItemsInPalletPanel.getListModel()); //if so add the item to the list below
+					OrderWindow.addItemToJList(itemID, itemQty);
 					int index = PalletPanel.getSelectedPalletIndex();
-					OrderWindow.getPalletList().get(index).addItem(itemID, itemQty); //add the item to the pallet selected on the palletList TODO 	
+					//OrderWindow.getPalletList().get(index).addItem(itemID, itemQty); //add the item to the pallet selected on the palletList TODO 	
 					txtItemNumber.setText("");
 					txtItemQuantity.setText("");
 				}
@@ -279,6 +280,10 @@ public class ItemPanel extends JPanel{
 	
 	public static void disableTxtItemQuantity() {
 		txtItemQuantity.setEditable(false);
+	}
+	
+	public void setCurrentOrder(Order currentOrder) {
+		this.currentOrder = currentOrder;
 	}
 
 	

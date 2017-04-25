@@ -1,5 +1,4 @@
-package gui;
-
+import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.event.MouseAdapter;
@@ -8,7 +7,9 @@ import java.awt.event.MouseListener;
 import java.util.ArrayList;
 
 import javax.swing.BoxLayout;
+import javax.swing.DefaultListCellRenderer;
 import javax.swing.DefaultListModel;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.ScrollPaneConstants;
@@ -30,11 +31,14 @@ public class ItemsInPalletPanel extends JPanel {
 	private JPanel topPanel;
 	private static JList itemJList;
 	private static DefaultListModel listModel;
+	private Order currentOrder;
 
-	
+
+
 	/**
 	 * Create the panel.
 	 */
+	@SuppressWarnings("unchecked")
 	public ItemsInPalletPanel() {
 		//Super and This
 		super();
@@ -103,6 +107,19 @@ public class ItemsInPalletPanel extends JPanel {
 		itemJList.setMinimumSize(iScrollSize);
 		itemJList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		this.add(itemJList);
+		
+		itemJList.setCellRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                Component renderer = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                if (renderer instanceof JLabel && value instanceof Item) {
+                    // Here value will be of the Type 'CD'
+                    ((JLabel) renderer).setText("Item ID: " + ((Item) value).getItemNumber() + " Quantity: " + ((Item) value).getQuantity());
+                }
+                return renderer;
+            }
+        });
+		
 				
 		//Scroll Section
 		itemScroll = new JScrollPane(itemJList);
@@ -134,7 +151,9 @@ public class ItemsInPalletPanel extends JPanel {
 		return listModel;
 	}
 	
-	
+	public void setCurrentOrder(Order currentOrder) {
+		this.currentOrder = currentOrder;
+	}
 	
 
 }//Class end

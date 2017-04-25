@@ -1,26 +1,34 @@
-package gui;
-
-import java.awt.Component;
+import java.awt.BorderLayout;
 import java.awt.Container;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.GridLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.sql.SQLException;
+import java.util.ArrayList;
 
 import javax.swing.BoxLayout;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.DefaultListModel;
+import javax.swing.JButton;
+import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
-import javax.swing.ScrollPaneConstants;
 import javax.swing.border.TitledBorder;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
-import controller.Pallet;
+import java.awt.Component;
+import javax.swing.ScrollPaneConstants;
+import javax.swing.AbstractListModel;
 
 public class PalletsInOrderPanel extends JPanel {
 	
@@ -33,11 +41,13 @@ public class PalletsInOrderPanel extends JPanel {
 	private JPanel topPanel;
 	private static JList palletJList;
 	private static DefaultListModel listModel;
+	private Order currentOrder;
 	
 	/**
 	 * Create the panel.
 	 *
 	 */
+	@SuppressWarnings("unchecked")
 	public PalletsInOrderPanel() {
 		//Super and This
 		super();
@@ -76,6 +86,16 @@ public class PalletsInOrderPanel extends JPanel {
 	                System.out.print("  Selections: ");  //probably dont need this if
 	              }
 	              System.out.print(selections[i] + "/" + selectionValues[i] + " ");
+	              
+	              DefaultListModel tempList = ItemsInPalletPanel.getListModel();
+	              Pallet temp = (Pallet) listModel.get(selections[i]);
+	              tempList.clear();
+	              ArrayList<Item> itemList = temp.getAllItems();
+	              for (Item currentItem : itemList) {
+	            	  tempList.addElement(currentItem); //TODO this doesnt work trying to get the items from selected pallet to add to right side list
+	            	  ItemsInPalletPanel.getCurrentList().setModel(tempList);
+	              }
+	              
 	              enableItemPanel();
 	            }
 	            System.out.println();
@@ -87,15 +107,26 @@ public class PalletsInOrderPanel extends JPanel {
 	      MouseListener mouseListener = new MouseAdapter() {
 	        public void mouseClicked(MouseEvent mouseEvent) {
 	          JList theList = (JList) mouseEvent.getSource();
-	          if (mouseEvent.getClickCount() == 2) {
-	            int index = theList.locationToIndex(mouseEvent.getPoint());
+	          int index = theList.locationToIndex(mouseEvent.getPoint());
+	          if (mouseEvent.getClickCount() == 1) {
+	        	  if (index >= 0) {
+	        		  Object o = theList.getModel().getElementAt(index);
+	        		  if (OrderWindow.getFoundOrder()) { //if the order is already in db
+	        			  ArrayList<String> itemStrings = getItemsOnPallet(o.toString());
+	        			  for (String temp : itemStrings) {
+	        				  try {
+								OrderWindow.addItemToJList(temp, SQL_Handler.getItemCountOnPallet(o.toString(), temp));
+							} catch (SQLException e) {
+								e.printStackTrace();
+							}
+	        			  }
+	        		  }
+	        	  }
+	          }
+	          if (mouseEvent.getClickCount() == 2) {	            
 	            if (index >= 0) {
 	              Object o = theList.getModel().getElementAt(index);
 	              System.out.println("Double-clicked on: " + o.toString());
-	              
-	              
-	              
-	              
 	              if (OrderWindow.getFoundOrder()) {//if the Order is already in db
 	            	PalletWindow palletWindow = new PalletWindow(o.toString()); //call pallet window when double clicked
 	            	palletWindow.getFrame().setVisible(true);
@@ -165,6 +196,19 @@ public class PalletsInOrderPanel extends JPanel {
 	public void enableItemPanel() {
 		ItemPanel.enableTxtItemNumber();
 		
+	}
+	
+	public ArrayList<String> getItemsOnPallet(String palletID) {
+		try {
+			return SQL_Handler.getItemsOnPallet(palletID);
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return new ArrayList<String>();
+		}		
+	}
+	
+	public void setCurrentOrder(Order currentOrder) {
+		this.currentOrder = currentOrder;
 	}
 	
 

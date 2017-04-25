@@ -1,11 +1,8 @@
-package gui;
-
 import java.awt.Component;
 import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
@@ -16,9 +13,6 @@ import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
-
-import controller.SQL_Handler;
-import controller.Valid;
 
 import java.sql.Connection;
 import java.sql.SQLException;
