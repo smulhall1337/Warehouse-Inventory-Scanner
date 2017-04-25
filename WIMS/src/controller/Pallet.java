@@ -1,28 +1,22 @@
-package controller;
-
-import gui.ItemsInPalletPanel;
-
 import java.sql.SQLException;
-import java.time.LocalDateTime;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
-
-import com.ibm.icu.text.SimpleDateFormat;
+import java.util.Calendar;
 
 public class Pallet {
-	private String palletID, sublocation, notes, orderNumber;
+	private String palletID, notes = "", orderNumber = OrderWindow.getCurrentOrder().getOrderNumber();
+	private SubLocation sublocation;
 	private ArrayList<Item> items = new ArrayList<Item>();
 	private int weight, pieceCount;
 	private final int length = 10, width = 10, height = 10;
 	
-	public Pallet(String palletID, String sublocation) {
+	public Pallet(String palletID, SubLocation sublocation) {
 		this.palletID = palletID;
 		this.sublocation = sublocation;
-		
 	}
 	
-	public void addItem(String itemNumber, int itemQty) {
-		items.add(new Item(itemNumber, itemQty));
+	public void addItem(Item i) {
+		items.add(i);
 	}
 	
 	public void removeItem(String itemNumber) {
@@ -45,18 +39,19 @@ public class Pallet {
 	}
 	
 	public void addThisToDB() {
-		String timeStamp = new SimpleDateFormat("yyyy.MM.dd").format(new java.util.Date());
+		java.sql.Date date = new java.sql.Date(Calendar.getInstance().getTime().getTime());
 		weight = getWeight();
 		pieceCount = getPieceCount();
 		try {
-			SQL_Handler.insertNewPallet(palletID, pieceCount, weight, length, width, height, timeStamp, "", notes, orderNumber, sublocation);
+			SQL_Handler.insertNewPallet(palletID, pieceCount, weight, length, width, height, date, date, notes, orderNumber, sublocation.getSimple_sublo_index());
+			//add items to the pallets_items table
 		} catch (SQLException e) {
 			
 		}
 	}
 	
 	public void printThis() {
-		System.out.println("Pallet ID: " + palletID + " is stored in sublocation " + sublocation + ". It has " + getPieceCount() + " items on it!");
+		System.out.println("Pallet ID: " + palletID + " is stored in sublocation " + sublocation.getSubLocationName() + ". It has " + getPieceCount() + " items on it!");
 	}
 
 	//Getters and Setters
@@ -64,7 +59,7 @@ public class Pallet {
 		return palletID;		
 	}
 	
-	public String getSubLocation() {
+	public SubLocation getSubLocation() {
 		return sublocation;
 	}
 	
@@ -74,6 +69,10 @@ public class Pallet {
 			fullItemList.add(temp);
 		}
 		return fullItemList;
+	}
+
+	public String toString() {
+		return palletID;
 	}
 
 	

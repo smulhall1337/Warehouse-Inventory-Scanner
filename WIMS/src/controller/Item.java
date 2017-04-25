@@ -1,5 +1,3 @@
-package controller;
-
 import java.sql.SQLException;
 
 public class Item {
@@ -38,5 +36,9 @@ public class Item {
 		} catch (SQLException e) {
 			weight = 0;
 		}
+	}
+	
+	public String toString() {
+		return itemNumber;		
 	}
 }

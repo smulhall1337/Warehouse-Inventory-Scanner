@@ -1,5 +1,3 @@
-package controller;
-
 import java.awt.event.KeyEvent;
 
 import javax.swing.DefaultListModel;
