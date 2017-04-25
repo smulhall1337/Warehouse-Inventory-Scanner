@@ -70,7 +70,7 @@ public class PalletWindow extends JFrame{
 	private void initialize() {
 		frame = new JFrame();
 		frame.setBounds(100, 100, 400, 350);
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		frame.getContentPane().setLayout(null);
 		frame.setResizable(false);
 		
@@ -111,7 +111,7 @@ public class PalletWindow extends JFrame{
 		txtPalletID.addKeyListener(new KeyAdapter() {
 			@Override
 			public void keyTyped(KeyEvent evt) {
-				IntInput(evt.getKeyChar(), evt);
+				Valid.intInput(evt.getKeyChar(), evt);
 			}
 		});
 		
@@ -133,13 +133,13 @@ public class PalletWindow extends JFrame{
 		txtItemCount.addKeyListener(new KeyAdapter() {
 			@Override
 			public void keyTyped(KeyEvent evt) {
-				IntInput(evt.getKeyChar(), evt);
+				Valid.intInput(evt.getKeyChar(), evt);
 			}
 		});
 		txtItemCount.addFocusListener(new FocusAdapter() {
 			@Override
 			public void focusLost(FocusEvent evt) {
-				if (!validString(txtItemCount.getText())) {
+				if (!Valid.validString(txtItemCount.getText())) {
 					int i = cbOnPallet.getSelectedIndex();
 					String temp = Integer.toString(itemCountList.get(i));
 					txtItemCount.setText(temp);
@@ -176,8 +176,8 @@ public class PalletWindow extends JFrame{
 		frame.getContentPane().add(btnChange);
 		btnChange.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				clearEntries();
 				SearchScreen();
+				clearEntries();				
 			}
 		});
 		
@@ -264,7 +264,7 @@ public class PalletWindow extends JFrame{
 	}
 	
 	private void update() throws SQLException {
-		if (validString(txtItemCount.getText()) && validInt(txtItemCount.getText())) {
+		if (Valid.validString(txtItemCount.getText()) && Valid.validInt(txtItemCount.getText())) {
 			int currentIndex = cbOnPallet.getSelectedIndex();
 			int intItemCountEntry = Integer.parseInt(txtItemCount.getText());
 			int totalPieceCount = 0;
@@ -286,55 +286,7 @@ public class PalletWindow extends JFrame{
 	//#############################################SQL Calls end
 	
 	//#############################################Validation
-	/**
-	 * True if the string is not empty, false if the string is ""
-	 * @param s
-	 * @return boolean
-	 */
-	public static boolean validString(String s) {
-		if (!(s.equals(""))) {
-			return true;
-		}
-		else {
-			System.out.println("Error: Empty String");
-			return false;
-		}
-	}//validString end
 	
-	/**
-	 * True if the string can be converted to an integer
-	 * @param s
-	 * @return boolean
-	 */
-	public static boolean validInt(String s) {
-		try {
-			Integer.parseInt(s);
-			return true;
-		} catch (Exception ee) {
-			System.out.println("Error: Input not valid, requires Integer");
-			return false;
-		}
-	}//validInt end
-	
-	/**
-	 * True if the string matches the regex of only digits
-	 * @param s
-	 * @return
-	 */
-	public static boolean validID(String s) {
-		return (s.matches(NUMREGEX));
-	}
-	
-	/**
-	 * Input checker that only accepts digits(and backspace/delete) as input
-	 * @param c 
-	 * @param evt
-	 */
-	public void IntInput(char c, KeyEvent evt) {
-		if (!(Character.isDigit(c) || c == KeyEvent.VK_BACK_SPACE || c == KeyEvent.VK_DELETE)) {
-			evt.consume();
-		}
-	}//IntInput end	
 	
 	private void modifyCount(String modify) {
 		int temp = Integer.parseInt(txtItemCount.getText());
@@ -361,10 +313,12 @@ public class PalletWindow extends JFrame{
 	 * Using the currently selected itemName from the combo box, set the text fields for itemNumber and itemCount
 	 */
 	private void setFields() {
-		String selection = cbOnPallet.getSelectedItem().toString();
-		int index = itemNameList.indexOf(selection);
-		txtItemNumber.setText(itemNumberList.get(index));
-		txtItemCount.setText(itemCountList.get(index).toString());
+		if (!(cbOnPallet.getSelectedItem().equals(""))) {
+			String selection = cbOnPallet.getSelectedItem().toString();
+			int index = itemNameList.indexOf(selection);
+			txtItemNumber.setText(itemNumberList.get(index));
+			txtItemCount.setText(itemCountList.get(index).toString());
+		}
 	}	
 	
 	/**
@@ -372,6 +326,8 @@ public class PalletWindow extends JFrame{
 	 */
 	private void clearEntries() {
 		txtPalletID.setText("");
+		txtItemNumber.setText("");
+		txtItemCount.setText("");
 		found = false;
 		itemNumberList.clear();
 		itemNameList.clear();
@@ -405,11 +361,14 @@ public class PalletWindow extends JFrame{
 		frame.setTitle("Edit Pallet ID " + txtPalletID.getText());
 		lblIOP.setVisible(true);
 		lblPalletID.setVisible(true);
+		lblLocation.setVisible(true);
 		lblItemNumber.setVisible(true);
 		lblItemCount.setVisible(true);		
 		cbOnPallet.setVisible(true);
 		txtPalletID.setVisible(true);
 		txtPalletID.setEditable(false);
+		txtLocation.setVisible(true);
+		txtLocation.setEditable(false);
 		txtItemNumber.setVisible(true);
 		txtItemNumber.setEditable(false);
 		txtItemCount.setVisible(true);
@@ -429,5 +388,5 @@ public class PalletWindow extends JFrame{
 	/**
 	 * TODO: 
 	 * error in change pallet logic
-	 * remove validation section and use Valid class
+	 * add notes section
 	 */

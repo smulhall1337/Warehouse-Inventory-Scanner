@@ -18,22 +18,22 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 import java.awt.event.ActionEvent;
-import org.eclipse.wb.swing.FocusTraversalOnArray;
 import java.awt.Component;
 import java.awt.event.KeyAdapter;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
+import javax.swing.JComboBox;
 
 public class PalletPanel extends JPanel {
 
-	private static final int ARRAYWIDTH = 2;
-	private String[][] palletList;
 	private Container itemCont = new Container();
-	private Dimension pref = new Dimension(350, 75);
+	private Dimension pref = new Dimension(350, 100);
 	private boolean found;
 	private JTextField txtPalletID;
-	private JButton btnView, btnAdd, btnEdit, btnDelete;
-	private JLabel lblPalletID;
+	private JButton btnView, btnAdd, btnDelete;
+	private JLabel lblPalletID, lblSubLocation;
+	private static JComboBox cbSubLocation;
+	private Order currentOrder;
 
 	/**
 	 * Create the panel.
@@ -43,7 +43,7 @@ public class PalletPanel extends JPanel {
 		this.setPreferredSize(pref);
 		this.setMinimumSize(pref);
 		this.setMaximumSize(pref);
-		this.setBounds(10, 50, 350, 60);
+		this.setBounds(10, 50, 350, 100);
 		this.setBorder(new TitledBorder(null, "", TitledBorder.LEADING, TitledBorder.TOP, null, null));
 		setLayout(null);
 		createContents();
@@ -54,11 +54,15 @@ public class PalletPanel extends JPanel {
 		lblPalletID = new JLabel("Pallet ID:");
 		lblPalletID.setBounds(10, 11, 55, 14);
 		this.add(lblPalletID);
+		
+		lblSubLocation = new JLabel("Sublocation:");
+		lblSubLocation.setBounds(10, 41, 75, 14);
+		this.add(lblSubLocation);
 
 		txtPalletID = new JTextField();
 		txtPalletID.setEditable(false);
 		txtPalletID.setColumns(10);
-		txtPalletID.setBounds(75, 8, 94, 20);
+		txtPalletID.setBounds(75, 8, 180, 20);
 		this.add(txtPalletID);
 		txtPalletID.addKeyListener(new KeyAdapter() {
 			@Override
@@ -68,90 +72,136 @@ public class PalletPanel extends JPanel {
 		});
 		txtPalletID.addFocusListener(new FocusAdapter() {
 			@Override
-			public void focusGained(FocusEvent e) {
-				btnAdd.setEnabled(true);
-				OrderWindow.getFrame().getRootPane().setDefaultButton(btnAdd);
+			public void focusGained(FocusEvent e) {	
+				//probably would be good to not do this every single time? but theres no time to add a check rn	
+				populateSubLocationCB();
 			}
 
 			@Override
 			public void focusLost(FocusEvent e) {
 				//probably want to try to disable add when lose focus but doing
 				//btnAdd.setEnabled(false);
-				//stops the whole ActionListener	
+				//stops the whole ActionListener
+				if (txtPalletID.equals("")) { //if the palletID field is empty clear sublocation list
+					btnAdd.setEnabled(false);
+				}
 			}
 		});
 
 		btnAdd = new JButton("Add");
 		btnAdd.setEnabled(false);
-		btnAdd.setBounds(179, 7, 75, 23);
+		btnAdd.setBounds(265, 7, 75, 23);
 		this.add(btnAdd);
 		btnAdd.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				System.out.println("palletPanel.add");
+				System.out.println("palletPanel.add"); //testing purposes delete later
 				searchDB(getPalletID());
 				txtPalletID.requestFocusInWindow();
 				txtPalletID.setText("");
+				btnDelete.setEnabled(true);
+				cbSubLocation.setSelectedIndex(0);
 			}
 		});
 
 		btnView = new JButton("View");
 		btnView.setEnabled(false);
-		btnView.setBounds(10, 41, 75, 23);
+		btnView.setVisible(false);
+		btnView.setBounds(10, 66, 75, 23);
 		this.add(btnView);
 		btnView.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				System.out.println("palletPanel.view");
-				// TODO populate item list with this pallet's info
-			}
-		});
-
-		btnEdit = new JButton("Edit");
-		btnEdit.setEnabled(false);
-		btnEdit.setBounds(122, 41, 89, 23);
-		this.add(btnEdit);
-		btnEdit.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				new PalletWindow(getSelectedPalletID());
+				System.out.println("palletPanel.view"); //testing purposes delete later
+				//TODO handle clicking this with nothing selected
+				PalletWindow palletWindow = new PalletWindow((String) PalletsInOrderPanel.getCurrentList().getSelectedValue().toString());
 			}
 		});
 
 		btnDelete = new JButton("Delete");
 		btnDelete.setEnabled(false);
-		btnDelete.setBounds(251, 41, 89, 23);
+		btnDelete.setBounds(251, 66, 89, 23);
 		this.add(btnDelete);
 		btnDelete.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				int n = JOptionPane.showConfirmDialog(OrderWindow.getFrame(), "Delete Pallet ID " + getSelectedPalletID() + " from this order? \nThis will remove its items too.");
 				if (n == 0) { //if yes Delete
 					//TODO remove selected pallet
-					//TODO remove selected pallet's items
+					int index = PalletsInOrderPanel.getCurrentList().getSelectedIndex();
+					if (index != -1) {
+					    PalletsInOrderPanel.getListModel().remove(index);
+					    OrderWindow.getPalletList().remove(index);
+					    //clear item list model
+					    ItemsInPalletPanel.getListModel().clear();
+					    if (cbSubLocation.getSelectedIndex() != 0) {										//make sure a sublocation is selected		
+							SubLocation sublocation = (SubLocation) cbSubLocation.getSelectedItem();		//get the selected sublocation from the combobox
+							if (sublocation.decrementCurrent()) {											//if you are able to increase the current count on the sub location so it cant be under 0 when creating the order
+								OrderWindow.getPalletList().remove(index); //
+							}													
+									
+						}
+					}
+					
+					if (PalletsInOrderPanel.getListModel().isEmpty()) {
+						btnDelete.setEnabled(false);
+					}
+				}
+			} 
+		});
+		
+		cbSubLocation = new JComboBox();		
+		cbSubLocation.setBounds(85, 39, 169, 20);
+		this.add(cbSubLocation);
+		cbSubLocation.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent evt) {
+				if (cbSubLocation.getSelectedIndex() != 0 && !(txtPalletID.equals(""))) { //if the selection isnt on the first in the box that says "SELECT ..."
+					btnAdd.setEnabled(true);
+					OrderWindow.getFrame().getRootPane().setDefaultButton(btnAdd);
+					
+					if (!OrderWindow.getFoundOrder()) { //if the order isnt new
+						btnView.setEnabled(true);
+						btnView.setVisible(true);
+					}
+					else { //if the order is new
+						
+					}//newOrderCheck end
 				}
 			}
 		});
+		//TODO custom renderer so that it shows only sublocationName not toString()
+		
 		
 
 		itemCont.setLayout(new BoxLayout(itemCont, BoxLayout.Y_AXIS));
 	}// createContents end
 
 	public void searchDB(String palletID) {
-		if (getPalletID().equals(""))
+		if (getPalletID().equals(""))															//if the field is empty do nothing
 			return;
-		try {
+		try {																					//search for pallet in db
 			found = SQL_Handler.palletInDB(palletID);
-		} catch (SQLException e) {
-			JOptionPane.showMessageDialog(this.getParent(),
-					"An error occurred trying to reach the database, \nPlease try again.");
+		} catch (SQLException e) {																//notify user if error occurs
+			JOptionPane.showMessageDialog(this.getParent(), "An error occurred trying to reach the database, \nPlease try again.");
 		}
-		if (found) { // if the palletID entered exists already
-			JOptionPane.showMessageDialog(this.getParent(),
-					"A Pallet with that ID already exists in the inventory, \nPlease try again.");
-		} else if (!Valid.notInCurrentList(palletID, PalletInOrderPanel.getListModel())) { // if if is in the current list
-			JOptionPane.showMessageDialog(this.getParent(),
-					"A Pallet with that ID is already listed below, \nPlease try again.");
-		} else {
-			PalletInOrderPanel.addPallet(palletID);
+		if (found) { 																			//if the palletID entered exists already dont let them do it
+			JOptionPane.showMessageDialog(this.getParent(),	"A Pallet with that ID already exists in the inventory, \nPlease try again.");
+		} else if (!Valid.notInCurrentList(palletID, PalletsInOrderPanel.getListModel())) { 	// if if is in the current list dont let them do it
+			JOptionPane.showMessageDialog(this.getParent(), "A Pallet with that ID is already listed below, \nPlease try again.");
+		} else {																				//if the palletID entered does not exist yet
+			
+			if (cbSubLocation.getSelectedIndex() != 0) {										//make sure a sublocation is selected		
+				SubLocation sublocation = (SubLocation) cbSubLocation.getSelectedItem();		//get the selected sublocation from the combobox
+				if (sublocation.incrementCurrent()) {											//if you are able to decrease the current count on the sub location so it cant be over filled when creating the order
+					OrderWindow.addPalletToJList(palletID, sublocation);						//add the pallet to the list
+				}													
+						
+			}
+			else {																				//if no sublocation is selected tell the user they cant do that
+				JOptionPane.showMessageDialog(OrderWindow.getFrame(), "Please Select a Sub Location from the list provided.");
+			}			
+			
 		}
-	}
+	}//searchDB end
+	
+	
 
 	/**
 	 * Getter method for txtPalleID
@@ -166,101 +216,69 @@ public class PalletPanel extends JPanel {
 			return "";
 	}
 
-	public String getSelectedPalletID() {
-		return (String) PalletInOrderPanel.getCurrentPalletList().getSelectedValue();
+	public static Pallet getSelectedPalletID() {
+		return (Pallet) PalletsInOrderPanel.getCurrentList().getSelectedValue();
 	}
-
-	/**
-	 * Gets all the items from the ItemPanels of this PalletPanel
-	 * 
-	 * @return
-	 */
-	public ArrayList<String> getAllItems() {
-		ArrayList<String> itemList = new ArrayList<String>(); // this is what
-																// you return
-		String temp = ""; // temp to hold the string to add
-		for (Component c : itemCont.getComponents()) { // for each component in
-														// the container holding
-														// ItemPanels
-			if (c instanceof JTextField && c.getName().equals("txtItemNumber")) { // if
-																					// the
-																					// selected
-																					// Component
-																					// is
-																					// a
-																					// JTextField
-																					// and
-																					// txtItemNumber
-				temp = ((ItemPanel) c).getItemNumber(); // set temp to
-														// txtItemNumber.getText()
-														// and add it to the
-														// list
-				if (!(temp.equals(""))) // as long as its not empty
-					itemList.add(temp);
+	
+	public static int getSelectedPalletIndex() {
+		return PalletsInOrderPanel.getCurrentList().getSelectedIndex();
+	}
+	
+	public void populateSubLocationCB() {
+		ArrayList<String> subLocationsStringList = new ArrayList<String>();
+		try {
+			subLocationsStringList = SQL_Handler.getAvailableSubLocations();
+		} catch (SQLException e) {
+			JOptionPane.showMessageDialog(OrderWindow.getFrame(), "Error Finding Sublocations, \nPlease try again.");
+			OrderWindow.getFrame().requestFocus(); 							//stops an unbreakable loop if the sublocations cant be found
+		}
+		if (!subLocationsStringList.isEmpty()) { 							//if the list isnt empty
+			cbSubLocation.addItem("SELECT A SUBLOCATION");					//add the first Selection
+			for (int i = 0; i < subLocationsStringList.size(); i++) { 		//for each item in subLocations
+				SubLocation s = createSub(subLocationsStringList.get(i));	//create a sublocation object from the list at the current index
+				cbSubLocation.addItem(s);  	   								//add it to the combobox
+				OrderWindow.getCurrentOrder().addToSubLocationList(s); 		//add it to the sublocationList too
+				//TODO on the delete pallet button decrement the sublocation
 			}
 		}
-		return itemList;
-	}
-
+	}//populateSubLocation
+	
+	
 	/**
-	 * Gets all the item quantities from the ItemPanels of this PalletPanel
-	 * 
+	 * Create a Sublocation Object using the locationCoordinate
+	 * @param locationCoordinate
 	 * @return
 	 */
-	public ArrayList<String> getAllItemQuantities() {
-		ArrayList<String> itemQList = new ArrayList<String>(); // this is what
-																// you return
-		String temp = ""; // temp to hold the string to add
-		for (Component c : itemCont.getComponents()) { // for each component in
-														// the container holding
-														// ItemPanels
-			if (c instanceof JTextField && c.getName().equals("txtItemQuantity")) { // if
-																					// the
-																					// selected
-																					// Component
-																					// is
-																					// a
-																					// JTextField
-																					// and
-																					// txtItemQuantity
-				temp = ((ItemPanel) c).getItemNumber(); // set temp to
-														// txtItemQuantity.getText()
-														// and add it to the
-														// list
-				if (!(temp.equals(""))) // as long as its not empty
-					itemQList.add(temp);
-			}
+	public SubLocation createSub(String locationCoordinate) {
+		SubLocation sL;
+		String LC = locationCoordinate;
+		int max = 0, current = 0;
+		String wareHouse = "";
+		
+		try {
+			max = SQL_Handler.getMaxFromSublocation(locationCoordinate);
+			current = SQL_Handler.getCurrentFromSublocation(locationCoordinate);
+			wareHouse = SQL_Handler.getWareHouseFromSublocation(locationCoordinate);			
+		} catch (SQLException e) {			
+			e.printStackTrace();
 		}
-		return itemQList;
+		sL = new SubLocation(locationCoordinate, max, current, wareHouse);
+		
+		
+		return sL;
 	}
-
-	public void createPalletList() {
-		ArrayList<String> itemList = getAllItems();
-		ArrayList<String> itemQList = getAllItemQuantities();
-
-		if (itemList.size() != itemQList.size()) { // if the two are not equal
-													// sizes DO NOT CONTINUE
-													// THERE IS AN ERROR IN THE
-													// ENTRIES
-			JOptionPane.showMessageDialog(this.getParent(),
-					"WARNING! THE ITEM FIELDS MUST BE COMPLETELY FILLED OUT OR COMPLETELY BLANK \nPLEASE CHECK OVER YOUR ENTIRES");
-			return;
-		}
-
-		for (int row = 0; row < itemList.size(); row++) {
-			for (int col = 0; col < ARRAYWIDTH; col++) {
-				if (col % 2 == 1) { // if the column is odd add itemList
-					palletList[row][col] = itemList.get(row);
-				} else { // else add itemQList
-					palletList[row][col] = itemQList.get(row);
-				}
-			} // for col end
-		} // for row end
-	}// createPalletList end
-
-	public String[][] getPalletList() {
-		return palletList;
+	
+	
+	public int getPalletIndex(String palletID) {
+		int n = PalletsInOrderPanel.getCurrentList().getSelectedIndex();		
+		return n;
 	}
+	
+	/*
+	 ********************************************************** 
+	 ****************************************Enable and Disable
+	 **********************************************************
+	 */
 
 	public void enableAdd() {
 		btnAdd.setEnabled(true);
@@ -278,13 +296,14 @@ public class PalletPanel extends JPanel {
 		btnView.setEnabled(false);
 	}
 
+	/*
 	public void enableEdit() {
 		btnEdit.setEnabled(true);
 	}
 
 	public void disableEdit() {
 		btnEdit.setEnabled(false);
-	}
+	} */
 
 	public void enableDelete() {
 		btnDelete.setEnabled(true);
@@ -300,5 +319,13 @@ public class PalletPanel extends JPanel {
 
 	public void disableTxt() {
 		txtPalletID.setEditable(false);
+	}
+	
+	public static int getCBSelectedIndex() {
+		return cbSubLocation.getSelectedIndex();
+	}
+	
+	public void setCurrentOrder(Order currentOrder) {
+		this.currentOrder = currentOrder;
 	}
 }// Class end

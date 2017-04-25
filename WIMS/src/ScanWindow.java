@@ -87,7 +87,7 @@ public class ScanWindow extends JFrame {
 	private void initialize() {
 		frame = new JFrame();
 		frame.setBounds(100, 100, 400, 550);
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		frame.getContentPane().setLayout(null);
 		frame.setResizable(false);
 		frame.setTitle("Please Scan or Enter Item Number");
@@ -533,7 +533,7 @@ public class ScanWindow extends JFrame {
 	
 	//#############################################Setters
 	public void setTxtItemNumber(String S) {
-		if (Valid.validInt(S))
+		if (Valid.validID(S))
 			txtItemNumber.setText(S);
 	}
 	

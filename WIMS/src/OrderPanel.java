@@ -9,16 +9,20 @@ import javax.swing.JButton;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 
 public class OrderPanel extends JPanel {
-	private JTextField txtDestination, txtOrigin, txtOrderNumber;
-	private JButton btnCheck;
+	private static JTextField txtDestination;
+	private static JTextField txtOrigin;
+	private static JTextField txtOrderNumber;
+	private static JButton btnCheck;
 	private static Dimension pref = new Dimension(350, 120);
 	private JButton btnSearchAgain;
+	private Order currentOrder;
 
 	/**
 	 * Create the panel.
@@ -78,6 +82,7 @@ public class OrderPanel extends JPanel {
 		btnCheck.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				String orderNumber = getOrderNumber();
+				//currentOrder.setOrderNumber(orderNumber);
 				searchDB(orderNumber);					
 			}
 		});
@@ -99,31 +104,49 @@ public class OrderPanel extends JPanel {
 	 * @return boolean found or not depending on if the item is in the database
 	 */
 	public void searchDB(String orderNumber) {
-		if (orderNumber.equals(""))
+		if (orderNumber.equals(""))							//if the txtField is empty do nothing
 			return;
 		boolean found = false;
 		try {
-			found = SQL_Handler.OrderInDB(orderNumber);	//try to find the item
-		} catch (SQLException e1) {//let user know there was an error
+			found = SQL_Handler.OrderInDB(orderNumber);		//try to find the item
+		} catch (SQLException e1) {							//let user know there was an error
 			JOptionPane.showMessageDialog(this.getParent(), "An error occurred trying to reach the database, \nPlease try again");			
 		}
-		if (found) {  //if the order is found 
-			// TODO fill out the Lists with info
-			
-			
+		if (found) {  										//if the order is found 
+			// TODO fill out the Lists with info, SQL_Handler.allPalletsInOrder only returns one row with the rs
+			OrderWindow.setCurrentOrder(orderNumber);
+			OrderWindow.setFoundOrder(true);
+			postSearch();			
+			try {
+				ArrayList<Pallet> PalletList = SQL_Handler.allPalletsInOrder(orderNumber);
+				for (Pallet temp : PalletList) {
+					OrderWindow.addPalletToJList(temp.getID(), temp.getSubLocation());
+					
+				}
+			} catch (SQLException r) {
+				
+			}			
 			OrderWindow.getFrame().setTitle("View Existing Order");
 		}
-		else { //otherwise move focus to Origin and allow palletID to be modified
-			btnSearchAgain.setVisible(true);
-			btnCheck.setVisible(false);
-			txtOrderNumber.setEditable(false);
-			txtOrigin.setEditable(true);
-			txtDestination.setEditable(true);
-			txtOrigin.requestFocus();
+		else { 												//otherwise move focus to Origin and allow palletID to be modified
+			
+			postSearch();
 			OrderWindow.getCurrentPalletPanel().enableTxt();
 			OrderWindow.getFrame().setTitle("Create A New Order");
-		}
+			
+			OrderWindow.setCurrentOrder(orderNumber);    	//create the order object with the input			
+		}  
+	}//searchDB end
+	
+	public void postSearch() {
+		//btnSearchAgain.setVisible(true);    //not going to use rn
+		btnCheck.setVisible(false);
+		txtOrderNumber.setEditable(false);
+		txtOrigin.setEditable(true);
+		txtDestination.setEditable(true);
+		txtOrigin.requestFocus();
 	}
+	
 	
 	/**
 	 * Getter method for txtOrderSNumber
@@ -136,5 +159,36 @@ public class OrderPanel extends JPanel {
 		else
 			return "";
 	}
+	
+	/**
+	 * Getter method for txtOrigin
+	 * @return User input as String
+	 */
+	public static String getOrigin() {
+		String originInput= txtOrigin.getText();
+		if (Valid.validString(originInput))
+			return originInput;
+		else
+			return "";
+	}
+	
+	/**
+	 * Getter method for txtDestination
+	 * @return User input as String
+	 */
+	public static String getDestination() {
+		String destinationInput= txtDestination.getText();
+		if (Valid.validString(destinationInput))
+			return destinationInput;
+		else
+			return "";
+	}
+	
+	public static void setTxtOrderNumber(String orderNumber) {
+		txtOrderNumber.setText(orderNumber);
+	}
 
+	public static void clickCheck() {
+		btnCheck.doClick();
+	}
 }//class end

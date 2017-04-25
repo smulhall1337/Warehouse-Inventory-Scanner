@@ -13,7 +13,6 @@ import java.util.Map;
  * @version WIMS_v1
  */
 public abstract class SQL_Handler {
-	private final static int MAX = 7;
 	
 	/**
 	 * A collection of prepared SQL statements
@@ -142,13 +141,17 @@ public abstract class SQL_Handler {
 			statement = conn.prepareStatement("SELECT current_stock FROM items WHERE item_number = ?");
 			statements.put(stmt_key, statement);
 			
+			stmt_key = "All Items";
+			statement = conn.prepareStatement("SELECT * FROM items");
+			statements.put(stmt_key, statement);
+			
 			//#############################################Pallets
 			stmt_key = "PalletInDB";
-			statement = conn.prepareStatement("SELECT * FROM pallets WHERE pallet_id = ?");
+			statement = conn.prepareStatement("SELECT * FROM swenggdb.pallets WHERE pallet_id = ?");
 			statements.put(stmt_key, statement);
 			
 			stmt_key = "NewPallet";
-			statement = conn.prepareStatement("INSERT INTO pallets (pallet_id, piece_cound, weight, length, width, height, receival_date, ship_date, notes, order_number, Location_coordinate" + 
+			statement = conn.prepareStatement("INSERT INTO swenggdb.pallets (pallet_id, piece_count, weight, length, width, height, receival_date, ship_date, notes, order_number, pallet_location) " + 
 												"VALUES (?,?,?,?,?,?,?,?,?,?,?)");
 			statements.put(stmt_key, statement);
 			
@@ -177,6 +180,12 @@ public abstract class SQL_Handler {
 			statement = conn.prepareStatement("SELECT pallet_location FROM swenggdb.pallets WHERE pallet_id = ?");
 			statements.put(stmt_key, statement);
 			
+			stmt_key = "GetPalletsInOrder";
+			statement = conn.prepareStatement("SELECT * FROM swenggdb.pallets WHERE order_number = ?");
+			statements.put(stmt_key, statement);
+			
+			
+			
 			//#############################################Orders
 			stmt_key = "OrderInDB";
 			statement = conn.prepareStatement("SELECT * FROM orders WHERE order_number = ?");
@@ -187,6 +196,14 @@ public abstract class SQL_Handler {
 												"VALUES(?, ?,?, ?, ?, ?, ?, ?)");
 			statements.put(stmt_key, statement);
 			
+			stmt_key = "OrderEmployees";
+			statement = conn.prepareStatement("SELECT * FROM orders_employees WHERE order_number = ?");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "OrderEmployeesInOut";
+			statement = conn.prepareStatement("SELECT * FROM orders_employees WHERE order_number = ? and employee_ID = ?");
+			statements.put(stmt_key, statement);
+			
 			//#############################################Display
 			stmt_key = "TableColNames";
 			statement = conn.prepareStatement("SELECT COLUMN_NAME FROM information_schema.columns WHERE table_name=?");
@@ -195,6 +212,33 @@ public abstract class SQL_Handler {
 			stmt_key = "TableNames";
 			statement = conn.prepareStatement("SELECT table_name FROM information_schema.tables WHERE table_schema = 'swenggdb'");
 			statements.put(stmt_key, statement);
+			//#############################################Sublocation
+			stmt_key = "GetAvailableSubLocations";
+			statement = conn.prepareStatement("SELECT * FROM swenggdb.sublocation WHERE max_pallet_qty <> current_pallet_qty");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "GetSubLocationName";
+			statement = conn.prepareStatement("SELECT * FROM swenggdb.sublocation where simple_sublo_index = ?");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "GetSubLocationInfo";
+			statement = conn.prepareStatement("SELECT * FROM swenggdb.sublocation where location_coordinate = ?");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "ChangeSubLocationCurrentQty";
+			statement = conn.prepareStatement("UPDATE swenggdb.sublocation SET current_pallet_qty = ? WHERE location_coordinate = ?");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "GetBlankFromSublocation";
+			statement = conn.prepareStatement("SELECT * FROM swenggdb.sublocation WHERE location_coordinate = ?");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "UpdateSublocation";
+			statement = conn.prepareStatement("UPDATE swenggdb.sublocation SET current_pallet_qty = ? WHERE location_coordinate = ?");
+			statements.put(stmt_key, statement);
+			
+			
+			
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}	
@@ -486,7 +530,7 @@ public abstract class SQL_Handler {
 		stmt.execute();
 	}
 	
-	public static void insertNewPallet(String palletID, int pieceCount, int weight, int length, int width, int height, String receiveDate, String shipDate, String notes, int orderNumber, String Location) throws SQLException {
+	public static void insertNewPallet(String palletID, int pieceCount, int weight, int length, int width, int height, Date receiveDate, Date shipDate, String notes, String orderNumber, int i) throws SQLException {
 		stmt = sql_statements.get("NewPallet");
 		stmt.setString(1,palletID);
 		stmt.setInt(2,pieceCount);
@@ -494,11 +538,11 @@ public abstract class SQL_Handler {
 		stmt.setInt(4,length);
 		stmt.setInt(5,width);
 		stmt.setInt(6,height);
-		stmt.setString(7,receiveDate);
-		stmt.setString(8,shipDate);
+		stmt.setDate(7,receiveDate);
+		stmt.setDate(8,shipDate);
 		stmt.setString(9,notes);
-		stmt.setInt(10,orderNumber);
-		stmt.setString(11,Location);
+		stmt.setString(10,orderNumber);
+		stmt.setInt(11,i);
 		stmt.execute();
 	}
 	
@@ -511,10 +555,17 @@ public abstract class SQL_Handler {
 	}
 	
 	public static String getPalletLocation(String palletID) throws SQLException {
-		stmt = sql_statements.get("getPalletLocation");
+		stmt = sql_statements.get("GetPalletLocation");
 		stmt.setString(1, palletID);
 		rs = stmt.executeQuery();
-		return rs.getString("pallet_location");
+		rs.next();
+		String index = rs.getString("pallet_location");
+		int temp = Integer.parseInt(index);
+		stmt = sql_statements.get("GetSubLocationName");
+		stmt.setInt(1, temp);
+		rs = stmt.executeQuery();
+		rs.next();
+		return rs.getString("location_coordinate");
 	}
 	
 	//#############################################Orders
@@ -528,18 +579,41 @@ public abstract class SQL_Handler {
 			return false;
 	}
 	
-	public static void insertNewOrder(int orderNumber, String origin, String destination, String receiveEmployeeID, String shipEmployeeID, String datePlaced, String dateShipped, String dateDelivered) throws SQLException {
+	public static void insertNewOrder(String orderNumber, String origin, String destination, String receiveEmployeeID, String shipEmployeeID, Date datePlaced, Date dateShipped, Date dateDelivered) throws SQLException {
 		stmt = sql_statements.get("NewOrder");
-		stmt.setInt(1, orderNumber);
+		stmt.setString(1, orderNumber);
 		stmt.setString(2, origin);
 		stmt.setString(3, destination);
 		stmt.setString(4, receiveEmployeeID);
 		stmt.setString(5, shipEmployeeID);
-		stmt.setString(6, datePlaced);
-		stmt.setString(7, dateShipped);
-		stmt.setString(8, dateDelivered);
+		stmt.setDate(6, datePlaced);
+		stmt.setDate(7, dateShipped);
+		stmt.setDate(8, dateDelivered);
 		stmt.execute();
 	}
+	
+	public static String getOrderEmployee(String orderNumber) throws SQLException {
+		String Employee = "";		
+		stmt = sql_statements.get("OrderEmployees");
+		stmt.setString(1, orderNumber);
+		rs = stmt.executeQuery();
+		rs.next();
+		Employee = rs.getString("employee_ID");		
+		return Employee;
+	}
+	
+	public static String getOrderInOut(String orderNumber, String empID) throws SQLException {
+		String inOut = "";
+		stmt = sql_statements.get("OrderEmployees");
+		stmt.setString(1, orderNumber);
+		stmt.setString(2, empID);
+		rs = stmt.executeQuery();
+		rs.next();
+		inOut = rs.getString("shipped/recieved");
+		return inOut;
+	}
+	
+	
 	
 	//#############################################Display
 	/**
@@ -607,6 +681,128 @@ public abstract class SQL_Handler {
 		}
 		return result;
 	}
+	
+	//#############################################Sublocation
+	
+	public static ArrayList<String> getAvailableSubLocations() throws SQLException {
+		ArrayList<String> subLocationList = new ArrayList<String>();
+		stmt = sql_statements.get("GetAvailableSubLocations");
+		rs = stmt.executeQuery();				//execute
+		while (rs.next()) {
+			subLocationList.add(rs.getString("location_coordinate"));
+		}
+		return subLocationList;
+	}
+	
+	public static void incrementSubLocationPalletQuantity(String sublocation) throws SQLException {
+		stmt = sql_statements.get("GetSubLocationInfo");
+		stmt.setString(1, sublocation);
+		rs = stmt.executeQuery();								//get the info
+		int currentQuantity = rs.getInt("current_pallet_qty");	//set the variables
+		int maxQuantity = rs.getInt("max_pallet_qty");
+		if (maxQuantity != currentQuantity) { //if the current isnt maxed out increment
+			stmt = sql_statements.get("ChangeSubLocationCurrentQuantity");
+			stmt.setInt(1, currentQuantity + 1);
+			stmt.setString(2, sublocation);
+			stmt.execute();
+		}
+	}
+
+	public static void decrementSubLocationPalletQuantity(String sublocation) throws SQLException {
+		stmt = sql_statements.get("GetSubLocationInfo");
+		stmt.setString(1, sublocation);
+		rs = stmt.executeQuery();
+		int currentQuantity = rs.getInt("current_pallet_qty");
+		if (currentQuantity != 0) { //if the current isnt 0 decrement
+			stmt = sql_statements.get("ChangeSubLocationCurrentQuantity");
+			stmt.setInt(1, currentQuantity - 1);
+			stmt.setString(2, sublocation);
+			stmt.execute();
+		}
+	}
+	
+	/**
+	 * generic select from sublocation who has all entities as strings,
+	 * @param index is the String value of the location_coordinate youre searching for
+	 * @param select is the column you want to get the info from
+	 * @return returns string value of 
+	 * @throws SQLException
+	 */
+	public static String getWareHouseFromSublocation(String LC) throws SQLException {
+		String s = "";
+		stmt = sql_statements.get("GetBlankFromSublocation");
+		stmt.setString(1, LC);
+		rs = stmt.executeQuery();
+		rs.next();
+		s = rs.getString("warehouse_id");
+		return s;
+	}
+	
+	
+	public static int getMaxFromSublocation(String LC) throws SQLException {
+		int i = 0;
+		stmt = sql_statements.get("GetBlankFromSublocation");
+		stmt.setString(1, LC);
+		rs = stmt.executeQuery();
+		rs.next();
+		i = rs.getInt("max_pallet_qty");
+		return i;		
+	}
+	
+	public static int getCurrentFromSublocation(String LC) throws SQLException {
+		int i = 0;
+		stmt = sql_statements.get("GetBlankFromSublocation");
+		stmt.setString(1, LC);
+		rs = stmt.executeQuery();
+		rs.next();
+		i = rs.getInt("current_pallet_qty");
+		return i;		
+	}
+	
+	public static void updateSublocation(String LC, int current) throws SQLException { 
+		stmt = sql_statements.get("UpdateSublocation");
+		stmt.setInt(1, current);
+		stmt.setString(2, LC);
+		stmt.execute();
+	}
+	
+	public static int getSimpleSubloIndex(String LC) throws SQLException {
+		int i = 0;
+		stmt = sql_statements.get("GetBlankFromSublocation");
+		stmt.setString(1, LC);
+		rs = stmt.executeQuery();
+		rs.next();
+		i = rs.getInt("simple_sublo_index");
+		return i;
+	}
+	
+	public static String getSublocationCoordinate(int index) throws SQLException {
+		String LC = "";
+		stmt = sql_statements.get("GetSubLocationName");
+		stmt.setInt(1, index);
+		rs = stmt.executeQuery();
+		rs.next();
+		LC = rs.getString("location_coordinate");
+		return LC;
+	}
+	
+	public static ArrayList<Pallet> allPalletsInOrder (String orderNumber) throws SQLException {
+		ArrayList<Pallet> pallets = new ArrayList<Pallet>(); // TODO only gets one row :(
+		stmt = sql_statements.get("GetPalletsInOrder");
+		stmt.setString(1, orderNumber);
+		ResultSet rs = stmt.executeQuery();
+		while (rs.next()) {			
+			String id = rs.getString("pallet_id");								//these two have to be in order from left to right, thats dumb
+			String LC = getSublocationCoordinate(rs.getInt("pallet_location"));
+			String wareHouse = getWareHouseFromSublocation(LC);						
+			int current = getCurrentFromSublocation(LC);
+			int max = getMaxFromSublocation(LC);
+			Pallet p = new Pallet(id, new SubLocation(LC, max, current, wareHouse));
+			pallets.add(p);   			
+		}
+		return pallets;
+	}
+	
 
 
 }

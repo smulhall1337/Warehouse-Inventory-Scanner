@@ -9,6 +9,7 @@ import java.awt.Dimension;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.sql.SQLException;
+import java.util.ArrayList;
 
 import javax.swing.JButton;
 import java.awt.event.ActionListener;
@@ -23,6 +24,7 @@ public class ItemPanel extends JPanel{
 	private static JButton btnCheck, btnEdit, btnDelete, btnAdd;
 	private JLabel lblItemNumber, lblItemQuantity;
 	private Dimension pref = new Dimension(270,100);
+	private Order currentOrder;
 
 	public ItemPanel(){
 		super();
@@ -40,7 +42,7 @@ public class ItemPanel extends JPanel{
 		lblItemNumber.setBounds(10, 22, 50, 14);
 		this.add(lblItemNumber);
 		
-		lblItemQuantity = new JLabel("Quantity");
+		lblItemQuantity = new JLabel("Quantity:");
 		lblItemQuantity.setBounds(10, 53, 53, 14);
 		this.add(lblItemQuantity);
 		
@@ -62,6 +64,7 @@ public class ItemPanel extends JPanel{
 				Valid.intInput(evt.getKeyChar(), evt);
 			}
 		});
+		//disable add and itemqty until checked again
 		
 		txtItemQuantity = new JTextField();
 		txtItemQuantity.setEditable(false);		
@@ -112,8 +115,19 @@ public class ItemPanel extends JPanel{
 		this.add(btnAdd);
 		btnAdd.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				//check if txtItemQuantity is good
-				//if so add the item to the list below
+				String itemID = txtItemNumber.getText();
+				String itemQuantity = txtItemQuantity.getText();
+				int itemQty = Integer.parseInt(itemQuantity);
+				boolean allGood = Valid.validInt(itemID);
+				if (allGood) { //the itemNumber has already been verified to turn this button on so if the itemQty is okay					
+					//OrderWindow.addID(itemID, ItemsInPalletPanel.getCurrentList(),ItemsInPalletPanel.getListModel()); //if so add the item to the list below
+					OrderWindow.addItemToJList(itemID, itemQty);
+					int index = PalletPanel.getSelectedPalletIndex();
+					//OrderWindow.getPalletList().get(index).addItem(itemID, itemQty); //add the item to the pallet selected on the palletList TODO 	
+					txtItemNumber.setText("");
+					txtItemQuantity.setText("");
+				}
+				 
 				//if so add the fields here to a new itemList
 				//if so add the itemList to the AllItems
 			}
@@ -124,7 +138,19 @@ public class ItemPanel extends JPanel{
 		
 	}//create contents end
 	
+	
+	/*
+	 ********************************************************** 
+	 ***************************************************Search
+	 **********************************************************
+	 */
 	/** 
+	 * Searches the DataBase for the itemNumber entered in the parameter.
+	 * If the entry is blank, No action is taken.
+	 * An error message is shown to the user if the database is unreachable.
+	 * If the item is already known, the focus is set to the itemQuantity field and the Add button is shown.
+	 * If the item is not known, the user is prompted to add this new item number to the database,
+	 * A YES response is followed by opening the scan window while a NO response is followed by asking the user to reinput the value
 	 * @param itemNumber
 	 * @return boolean found or not depending on if the item is in the database
 	 */
@@ -140,7 +166,7 @@ public class ItemPanel extends JPanel{
 		if (found) {  //if the item is found
 			txtItemQuantity.setEditable(true);
 			txtItemQuantity.requestFocus(); //setfocus to itemQuantity
-			btnAdd.setVisible(true);
+			btnAdd.setVisible(true);			
 		}
 		else { //otherwise ask them if they want to add that item
 			askAddItem(itemNumber);
@@ -166,8 +192,15 @@ public class ItemPanel extends JPanel{
 			JOptionPane.showMessageDialog(this.getParent(), "Please enter a known item number or add that item to the inventory");	
 		}
 		
-	}
+	}//askAddItem end
 	
+	
+	
+	/*
+	 ********************************************************** 
+	 ***************************************************Getters
+	 **********************************************************
+	 */
 	/**
 	 * Getter method for txtItemNumber
 	 * @return User input as String
@@ -192,6 +225,14 @@ public class ItemPanel extends JPanel{
 			return 0;
 	}
 	
+	
+	/*
+	 ********************************************************** 
+	 ****************************************Enable and Disable 
+	 ********************************************************** 
+	 *Allow other sections of the OrderWindow to enable and disable 
+	 *the fields and buttons as needed
+	 */
 	
 	public static void enableCheck() {
 		btnCheck.setEnabled(true);
@@ -241,7 +282,10 @@ public class ItemPanel extends JPanel{
 		txtItemQuantity.setEditable(false);
 	}
 	
-	
+	public void setCurrentOrder(Order currentOrder) {
+		this.currentOrder = currentOrder;
+	}
+
 	
 }//Class end
 // TODO delete item from list

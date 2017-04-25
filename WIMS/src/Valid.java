@@ -32,7 +32,7 @@ abstract public class Valid {
 	 * @return boolean
 	 */
 	public static boolean validDouble(String s) {
-		/**try {
+		/*try {
 			Double.parseDouble(s);
 			return true;
 		} catch (Exception ee) {
@@ -48,24 +48,26 @@ abstract public class Valid {
 	 * @param s
 	 * @return boolean
 	 */
+	public static boolean validID(String s) {	
+		return (s.matches(NUMREGEX));
+	}//validID end
+	
 	public static boolean validInt(String s) {
-		/**try {
+		try {
 			Integer.parseInt(s);
 			return true;
 		} catch (Exception ee) {
 			System.out.println("Error: Input not valid, requires Integer");
 			return false;
-		}*/
-		
-		return (s.matches(NUMREGEX));
-	}//validInt end
+		}		
+	}
 	
 	/**
 	 * True if itemNumber text field is not empty and has an integer
 	 * @return
 	 */
 	public static boolean validItemNumber(String s) {
-		if (validString(s) && validInt(s)) {
+		if (validString(s) && validID(s)) {
 			return true;
 		} 
 		else {
@@ -93,7 +95,7 @@ abstract public class Valid {
 	 * @return
 	 */
 	public static boolean validItemWeight(String s) {
-		if (validString(s) && validInt(s)) {
+		if (validString(s) && validID(s)) {
 				return true;
 			} 
 			else {
@@ -121,7 +123,7 @@ abstract public class Valid {
 	 * @return
 	 */
 	public static boolean validCStock(String s) {
-		if (validString(s) && validInt(s)) {
+		if (validString(s) && validID(s)) {
 				return true;
 			} 
 			else {
@@ -135,7 +137,7 @@ abstract public class Valid {
 	 * @return
 	 */
 	public static boolean validRStock(String s) {
-		if (validString(s) && validInt(s)) {
+		if (validString(s) && validID(s)) {
 				return true;
 			} 
 			else {
@@ -149,7 +151,7 @@ abstract public class Valid {
 	 * @return
 	 */
 	public static boolean validAdd(String s) {
-		if (validString(s) && validInt(s)) {
+		if (validString(s) && validID(s)) {
 				return true;
 			} 
 			else {
