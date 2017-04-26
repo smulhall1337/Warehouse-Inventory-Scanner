@@ -35,7 +35,7 @@ public class ColumnHeaderControllerPanel extends JPanel implements ErrorStatusRe
 	private static final Font CHECKBOX_STATUS_FONT = new Font("Tahoma", Font.PLAIN, SMALLER_COMPONENT_FONT_SIZE);
 	private static final Font LABEL_FONT = new Font("Tahoma", Font.PLAIN, 18);
 	
-	private static final int RIGHT_MARGIN = 100;
+	static final int RIGHT_MARGIN = 100;
 	
 	
 	private JPanel checkBoxesPanel;

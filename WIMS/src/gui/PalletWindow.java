@@ -23,6 +23,10 @@ import java.awt.event.FocusEvent;
 
 public class PalletWindow extends JFrame{
 
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 2363927736080743953L;
 	private static final String NUMREGEX = "\\d+", FIRSTLINE = "Search for a different pallet id ",
 			SECONDLINE = "WARNING: THIS WILL NOT SAVE ANY MODIFICATIONS THAT HAVEN'T BEEN UPDATED YET!";
 	private int changed = 0;

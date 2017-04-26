@@ -1,6 +1,7 @@
 package gui;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.EventQueue;
@@ -11,7 +12,10 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -28,16 +32,21 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
+import javax.swing.JTextArea;
 import javax.swing.JTextField;
-import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
+import javax.swing.Timer;
 import javax.swing.border.Border;
 
+import controller.ComponentProvider;
 import controller.DBNamesManager;
-import controller.EmployeeIDDocument;
+import controller.ErrorStatusReportable;
+import controller.FocusGrabber;
+import controller.IDDocument;
 import controller.NameDocument;
 import controller.SQL_Handler;
 
-public class ManageEmployees extends JFrame{
+public class ManageEmployees extends JFrame implements ErrorStatusReportable {
 
 	/**
 	 * 
@@ -58,12 +67,11 @@ public class ManageEmployees extends JFrame{
 	private static final String DEFAULT_BUTTON_TEXT = "Perform";
 	
 	private static final String DEFAULT_EMPLOYEE_ID = "";
-	private static final int EMPLOYEE_NAME_TEXTFIELD_COLUMNS = 25;
-	private static final int EMPLOYEE_ID_TEXTFIELD_COLUMNS = 25;
+	
 	private static final int PASSWORD_FIELD_COLUMNS = 25;
 	private static final int OPTIONS_LEFT_MARGIN = 10;
 	private static final int STARTING_OPTION_ROW = 0;
-	
+	private static final Font BUTTON_FONT = new Font("Tahoma", Font.PLAIN, 22);
 	private Pattern passwordPattern;
 	private Matcher passwordMatcher;
 
@@ -85,8 +93,10 @@ public class ManageEmployees extends JFrame{
 	private JComboBox comboBoxSelectAction;
 	private JLabel labelEmployeeID;
 	private JLabel labelEmployeeName;
+	private JLabel labelWarehouseID;
 	private JFormattedTextField formattedTextFieldEmployeeName;
 	private JFormattedTextField formattedTextFieldEmployeeID;
+	private JComboBox comboBoxWarehouseID;
 	private JLabel labelCurrentPassword;
 	private JLabel labelNewPassword;
 	private JLabel labelTempPassword;
@@ -94,10 +104,52 @@ public class ManageEmployees extends JFrame{
 	private JPasswordField passFieldNewPass;
 	private JCheckBox checkBoxIsManager;
 	private JPanel panelPerformAction;
+	private JButton btnPerformAction;
 	private int nextOptionRow; //the index of the next option row in the gridbaglayout
+
+	private String[] warehouseIDs;
+
+	private String[] warehouseNames;
+
+	private ArrayList<String> warehouseInfo;
+
+	private String[] warehouseCities;
+
+	private JTextArea errorStatusTextArea;
+
+	private Timer errorDisplayTimer;
+	
+	private String errorTab;
+
+	private ActionListener idActionListener;
+
+	private FocusListener idFocusListener;
 	
 	private static final String TEST_EMP_ID = "894189";
 	private static final boolean TEST_EMP_ISMANAGER = true;
+
+	private static final int WINDOW_WIDTH = 575;
+	private static final int WINDOW_HEIGHT = 375;
+	
+	private static final int MIN_WINDOW_WIDTH = 575;
+	private static final int MIN_WINDOW_HEIGHT = WINDOW_HEIGHT;
+	private static final Dimension MIN_WINDOW_DIM = new Dimension(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT);
+	
+	private static final int MAX_WINDOW_WIDTH = WINDOW_WIDTH;
+	private static final int MAX_WINDOW_HEIGHT = 350;
+	private static final Dimension MAX_WINDOW_DIM = new Dimension(MAX_WINDOW_WIDTH, MAX_WINDOW_HEIGHT);
+
+	protected static final int ERROR_DISPLAY_TIME_MS = 15000;
+	protected static final int SUCCESS_DISPLAY_TIME_MS = 10000;
+	protected static final Color ERROR_DISPLAY_COLOR = Color.RED;//new Color(112, 211, 0);
+	protected static final Color SUCCESS_DISPLAY_COLOR = new Color(58, 193, 0);
+	protected static final Color NEUTRAL_DISPLAY_COLOR = Color.BLACK;//new Color(112, 211, 0);
+
+	private static final int ERROR_STATUS_ROWS = 4;
+
+	private static final int ERROR_STATUS_COLUMNS = 30;
+	
+	
 	
 	/**
 	 * Launch the application.
@@ -122,7 +174,6 @@ public class ManageEmployees extends JFrame{
 		this.loggedInEmpIsManager = loggedInEmpIsManager;
 		this.loggedInEmployeeID = loggedInEmployeeID;
 		this.initialEmployeeID = loggedInEmployeeID;
-		
 		initialize();
 	}
 	
@@ -130,22 +181,56 @@ public class ManageEmployees extends JFrame{
 	{
 		this.loggedInEmpIsManager = isManager;
 		this.loggedInEmployeeID = loggedInEmployeeID;
-		this.initialEmployeeID = initializerEmployeeID;
+		if(loggedInEmpIsManager)
+			this.initialEmployeeID = initializerEmployeeID;
+		else
+			this.initialEmployeeID = loggedInEmployeeID;
 		initialize();
 	}
 
 	/**
+	 * Load the fields for the employee with the corresponding employee id
+	 * @param employeeID the employee to display the fields for
+	 * @return true if loading the fields was successful, false otherwise
+	 */
+	private boolean loadFieldsForID(String employeeID){
+		try {
+			if(SQL_Handler.employeeExists(employeeID))
+			{
+				String employeeName = SQL_Handler.getEmployeeNameByID(employeeID);
+				String wareHouseID = SQL_Handler.getEmployeeWarehouseByEmpID(employeeID);
+				boolean isManager = SQL_Handler.isEmployeeManager(employeeID);
+				formattedTextFieldEmployeeID.setText(employeeID);
+				formattedTextFieldEmployeeName.setText(employeeName);
+				comboBoxWarehouseID.setSelectedItem(wareHouseID);
+				//comboBoxWarehouseID.setEnabled(true);
+				//formattedTextFieldEmployeeName.setEnabled(true);
+				checkBoxIsManager.setSelected(isManager);
+				return true;
+			}else{
+				displayErrorStatus("There is no employee with ID " + employeeID 
+						+ ". Enter an existing ID or select another employee action.");
+				 this.initialEmployeeID = "";
+				 formattedTextFieldEmployeeName.setText("");
+				 return false;
+			}
+		} catch (SQLException ex) {
+			ex.printStackTrace();
+			ComponentProvider.showDBConnectionError(frame);
+			return false;
+		}
+	}
+	
+	/**
 	 * Initialize the contents of the frame.
 	 */
 	private void initialize() {
-		frame = new JFrame("WIMS - Manage Employees");
-		frame.setBounds(700, 400, 450, 260);
-		frame.setResizable(false);
-		frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-		frame.getContentPane().setLayout(new BoxLayout(frame.getContentPane(), BoxLayout.Y_AXIS));
+		initializeFrame();
+		initializeWarehouseInfoArrays();
 		passwordPattern = Pattern.compile(PASSWORD_PATTERN);
 		nextOptionRow = STARTING_OPTION_ROW;
 		initializeLabels();
+		initializeInputFields();
 		//if the current user is a manager, show all options
 		if(loggedInEmpIsManager)
 		{
@@ -160,12 +245,53 @@ public class ManageEmployees extends JFrame{
 		}
 	}
 	
+	private void initializeWarehouseInfoArrays() {
+		
+		try {
+			warehouseIDs = SQL_Handler.getWarehouseIDs();
+			warehouseNames = SQL_Handler.getWarehouseNames();
+			warehouseCities = SQL_Handler.getWarehouseCities();
+			warehouseInfo = new ArrayList<String>();
+			for(int ndx = 0; ndx < warehouseIDs.length; ndx++)
+			{
+				warehouseInfo.add(warehouseNames[ndx] + " in " + warehouseCities[ndx] + " (ID: " + warehouseIDs[ndx] + ")");
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			ComponentProvider.showDBConnectionError(frame);
+			e.printStackTrace();
+		}
+	}
+
+	private void initializeFrame(){
+		frame = new JFrame("WIMS - Manage Employees");
+		frame.setBounds(700, 400, WINDOW_WIDTH, WINDOW_HEIGHT);
+		frame.setResizable(true);
+		frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		frame.getContentPane().setLayout(new BoxLayout(frame.getContentPane(), BoxLayout.Y_AXIS));
+		frame.setMinimumSize(MIN_WINDOW_DIM);
+		frame.setMaximumSize(MAX_WINDOW_DIM);
+	}
+	
 	private void initializeLabels() {
 		labelEmployeeID = new JLabel(DBNamesManager.getEmployeeIdDisplayname() + ":");
 		labelEmployeeName = new JLabel(DBNamesManager.getEmployeeNameDisplayname()+":");
+		labelWarehouseID = new JLabel(DBNamesManager.getWarehouseIdFieldDisplayname() + ":");
 		labelCurrentPassword = new JLabel("Current Password:");
 		labelTempPassword = new JLabel("Temporary Password:");
 		labelNewPassword = new JLabel("New Password:");
+	}
+	
+	private void initializeInputFields() {
+		formattedTextFieldEmployeeID = getEmployeeIDTextField();
+		formattedTextFieldEmployeeName = ComponentProvider.getNameTextField();		
+		comboBoxWarehouseID = new JComboBox();
+		comboBoxWarehouseID.setModel(new DefaultComboBoxModel(warehouseInfo.toArray()));
+		passFieldCurrentPass = getPasswordField();
+		passFieldNewPass = getPasswordField();
+		textFieldTempPassword = new JTextField();
+		textFieldTempPassword.setColumns(15);
+		checkBoxIsManager = new JCheckBox("Employee is a manager");
 	}
 
 	private void initializeActionSelection()
@@ -191,7 +317,6 @@ public class ManageEmployees extends JFrame{
 	private void initializePerfomActionButton(String actionName)
 	{
 		clearPerformActionPanel();
-		JButton btnPerformAction;
 		switch (actionName){
 		case ADD_EMPLOYEE_ACTION_NAME: 
 			btnPerformAction = new JButton(ADD_EMPLOYEE_BUTTON_TEXT);
@@ -213,13 +338,31 @@ public class ManageEmployees extends JFrame{
 		btnPerformAction.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent ae) {
-				performEmployeeChange(actionName);
+				if(comboBoxSelectAction != null  && 
+						((String) comboBoxSelectAction.getSelectedItem()).equals(errorTab))
+				{
+					String employeeID = formattedTextFieldEmployeeID.getText();
+					displayErrorStatus("There is no employee with ID " + employeeID 
+							+ ". Enter an existing ID or select another employee action.");
+					SwingUtilities.invokeLater(new FocusGrabber(formattedTextFieldEmployeeID));
+				}else{
+					performEmployeeChange(actionName);
+				}
 			}
 		});
 		
-		btnPerformAction.setFont(new Font("Tahoma", Font.PLAIN, 18));
-		btnPerformAction.setHorizontalAlignment(SwingConstants.RIGHT);
+		btnPerformAction.setFont(BUTTON_FONT);
+		//btnPerformAction.setHorizontalAlignment(SwingConstants.RIGHT);
 		btnPerformAction.setVisible(true);
+		if(errorStatusTextArea == null){
+			errorStatusTextArea = new JTextArea("");
+			errorStatusTextArea.setLineWrap(true);
+			errorStatusTextArea.setWrapStyleWord(true);
+			errorStatusTextArea.setBackground(panelPerformAction.getBackground());
+			errorStatusTextArea.setColumns(ERROR_STATUS_COLUMNS);
+			errorStatusTextArea.setRows(ERROR_STATUS_ROWS);
+		}
+		panelPerformAction.add(errorStatusTextArea);
 		panelPerformAction.add(btnPerformAction);
 	}
 	
@@ -242,47 +385,137 @@ public class ManageEmployees extends JFrame{
 	}
 	
 	private void updateEnteredEmployee() {
-		// TODO Auto-generated method stub
+		String employeeID = formattedTextFieldEmployeeID.getText();
+		String employeeName = formattedTextFieldEmployeeName.getText();
+		String warehouseID = getSelectedWarehouseID();
+		boolean isManager = checkBoxIsManager.isSelected();
+		try {
+			String oldEmployeeName = SQL_Handler.getEmployeeNameByID(employeeID); 
+			String oldWarehouseID = SQL_Handler.getEmployeeWarehouseByEmpID(employeeID);
+			boolean oldIsManager = SQL_Handler.isEmployeeManager(employeeID);
+			int reply = JOptionPane.showConfirmDialog(frame, 
+					 "Employee ID: " +  employeeID + "\n"
+				   + "Name: " +  oldEmployeeName + " ---> " + employeeName + "\n"
+				   + "Warehouse ID: " +  oldWarehouseID + " ---> " + warehouseID + "\n"
+				   + "Status: " +  position(oldIsManager) + " ---> " + position(isManager) + "\n", 
+					 "Confirm Employee Update", JOptionPane.OK_CANCEL_OPTION);
+			    if (reply == JOptionPane.OK_OPTION)
+			    {
+			    	SQL_Handler.updateEmployee(employeeID, employeeName, isManager, warehouseID);
+			    	displaySuccessStatus("Employee successfully updated.");
+			    }
+		} catch (SQLException e) {
+			e.printStackTrace();
+			ComponentProvider.showDBConnectionError(frame);
+		}
 	}
 
-	private void deleteEnteredEmployee() {
-		// TODO Auto-generated method stub
+	private String getSelectedWarehouseID() {
+		return warehouseIDs[comboBoxWarehouseID.getSelectedIndex()];
 	}
 
 	private void changeEnteredPassword() {
 		final String currentPass = String.valueOf(passFieldCurrentPass.getPassword());
 		final String newPass = String.valueOf(passFieldNewPass.getPassword());
 		try{
-			//TODO check if employee ID exists, check 
 			String currentID = formattedTextFieldEmployeeID.getText();
-			//boolean employeeExists = 
-			boolean validCurrentPass = SQL_Handler.isValidUsernamePassword(currentID, currentPass);
-			boolean validNewPass = validatePassword(newPass);
-			if(!validCurrentPass){
-				JOptionPane.showMessageDialog(frame, "The entered password is incorrect.", 
-				 		"Incorrect Password", JOptionPane.ERROR_MESSAGE);
-			}else if(!validNewPass)
+			if(SQL_Handler.employeeExists(currentID))
 			{
-				 JOptionPane.showMessageDialog(frame, "The newly entered password is invalid."
-				 		+ PASSWORD_REQUIREMENT_DESCRIPTION, 
-				 		"Invalid Password", JOptionPane.ERROR_MESSAGE);
+				boolean validCurrentPass = SQL_Handler.isValidUsernamePassword(currentID, currentPass);
+				boolean validNewPass = validatePassword(newPass);
+				String empName = SQL_Handler.getEmployeeNameByID(currentID);
+				boolean isManager = SQL_Handler.isEmployeeManager(currentID);
+				if(!validCurrentPass || !validNewPass){
+					String errorString = "";
+					if(!validCurrentPass)
+						errorString = "The entered password is incorrect. ";
+					if(!validNewPass)
+						errorString = errorString + "The newly entered password is invalid. " + PASSWORD_REQUIREMENT_DESCRIPTION;
+					if(!errorString.equals("")){
+						displayErrorStatus(errorString);
+					}
+				}else{
+					SQL_Handler.updateEmployeePW(currentID, newPass);
+					displaySuccessStatus("Password for " 
+					+  this.getEmployeeDescription(currentID, empName, isManager) + " successfully changed.");
+				}
+			}else{
+				String error = "Employee with ID " + currentID + " does not exist. Go to the " 
+						+ ADD_EMPLOYEE_ACTION_NAME + " section to add an employee.";
+				JOptionPane.showMessageDialog(frame, error, "Employee does not exist", JOptionPane.ERROR_MESSAGE);
+				displayErrorStatus(error);
 			}
 		}catch(SQLException ex)
 		{
 			//TODO what if the current employee has been removed
+			ex.printStackTrace();
 			JOptionPane.showMessageDialog(frame, "There was a problem reaching the database.", 
 			 		"Database Error", JOptionPane.ERROR_MESSAGE);
 		}
 	}
 
 	private void addEnteredEmployee() {
-		//TODO check if employee already exists
-		String currentID = formattedTextFieldEmployeeID.getText();
-		String currentName = formattedTextFieldEmployeeName.getText();
+		String employeeID = formattedTextFieldEmployeeID.getText();
+		String employeeName = formattedTextFieldEmployeeName.getText();
+		String warehouseID = warehouseIDs[comboBoxWarehouseID.getSelectedIndex()];
 		boolean isManager = checkBoxIsManager.isSelected();
-		// TODO Auto-generated method stub
+		String password = textFieldTempPassword.getText();
+		try {
+			if(SQL_Handler.employeeExists(employeeID))
+			{
+				String existingEmployeeName = SQL_Handler.getEmployeeNameByID(employeeID);
+				boolean existingEmpIsManager = SQL_Handler.isEmployeeManager(employeeID);
+				String updateInfo = "They cannot be added again. ";
+				if(existingEmpIsManager)
+				{
+					updateInfo = "Since they are a manager, you are not permitted to edit their information." + "\n"  
+							+ "Please contact an administrator or " + existingEmployeeName + " for assistance.";
+				}else{
+					updateInfo = "You can edit their information by entering their ID in the" + "\n" 
+								+ "\"Update Employee Info\" section of this menu.";
+				}
+				JOptionPane.showMessageDialog(frame, 
+						this.getEmployeeDescription(employeeID, existingEmployeeName, existingEmpIsManager) + " already exists." + "\n"
+								+ updateInfo, "Employee Already Exists", JOptionPane.WARNING_MESSAGE);
+			}else{
+			
+				int reply = JOptionPane.showConfirmDialog(frame, "Are you sure you want to add " 
+					 + this.getEmployeeDescription(employeeID, employeeName, isManager) 
+					 + "\n" + "and temporary password " + password + "?", 
+					 "Confirm Add Employee", JOptionPane.OK_CANCEL_OPTION);
+			    if (reply == JOptionPane.OK_OPTION)
+			    {
+			    	SQL_Handler.insertNewEmployee(employeeID, employeeName, isManager, password, warehouseID);
+			    	displaySuccessStatus("Employee "  + employeeName +  "with ID " + employeeID + " added to database.");
+			    }
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			ComponentProvider.showDBConnectionError(frame);
+		}
 	}
 
+	private void deleteEnteredEmployee() {
+		String employeeID = formattedTextFieldEmployeeID.getText();
+		String employeeName = formattedTextFieldEmployeeName.getText();
+		boolean isManager = checkBoxIsManager.isSelected();
+		try {
+			 int reply = JOptionPane.showConfirmDialog(frame, "Are you sure you want to delete " 
+					 + this.getEmployeeDescription(employeeID, employeeName, isManager) + "?" + 
+					 "\n" + "They will be gone from the database permanently.", 
+					 "Confirm Employee Deletion", JOptionPane.OK_CANCEL_OPTION);
+			    if (reply == JOptionPane.OK_OPTION)
+			    {
+			    	SQL_Handler.deleteEmployee(employeeID);
+			    	displaySuccessStatus("Employee "  + employeeName + " deleted.");
+			    }
+		} catch (SQLException e) {
+			e.printStackTrace();
+			ComponentProvider.showDBConnectionError(frame);
+		}
+	}
+	
 	private void clearPerformActionPanel()
 	{
 		panelPerformAction.removeAll();
@@ -314,7 +547,6 @@ public class ManageEmployees extends JFrame{
 	private void initializeActionOptionsPanel(String Action)
 	{
 		panelActionOptions = new JPanel();
-		checkBoxIsManager = new JCheckBox("Employee is a manager");
 		Border borderLoweredBevel = BorderFactory.createLoweredBevelBorder();
 		panelActionOptions.setBorder(borderLoweredBevel);
 		frame.getContentPane().add(panelActionOptions, BorderLayout.SOUTH);
@@ -338,6 +570,7 @@ public class ManageEmployees extends JFrame{
 	private void displayOptionsForAction(String reportName)
 	{
 		clearCurrentOptions();
+		loadFieldsForID(initialEmployeeID);
 		switch (reportName){
 		case ADD_EMPLOYEE_ACTION_NAME: 
 			displayAddEmployeeOptions();
@@ -354,88 +587,155 @@ public class ManageEmployees extends JFrame{
 		}
 	}
 	
-	private JFormattedTextField getEmployeeIDTextField()
-	{
-		formattedTextFieldEmployeeID = new JFormattedTextField();
-		formattedTextFieldEmployeeID.setEditable(this.loggedInEmpIsManager); 
-		EmployeeIDDocument idDoc = new EmployeeIDDocument();
-		formattedTextFieldEmployeeID.setDocument(idDoc);
-		formattedTextFieldEmployeeID.setColumns(EMPLOYEE_ID_TEXTFIELD_COLUMNS);
-		formattedTextFieldEmployeeID.setText(this.initialEmployeeID);
-		return formattedTextFieldEmployeeID;
-	}
-	
-	private JPasswordField getPasswordField()
-	{
-		JPasswordField passField = new JPasswordField();
-		passField.setColumns(PASSWORD_FIELD_COLUMNS);
-		return passField;
-	}
-	
 	private void displayUpdateEmployeeOptions() {
-		formattedTextFieldEmployeeID = getEmployeeIDTextField();
 		
-		formattedTextFieldEmployeeName = getEmployeeNameTextField();
-		textFieldTempPassword = new JTextField();
-		
+		formattedTextFieldEmployeeName.setEditable(true);
+		//formattedTextFieldEmployeeName.setEnabled(true);
+		comboBoxWarehouseID.setEnabled(true);
+		checkBoxIsManager.setEnabled(true);
+		addIDActionListener();
 		addRowToOptions(labelEmployeeID, formattedTextFieldEmployeeID);
 		addRowToOptions(labelEmployeeName, formattedTextFieldEmployeeName);
+		addRowToOptions(labelWarehouseID, comboBoxWarehouseID);
 		addRowToOptions(null, checkBoxIsManager);
 	}
 
-	private JFormattedTextField getEmployeeNameTextField() {
-		NameDocument employeeNameDoc = new NameDocument();
-		formattedTextFieldEmployeeName = new JFormattedTextField();
-		formattedTextFieldEmployeeName.setDocument(employeeNameDoc);
-		formattedTextFieldEmployeeName.setColumns(EMPLOYEE_NAME_TEXTFIELD_COLUMNS);
-		return formattedTextFieldEmployeeName;
-	}
+	
 
 	private void displayChangeEmployeePassOptions() {
 		
-		formattedTextFieldEmployeeID = this.getEmployeeIDTextField();
+		//formattedTextFieldEmployeeID = this.getIDTextField();
 		//managers can edit anyones password
 		
-		//TODO make the employee ID field start as currently logged in employee's ID
-		//if they arent a manager, it will be uneditable / a label
+		//TODO
 		//also managers shouldnt have to enter the current password to change a password
-		addRowToOptions(labelEmployeeID, formattedTextFieldEmployeeID);
-		
 		//TODO if current entered employee ID is a manager, make this require their password
-		passFieldCurrentPass = getPasswordField();
+		//formattedTextFieldEmployeeID.setEnabled(true);
+		formattedTextFieldEmployeeID.setEditable(this.loggedInEmpIsManager);
+		addIDActionListener();
+		addRowToOptions(labelEmployeeID, formattedTextFieldEmployeeID);
 		addRowToOptions(labelCurrentPassword, passFieldCurrentPass);
-		
-		passFieldNewPass = getPasswordField();
 		addRowToOptions(labelNewPassword, passFieldNewPass);
+		System.out.println(formattedTextFieldEmployeeID.isEditable());
+		System.out.println(formattedTextFieldEmployeeID.isEnabled());
 	}
 
+    private String name(Component c) {
+        return (c == null) ? null : c.getName();
+    }
 	private void displayDeleteEmployeeOptions() {
-		formattedTextFieldEmployeeID = getEmployeeIDTextField();
-		
-		addRowToOptions(labelEmployeeID, formattedTextFieldEmployeeID);
-		
-		//TODO make this check database from ID, put name in field for you
-		formattedTextFieldEmployeeName = getEmployeeNameTextField();
+
+		formattedTextFieldEmployeeName.setEditable(false);
+		//formattedTextFieldEmployeeName.setEnabled(false);
+		comboBoxWarehouseID.setEnabled(false);
+		checkBoxIsManager.setEnabled(false);
+		addIDActionListener();
+		addRowToOptions(labelEmployeeID, formattedTextFieldEmployeeID);		
 		addRowToOptions(labelEmployeeName, formattedTextFieldEmployeeName);
+		addRowToOptions(labelWarehouseID, comboBoxWarehouseID);
+		addRowToOptions(null, checkBoxIsManager);
+	}
+
+	
+	private void addIDActionListener(){
+		removeIDListeners();
+		idActionListener = new ActionListener()
+        {
+            @Override
+            public void actionPerformed(ActionEvent ae)
+            {
+            	String employeeID = formattedTextFieldEmployeeID.getText();
+            	//if the employee exists and fields are loaded successfully
+            	if(loadFieldsForID(employeeID) && 
+            			!((String)comboBoxSelectAction.getSelectedItem()).equals(CHANGE_EMPLOYEE_PASS_ACTION_NAME));
+            		btnPerformAction.requestFocusInWindow();
+            }
+        };
+		idFocusListener = new FocusListener() 
+		{
+
+			public void focusLost(FocusEvent e) {
+				try {
+					if (!e.getOppositeComponent().equals(comboBoxSelectAction)
+							&& !e.isTemporary()) {
+						String employeeID = formattedTextFieldEmployeeID
+								.getText();
+						try {
+							if (!SQL_Handler.employeeExists(employeeID)) 
+							{
+								displayErrorStatus("There is no employee with ID "
+										+ employeeID
+										+ ". Enter an existing ID or select another employee action.");
+								SwingUtilities.invokeLater(new FocusGrabber(
+										formattedTextFieldEmployeeID));
+								errorTab = (String) comboBoxSelectAction
+										.getSelectedItem();
+							} else {
+								if(!employeeID.equals(loggedInEmployeeID) && SQL_Handler.isEmployeeManager(employeeID))
+								{
+									displayErrorStatus("Managers cannot edit other managers' information. "
+											+ "See an admin for assistance.");
+									SwingUtilities.invokeLater(new FocusGrabber(formattedTextFieldEmployeeID));
+								}else{
+									loadFieldsForID(employeeID);
+								}
+							}
+						} catch (SQLException e1) {
+							ComponentProvider.showDBConnectionError(frame);
+							e1.printStackTrace();
+						}
+					}
+				} catch (NullPointerException npex) {
+
+				}
+			}
+			
+			@Override
+		    public void focusGained(FocusEvent e) {
+		        
+			}
+		};
+		formattedTextFieldEmployeeID.addActionListener(idActionListener);
+		formattedTextFieldEmployeeID.addFocusListener(idFocusListener);
+	}
+	
+	private void removeIDListeners() {
+		formattedTextFieldEmployeeID.removeActionListener(idActionListener);
+		formattedTextFieldEmployeeID.removeFocusListener(idFocusListener);
+		
+	}
+
+	private String getEmployeeDescription(String ID, String name, boolean isManager) {
+		String description = "Employee ";
+		if(isManager)
+			description = "Manager ";
+		description = description + name + " with ID " + ID;
+		return description;
+	}
+
+	private String position(boolean isManager)
+	{
+		if(isManager)
+			return "manager";
+		else
+			return "employee";
 	}
 	
 	private void displayAddEmployeeOptions()
 	{
-		formattedTextFieldEmployeeID = getEmployeeIDTextField();
-		
+		removeIDListeners();
+		formattedTextFieldEmployeeID.setText("");
+		formattedTextFieldEmployeeName.setText("");
+		formattedTextFieldEmployeeName.setEditable(true);
+		//formattedTextFieldEmployeeName.setEnabled(true);
+		comboBoxWarehouseID.setEnabled(true);
+		checkBoxIsManager.setSelected(false);
 		addRowToOptions(labelEmployeeID, formattedTextFieldEmployeeID);
-		
-		formattedTextFieldEmployeeName = getEmployeeNameTextField();
-		
 		addRowToOptions(labelEmployeeName, formattedTextFieldEmployeeName);
-		
-		textFieldTempPassword = new JTextField();
-		textFieldTempPassword.setColumns(15);
-		
 		addRowToOptions(labelTempPassword, textFieldTempPassword);
+		addRowToOptions(labelWarehouseID, comboBoxWarehouseID);
 		addRowToOptions(null, checkBoxIsManager);
 	}
-	
 	
 	/**
 	 * Add a row of options to the gridbaglayout in the options panel, in two columns.
@@ -500,8 +800,66 @@ public class ManageEmployees extends JFrame{
 		  }
 	  }
 	
+	
+	
+	private JFormattedTextField getEmployeeIDTextField()
+	{
+		JFormattedTextField formattedTextFieldEmployeeID = ComponentProvider.getIDTextField();
+		formattedTextFieldEmployeeID.setEditable(this.loggedInEmpIsManager); 
+		formattedTextFieldEmployeeID.setText(this.initialEmployeeID);
+		return formattedTextFieldEmployeeID;
+	}
+
+	private JPasswordField getPasswordField()
+	{
+		JPasswordField passField = new JPasswordField();
+		passField.setColumns(PASSWORD_FIELD_COLUMNS);
+		return passField;
+	}
+	
 	public JFrame getFrame()
 	{
 		return this.frame;
+	}
+
+
+	@Override
+	public void clearErrorStatus()
+	{
+		errorStatusTextArea.setText("");
+	}
+	
+	@Override
+	public void displayErrorStatus(String errorText)
+	{
+		displayStatusForTime(errorText, ERROR_DISPLAY_COLOR, ERROR_DISPLAY_TIME_MS);
+	}
+	
+	@Override
+	public void displayNeutralStatus(String neutralText) {
+		displayStatusForTime(neutralText, NEUTRAL_DISPLAY_COLOR, ERROR_DISPLAY_TIME_MS);
+	}
+	
+
+	@Override
+	public void displaySuccessStatus(String successText) {
+		displayStatusForTime(successText, SUCCESS_DISPLAY_COLOR, SUCCESS_DISPLAY_TIME_MS);
+	}
+	
+	public void displayStatusForTime(String statusText, Color textColor, int milliseconds)
+	{
+		System.out.println("error");
+		if(!statusText.equals(errorStatusTextArea.getText()))
+		{
+			errorStatusTextArea.setForeground(textColor);
+			errorStatusTextArea.setText(statusText);
+			errorDisplayTimer = new Timer(milliseconds, new ActionListener() {
+			    public void actionPerformed(ActionEvent evt) {
+		    		clearErrorStatus();
+		    }
+		});
+			errorDisplayTimer.setRepeats(false);
+			errorDisplayTimer.start();
+		}
 	}
 }

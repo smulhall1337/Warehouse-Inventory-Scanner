@@ -1,13 +1,10 @@
 package gui;
 
-import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.text.DecimalFormat;
-import java.util.Properties;
 
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JComboBox;
@@ -16,13 +13,10 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 
-import org.jdatepicker.impl.JDatePanelImpl;
 import org.jdatepicker.impl.JDatePickerImpl;
-import org.jdatepicker.impl.UtilDateModel;
 
 import controller.ComponentProvider;
 import controller.DBNamesManager;
-import controller.DateLabelFormatter;
 import controller.MainWindowInfoController;
 import controller.NumericDataDocument;
 
@@ -51,7 +45,6 @@ public class EntityAndFieldPanel extends JPanel {
 	private JLabel lblFieldWith; 
 	
 	
-	//TODO fix this to come from a handler between the mainwindow and the columnheader
 	private String currentTableEntity;
 	
 	//DatePicker to select date when a Date type field is selected
@@ -59,8 +52,6 @@ public class EntityAndFieldPanel extends JPanel {
 	//JTextField to enter a search string when a String type field is selected
 	private JTextField stringFieldTextField;
 	//JFormattedTextField to enter a number when a numeric type field is selected
-	//TODO difference between improved and regular formatted text field
-	//private ImprovedFormattedTextField numericFieldTextField;
 	private JFormattedTextField numericFieldTextField;
 	
 	private MainWindowInfoController infoController;
@@ -281,7 +272,6 @@ public class EntityAndFieldPanel extends JPanel {
 		//get the data type of the field to update the component based on
 		String fieldType = DBNamesManager.getFieldDataTypeByDisplayName(fieldDisplayName);
 		System.out.println(fieldDisplayName + " IS TYPE " + fieldType);
-		//TODO add documents for text fields
 		//Update the component based on the data type of the field
 		switch (fieldType){
 		case DBNamesManager.NUMERIC_FIELD_TYPE_NAME: 
@@ -393,6 +383,7 @@ public class EntityAndFieldPanel extends JPanel {
 	}
 	
 	public String getFieldModifierValue() {
+		
 		return this.getFieldModifierValue(this.getSelectedField());
 	}
 	

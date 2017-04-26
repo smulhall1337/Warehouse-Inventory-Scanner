@@ -12,8 +12,10 @@ import javax.swing.JComboBox;
 
 import java.awt.BorderLayout;
 
+import controller.ComponentProvider;
 import controller.DateLabelFormatter;
 import controller.ErrorStatusReportable;
+import controller.MainWindowInfoController;
 import controller.SQL_Handler;
 import controller.WidthAdjuster;
 
@@ -22,13 +24,17 @@ import java.awt.FlowLayout;
 import javax.swing.JTable;
 
 import java.awt.Component;
+import java.awt.Dimension;
 
+import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.text.NumberFormatter;
 import javax.swing.JScrollPane;
 import javax.swing.JButton;
 import javax.swing.SwingConstants;
+import javax.swing.SwingWorker;
+import javax.swing.border.Border;
 
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
@@ -42,6 +48,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.NumberFormat;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
@@ -49,19 +56,19 @@ import javax.swing.JCheckBox;
 
 import org.jdatepicker.impl.*;
 
-public class ReportsWindow implements ErrorStatusReportable{
+public class ReportsWindow extends JPanel implements ErrorStatusReportable {
 
-	private JFrame frame;
 	private JTable table;
-	private JPanel reportSelectionOptionsPanel;
 	private JPanel reportSelectPanel;
 	private JPanel reportOptionsPanel;
 	private JComboBox comboBoxReportType;
 	private JComboBox comboBoxShippedReceivedBeforeAfter;
-	private JScrollPane reportTableScrollPane;
-	private WidthAdjuster TableWidthAdjuster;
-	private Connection DBConnection;
-	private SQL_Handler SQLHandler;
+	private MainWindowInfoController infoController;
+	private SwingWorker<Boolean, Void> updateTableProcess;
+	private int maxWidth;
+	private int maxHeight;
+	private JFrame frame;
+	private JPanel outerPanel;
 	
 	private static final int MIN_AGING_ITEMS_DAYS = 0;
 	private static final int MAX_AGING_ITEMS_DAYS = 9999;
@@ -73,27 +80,30 @@ public class ReportsWindow implements ErrorStatusReportable{
 	private static final String[] REPORT_TYPES = {AGING_ITEMS_REPORTNAME, EMPLOYEES_REPORTNAME, ITEM_OVERVIEW_REPORTNAME,
 												 SHIPPED_BY_DATE_REPORTNAME, RECEIVED_BY_DATE_REPORTNAME};
 	
-	/**
-	 * Launch the application.
-	 */
-	public static void main(String[] args) {
-		EventQueue.invokeLater(new Runnable() {
-			@Override
-			public void run() {
-				try {
-					ReportsWindow window = new ReportsWindow();
-					window.frame.setVisible(true);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		});
-	}
+//	/**
+//	 * Launch the application.
+//	 */
+//	public static void main(String[] args) {
+//		EventQueue.invokeLater(new Runnable() {
+//			@Override
+//			public void run() {
+//				try {
+//					ReportsWindow window = new ReportsWindow();
+//					window.frame.setVisible(true);
+//				} catch (Exception e) {
+//					e.printStackTrace();
+//				}
+//			}
+//		});
+//	}
 
 	/**
 	 * Create the application.
 	 */
-	public ReportsWindow() {
+	public ReportsWindow(MainWindowInfoController controller, int maxWidth, int maxHeight) {
+		this.infoController = controller;
+		this.maxWidth = maxWidth;
+		this.maxHeight = maxHeight;
 		initialize();
 	}
 
@@ -102,11 +112,8 @@ public class ReportsWindow implements ErrorStatusReportable{
 	 */
 	private void initialize() {
 		
-		DBConnection = SQL_Handler.getConnection();
-		SQLHandler = new SQL_Handler();
 		initializeReportFrame();
-		
-		initializeReportSelectionOptionsPanel();
+		initializeOuterPanel();
 		initializeReportSelectPanel();
 		
 		initializeReportComboBox();
@@ -114,7 +121,6 @@ public class ReportsWindow implements ErrorStatusReportable{
 		
 		initializeReportOptionsPanel();
 		
-		initializeTable();
 		initializeExport();
 		initializeBorderStruts();
 	}
@@ -124,14 +130,37 @@ public class ReportsWindow implements ErrorStatusReportable{
 		frame = new JFrame();
 		frame.setTitle("WIMS - Reports");
 		frame.setBounds(100, 100, 718, 534);
+		frame.setMaximumSize(new Dimension(maxWidth, maxHeight));
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.getContentPane().setLayout(new BorderLayout(0, 0));
 	}
 	
-	private void initializeReportSelectionOptionsPanel() {
-		reportSelectionOptionsPanel = new JPanel();
-		frame.getContentPane().add(reportSelectionOptionsPanel, BorderLayout.NORTH);
-		reportSelectionOptionsPanel.setLayout(new BorderLayout(0, 0));
+	private void initializeOuterPanel(){
+		
+		//A wrapper panel with a boxlayout so that the maximum size of the entity selection
+		//and field columns selection panel is respected. Needed since borderlayout does
+		//not respect maximum size.
+		JPanel resizingPanel = new JPanel();
+		BoxLayout resizingPanelLayout = new BoxLayout(resizingPanel, BoxLayout.X_AXIS);
+		resizingPanel.setLayout(resizingPanelLayout);
+		//Add a blank panel so there is a panel on the left that can resize to fill the empty space
+		JPanel leftPanelForSpacing = new JPanel();
+		//leftPanelForSpacing.setMaximumSize(new Dimension(OPTIONSPANEL_MAX_LEFT_SPACE, IRRELEVANT_MAX_DIMENSION));
+		//leftPanelForSpacing.add(Box.createRigidArea(new Dimension(TABLE_PANEL_MARGIN, IRRELEVANT_MIN_DIMENSION)));
+		resizingPanel.add(leftPanelForSpacing);
+		//Add the panel to the middle
+		outerPanel = new JPanel();
+		outerPanel.setMaximumSize(new Dimension(maxWidth, maxHeight));
+		outerPanel.setLayout(new BorderLayout(0, 0));
+		resizingPanel.add(outerPanel);
+		//Add a blank panel so there is a panel on the right that can resize to fill the empty space
+		resizingPanel.add(new JPanel());
+		//Give the panel an etched border
+		Border borderEtched = BorderFactory.createEtchedBorder();
+		outerPanel.setBorder(borderEtched);
+		outerPanel.add(new JLabel("sfas testing"), BorderLayout.NORTH);
+		
+		frame.getContentPane().add(resizingPanel);
 	}
 
 	private void initializeReportSelectPanel()
@@ -140,7 +169,7 @@ public class ReportsWindow implements ErrorStatusReportable{
 		FlowLayout fl_reportSelectPanel = (FlowLayout) reportSelectPanel.getLayout();
 		fl_reportSelectPanel.setVgap(10);
 		fl_reportSelectPanel.setAlignment(FlowLayout.LEFT);
-		reportSelectionOptionsPanel.add(reportSelectPanel, BorderLayout.NORTH);
+		frame.getContentPane().add(reportSelectPanel, BorderLayout.NORTH);
 		
 		JLabel lblNewLabel = new JLabel("Report Type:");
 		lblNewLabel.setFont(new Font("Tahoma", Font.PLAIN, 18));
@@ -148,19 +177,19 @@ public class ReportsWindow implements ErrorStatusReportable{
 	}
 	
 	private void initializeReportComboBox()
-		{
-			comboBoxReportType = new JComboBox();
-			comboBoxReportType.addActionListener(new ActionListener() {
-				@Override
-				public void actionPerformed(ActionEvent ae) {
-					String itemSelected = (String) comboBoxReportType.getSelectedItem();
-					displayOptionsForReport(itemSelected);
-				}
-			});
-			comboBoxReportType.setFont(new Font("Tahoma", Font.PLAIN, 18));
-			comboBoxReportType.setModel(new DefaultComboBoxModel(REPORT_TYPES));
-			reportSelectPanel.add(comboBoxReportType);
-		}
+	{
+		comboBoxReportType = new JComboBox();
+		comboBoxReportType.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent ae) {
+				String itemSelected = (String) comboBoxReportType.getSelectedItem();
+				displayOptionsForReport(itemSelected);
+			}
+		});
+		comboBoxReportType.setFont(new Font("Tahoma", Font.PLAIN, 18));
+		comboBoxReportType.setModel(new DefaultComboBoxModel(REPORT_TYPES));
+		reportSelectPanel.add(comboBoxReportType);
+	}
 	
 	private void displayOptionsForReport(String reportName)
 	{
@@ -200,21 +229,6 @@ public class ReportsWindow implements ErrorStatusReportable{
 		return panel;
 	}
 	
-	private JDatePickerImpl getDatePicker()
-	{
-		UtilDateModel model = new UtilDateModel();
-    	//model.setDate(20,04,2014);
-    	// Need this...
-    	Properties p = new Properties();
-    	p.put("text.today", "Today");
-    	p.put("text.month", "Month");
-    	p.put("text.year", "Year");
-    	JDatePanelImpl datePanel = new JDatePanelImpl(model, p);
-    	// Don't know about the formatter, but there it is...
-    	JDatePickerImpl datePicker = new JDatePickerImpl(datePanel, new DateLabelFormatter());
-    	return datePicker;
-	}
-	
 	private void displayReportItemsExecutedByDateOptions(String action) {
 		JPanel row1 = addPanelToOptions();
 		JPanel row2 = addPanelToOptions();
@@ -222,7 +236,7 @@ public class ReportsWindow implements ErrorStatusReportable{
 		
 		JLabel labelItemsShippedReceivedBy = new JLabel("Displayed items " + action + ":");
 		
-		JDatePickerImpl receivedDatePicker = getDatePicker();
+		JDatePickerImpl receivedDatePicker = ComponentProvider.getDatePicker();
 		
 		comboBoxShippedReceivedBeforeAfter = new JComboBox(new String[]{"Before", "After"});
 		
@@ -313,7 +327,7 @@ public class ReportsWindow implements ErrorStatusReportable{
 		JPanel generateButtonPanel = new JPanel();
 		FlowLayout fl_generateButtonPanel = (FlowLayout) generateButtonPanel.getLayout();
 		fl_generateButtonPanel.setAlignment(FlowLayout.RIGHT);
-		reportSelectionOptionsPanel.add(generateButtonPanel, BorderLayout.SOUTH);
+		frame.getContentPane().add(generateButtonPanel, BorderLayout.SOUTH);
 
 		
 		JButton generateButton = new JButton("Generate");
@@ -367,9 +381,11 @@ public class ReportsWindow implements ErrorStatusReportable{
 	private void displayEmployeeReport() {
 		try{
 		ResultSet employeeResultSet = SQL_Handler.getAllEmp();
-		List<String[]> employeeInfoList = SQL_Handler.getResultSetAsListOfArrays(employeeResultSet);
+		Object[][] employeeInfoObj = SQL_Handler.getResultSetAs2DObjArray(employeeResultSet);
+		
+		
 		String[] columnNames = SQL_Handler.getColumnNamesFromResultSet(employeeResultSet);
-		populateTable(employeeInfoList, columnNames);
+		//infoController.getMainWindow().
 		}catch(SQLException ex)
 		{
 			JOptionPane.showMessageDialog(frame, "An unexpected database error occured when " 
@@ -378,20 +394,59 @@ public class ReportsWindow implements ErrorStatusReportable{
 		
 	}
 
-	private void populateTable(List<String[]> dataList, String[] columnNames) {
-		
-        String[][] dataArrays = new String[dataList.size()][];
-        dataArrays = dataList.toArray(dataArrays);
-		populateTable(dataArrays, columnNames);
-	}
-	
-	private void populateTable(String[][] dataList, String[] columnNames) {
-		DefaultTableModel model = new DefaultTableModel(dataList, columnNames);
-		table.setModel(model);
-		model.fireTableDataChanged();
-	}
-	
-	
+//	private void updateTable(){
+//		updateTableProcess = new SwingWorker<Boolean, Void>() {
+//
+//	        @Override
+//	        protected Boolean doInBackground() throws Exception {
+//	        	//update the table and save whether it was successfully updated
+//	            boolean success = updateTableBasedOnSelection(entityName, fieldName, fieldModifier, fieldModifierValue);
+//	            boolean modifierValueEntered = entityAndFieldSelectPanel.isModifierValueEntered();
+//            	String statusMessageEnding = entityName;
+//            	if(modifierValueEntered)
+//            		statusMessageEnding = statusMessageEnding + " with " + fieldName + " " + fieldModifier + " " + fieldModifierValue;
+//            	statusMessageEnding += ".";
+//	            if(success) //if the table was successfully updated
+//	            {
+//	            	//activate the checkboxes for this entity and clear the checkbox warning
+//		            showColumnsForPanel.setAreCheckBoxesAreEnabled(entityName, true); //TODO double check this
+//		            showColumnsForPanel.clearErrorStatus(); 
+//		            //clear the current error status
+//					clearErrorStatus();
+//					//update the column widths of the table
+//					mainTable.updateColumnWidths();
+//					//if there are results, display the success message for the input query
+//					String successMessage = "Displaying results for " + statusMessageEnding;
+//					displaySuccessStatus(successMessage);
+//	            }else{ //if the table was not successfully updated 
+//	            	//show the error that there were no results for the input query
+//	            	String error = "There are no results for " + statusMessageEnding;
+//					displayErrorStatus(error);
+//	            }
+//	            return success;
+//	        }
+//
+//	        @Override
+//	        protected void done() {
+//	        	//System.out.println("done!!!!!!!!!!!!!!!!!");
+//	        	//when the update finishes
+//	        	//ugly fix to bug of scrollpane not showing scrollbar unless you resize it after updating the table
+//	        	int scrollPaneOrigWidth = mainTableScrollPane.getWidth();
+//	        	int scrollPaneOrigHeight = mainTableScrollPane.getHeight();
+//	        	mainTableScrollPane.setSize(scrollPaneOrigWidth+1, scrollPaneOrigHeight+1);
+//	        	mainTableScrollPane.setSize(scrollPaneOrigWidth, scrollPaneOrigHeight);
+//	        	//update the current table entity to whatever entity was selected when the table updated
+//	        	//making the loading icon invisible
+//	        	lblLoadingIcon.setVisible(false);
+//	        }
+//	    };
+//	    updateTableProcess.execute();
+//	}
+//});
+//Component rigidAreaRight = Box.createRigidArea(new Dimension(UPDATE_BUTTON_RIGHT_SPACING, UPDATE_BUTTON_RIGHT_SPACING));
+//updateButtonPanel.add(rigidAreaRight);
+//	}
+//	
 
 	private void displayAgingItemsReport() {
 		// TODO Auto-generated method stub
@@ -401,36 +456,12 @@ public class ReportsWindow implements ErrorStatusReportable{
 	private void initializeReportOptionsPanel()
 	{
 		reportOptionsPanel = new JPanel();
-		reportSelectionOptionsPanel.add(reportOptionsPanel, BorderLayout.CENTER);
+		frame.getContentPane().add(reportOptionsPanel, BorderLayout.CENTER);
 		reportOptionsPanel.setLayout(new BoxLayout(reportOptionsPanel, BoxLayout.Y_AXIS));
 		
 		displayOptionsForReport((String) comboBoxReportType.getSelectedItem());
 	}
 	
-	private void initializeTable()
-	{
-		reportTableScrollPane = new JScrollPane(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-		frame.getContentPane().add(reportTableScrollPane, BorderLayout.CENTER);
-		
-		table = new JTable();
-		TableWidthAdjuster = new WidthAdjuster(table);
-		
-		
-		//table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
-		table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-		table.setFillsViewportHeight(true);
-		Object[][] defaultData = new Object[26][26]; 
-		String[] defaultColNames = new String[26];
-		//MyTableModel tabelModel = new MyTableModel(defaultData, defaultColNames)
-		table.setModel(new DefaultTableModel(defaultData, defaultColNames));
-
-//		JTableHeader header = table.getTableHeader();
-//		header.setUpdateTableInRealTime(true);
-//		header.addMouseListener(tableModel.new ColumnListener(table));
-//		header.setReorderingAllowed(true);
-		reportTableScrollPane.setViewportView(table);
-	}
-
 	private void initializeExport(){
 		JPanel exportPanel = new JPanel();
 		frame.getContentPane().add(exportPanel, BorderLayout.SOUTH);
@@ -453,6 +484,24 @@ public class ReportsWindow implements ErrorStatusReportable{
 
 	@Override
 	public void displayErrorStatus(String errorText) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void clearErrorStatus() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void displayNeutralStatus(String neutralText) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void displaySuccessStatus(String successText) {
 		// TODO Auto-generated method stub
 		
 	}

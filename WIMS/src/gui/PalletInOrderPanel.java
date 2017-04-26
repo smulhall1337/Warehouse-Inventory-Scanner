@@ -19,6 +19,10 @@ import java.awt.Component;
 
 public class PalletInOrderPanel extends JPanel {
 
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 3799052246531544651L;
 	private String[][] allPalletsList;
 	private Container palletCont = new Container();
 	private Dimension pref = new Dimension(325,700);
