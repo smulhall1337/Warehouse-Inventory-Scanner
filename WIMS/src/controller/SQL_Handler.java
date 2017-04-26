@@ -6,6 +6,8 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.*;
 import java.util.ArrayList;
+						
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,10 +49,10 @@ public abstract class SQL_Handler {
 		
 		try {
 			Class.forName(SQL_DRIVER);
-			Connection conn = DriverManager.getConnection(URL, DB_USER, DB_PW);
-			
-			//Must remove for final version, left here for testing connection to DB. (No I/O from anything but driver)
-			//System.out.println("Connected!"); 
+			Connection conn = DriverManager.getConnection(URL, DB_USER, DB_PW); 
+   
+																											 
+									   
 			return conn;
 			
 		} catch(SQLException e)
@@ -100,6 +102,7 @@ public abstract class SQL_Handler {
 		try {			
 			//#############################################All Entities
 			
+													   
 			//#############################################Employees
 			//Key for storage in HashMap
 			stmt_key = "EmpByID";
@@ -117,6 +120,10 @@ public abstract class SQL_Handler {
 											  "VALUES (?,?,?,?,?)");
 			statements.put(stmt_key, statement);
 			
+			stmt_key = "UpdateEmpPW";
+			statement = conn.prepareStatement("UPDATE employees SET salt = ? WHERE employee_id = ?");
+			statements.put(stmt_key, statement);
+			
 			stmt_key = "AllEmp";
 			statement = conn.prepareStatement("SELECT * FROM employees");
 			statements.put(stmt_key, statement);
@@ -125,6 +132,14 @@ public abstract class SQL_Handler {
 			statement = conn.prepareStatement("SELECT * FROM employees");
 			statements.put(stmt_key, statement);
 			
+			stmt_key = "UpdateEmp";
+			statement = conn.prepareStatement("UPDATE employees SET name = ?,"
+					+ " is_management = ?, warehouse_id = ? WHERE employee_id = ?");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "DelEmp";
+			statement = conn.prepareStatement("DELETE FROM employees WHERE employee_id = ?");
+			statements.put(stmt_key, statement);
 			//#############################################Items
 			stmt_key = "InDB";
 			statement = conn.prepareStatement("SELECT * from items WHERE item_number = ?");
@@ -188,9 +203,14 @@ public abstract class SQL_Handler {
 			stmt_key = "UpdateItemOnPallet";
 			statement = conn.prepareStatement("UPDATE swenggdb.pallets_items SET item_quantity = ? WHERE pallet_id = ? AND item_number = ?");
 			statements.put(stmt_key, statement);
+			
 			stmt_key = "AddItemToPallet";
 			statement = conn.prepareStatement("INSERT INTO swenggdb.pallets_items (pallet_id, item_number, item_quantity) " +
 												"VALUES (?, ?, ?)");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "GetPalletLocation";
+			statement = conn.prepareStatement("SELECT pallet_location FROM swenggdb.pallets WHERE pallet_id = ?");
 			statements.put(stmt_key, statement);
 			//#############################################Orders
 			stmt_key = "OrderInDB";
@@ -202,8 +222,39 @@ public abstract class SQL_Handler {
 												"VALUES(?, ?,?, ?, ?, ?, ?, ?)");
 			statements.put(stmt_key, statement);
 			//#############################################Warehouses
-			//#############################################Sublocations		
+			stmt_key = "GetWHNamesIDs";
+			statement = conn.prepareStatement("SELECT warehouse_id, name FROM warehouses");
+			statements.put(stmt_key, statement);
 			
+			stmt_key = "GetWHNames";
+			statement = conn.prepareStatement("SELECT name FROM warehouses");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "GetWHIDs";
+			statement = conn.prepareStatement("SELECT warehouse_id FROM warehouses");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "GetWHCities";
+			statement = conn.prepareStatement("SELECT city FROM warehouses");
+			statements.put(stmt_key, statement);				  
+			//#############################################Sublocations		
+			stmt_key = "GetAvailableSubLocations";
+			statement = conn.prepareStatement("SELECT * FROM swenggdb.sublocation WHERE max_pallet_qty <> current_pallet_qty");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "GetSubLocationName";
+			statement = conn.prepareStatement("SELECT * FROM swenggdb.sublocation where simple_sublo_index = ?");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "GetSubLocationInfo";
+			statement = conn.prepareStatement("SELECT * FROM swenggdb.sublocation where location_coordinate = ?");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "ChangeSubLocationCurrentQty";
+			statement = conn.prepareStatement("UPDATE swenggdb.sublocation SET current_pallet_qty = ? WHERE location_coordinate = ?");
+			statements.put(stmt_key, statement);
+   
+   
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}	
@@ -228,6 +279,7 @@ public abstract class SQL_Handler {
 	
 	//#############################################All Entities
 	public static ResultSet getAllFromTable(String tableName) throws SQLException{
+		sanitizeInput(tableName);
 		String query = "SELECT * FROM " + tableName;
 			stmt = customConnection.prepareStatement(query);
 			rs = stmt.executeQuery();
@@ -324,18 +376,25 @@ public abstract class SQL_Handler {
 	 * @param employee_id the employee id to set for the new employee
 	 * @param name the full name of the new employee
 	 * @param isManagement whether or not the new employee is management
-	 * @param salt the encrypted and salted pw for the new employee
+	 * @param pw the employee's password
 	 * @param warehouse_id the warehouse id that the new employee will be employed
 	 */
 	public static void insertNewEmployee(String employee_id, String name, boolean isManagement, 
-								 String salt, String warehouse_id) throws SQLException
+								 String pw, String warehouse_id) throws SQLException
 	{
 		stmt = sql_statements.get("NewEmp");
 		stmt.setString(1, employee_id);
 		stmt.setString(2, name);
 		stmt.setBoolean(3, isManagement);
-		stmt.setString(4, salt);
+		stmt.setString(4, md5_hash(pw+salt));
 		stmt.setString(5, warehouse_id);
+		stmt.execute();
+	}
+	
+	public static void updateEmployeePW(String employee_id, String pw) throws SQLException {
+		stmt = sql_statements.get("UpdateEmpPW");
+		stmt.setString(1, md5_hash(pw+salt));
+		stmt.setString(2, employee_id);
 		stmt.execute();
 	}
 	
@@ -345,6 +404,67 @@ public abstract class SQL_Handler {
 		return rs;
 	}
 	
+public static boolean employeeExists(String employee_id) throws SQLException {
+		rs = getEmpRowByID(employee_id);
+		if (!rs.isBeforeFirst() ) {    
+		    return false; 
+		} 
+		return true;
+	}
+	
+	/**
+	 * Deletes the employee with the given ID from the database
+	 * @param employee_id the ID of the employee to delete
+	 * @return true if the employee was successfully deleted, false otherwise
+	 * @throws SQLException
+	 */
+	public static boolean deleteEmployee(String employee_id) throws SQLException{
+		stmt = sql_statements.get("DelEmp");
+		stmt.setString(1, employee_id);
+		return stmt.execute();
+	}
+	
+	public static String getEmployeeNameByID(String employee_id) throws SQLException{
+		rs = getEmpRowByID(employee_id);
+		rs.next();
+		String name = rs.getString(DBNamesManager.getEmployeeNameDbField());
+		return name;
+	}
+	
+	public static String getEmployeeWarehouseByEmpID(String employee_id) throws SQLException{
+		rs = getEmpRowByID(employee_id);
+		rs.next();
+		String name = rs.getString(DBNamesManager.getEmployeeWarehouseIdDbField());
+		return name;
+	}
+	
+	public static boolean isEmployeeManager(String employee_id) throws SQLException{
+		rs = getEmpRowByID(employee_id);
+		rs.next();
+		boolean isManager = rs.getBoolean(DBNamesManager.getEmployeeIsManagerDbField());
+		return isManager;
+	}
+	
+	/**
+	 * Insert a new employee to the DB
+	 * @param employee_id the employee id to set for the new employee
+	 * @param name the full name of the new employee
+	 * @param isManagement whether or not the new employee is management
+	 * @param warehouse_id the warehouse id that the new employee will be employed
+	 */
+	public static void updateEmployee(String employeeID, String new_name, boolean new_isManagement,
+			String new_warehouse_id) throws SQLException
+	{
+		//UPDATE employees name = ?, is_management = ?, warehouse_id = ? WHERE employee_id = ?
+		stmt = sql_statements.get("UpdateEmp");
+		stmt.setString(1, new_name);
+		stmt.setBoolean(2, new_isManagement);
+		stmt.setString(3, new_warehouse_id);
+		stmt.setString(4, employeeID);
+		stmt.execute();
+	}
+		
+ 
 	//#############################################Items
 	public static boolean itemInDB(String itemNumber) throws SQLException {
 			stmt = sql_statements.get("InDB");
@@ -511,6 +631,44 @@ public abstract class SQL_Handler {
 		return rs;
 	}
 	
+	public static ResultSet getAllFromItemsWithCategory() throws SQLException{
+		String query = "SELECT i.*, group_concat(ic.type SEPARATOR ';') "
+						+ "AS 'type' "
+						+ "FROM items AS i "
+						+ "LEFT OUTER JOIN items_item_category AS iic "
+						+ "ON (i.item_number = iic.item_number) "
+						+ "LEFT OUTER JOIN item_category AS ic "
+						+ "ON (ic.type = iic.type)"
+						+ " GROUP BY item_number"; 
+		System.out.println("no modifier");
+
+		//System.out.println(query);
+		stmt = customConnection.prepareStatement(query);
+		rs = stmt.executeQuery();
+		return rs;
+	}
+	
+	public static ResultSet getAllFromItemsWithCategory(String fieldName, String fieldModifier, String fieldValue) throws SQLException{
+		String queryMod = getQueryModifierString(fieldModifier, sanitizeInput(fieldValue));
+		System.out.println(queryMod);
+		String table = "";
+		if(fieldName.equals(DBNamesManager.getItemCategoriesDbField()))
+			table = "iic.";
+		
+		String query = "SELECT i.*, group_concat(ic.type) "
+				+ "AS 'type' "
+				+ "FROM items AS i "
+				+ "LEFT OUTER JOIN items_item_category AS iic "
+				+ "ON (i.item_number = iic.item_number) "
+				+ "LEFT OUTER JOIN item_category AS ic "
+				+ "ON (ic.type = iic.type) WHERE " + table + fieldName + queryMod
+				+ " GROUP BY item_number"; 
+		System.out.println("modifier");
+		System.out.println(query);
+		stmt = customConnection.prepareStatement(query);
+		rs = stmt.executeQuery();
+		return rs;
+	}
 	
 	//#############################################Pallets
 		public static boolean palletInDB(String palletID) throws SQLException {
@@ -560,7 +718,7 @@ public abstract class SQL_Handler {
 		stmt.execute();
 	}
 	
-	public static void insertNewPallet(String palletID, int pieceCount, int weight, int length, int width, int height, String receiveDate, String shipDate, String notes, int orderNumber, String Location) throws SQLException {
+	public static void insertNewPallet(String palletID, int pieceCount, int weight, int length, int width, int height, String receiveDate, String shipDate, String notes, String orderNumber, String Location) throws SQLException {
 		stmt = sql_statements.get("NewPallet");
 		stmt.setString(1,palletID);
 		stmt.setInt(2,pieceCount);
@@ -571,7 +729,7 @@ public abstract class SQL_Handler {
 		stmt.setString(7,receiveDate);
 		stmt.setString(8,shipDate);
 		stmt.setString(9,notes);
-		stmt.setInt(10,orderNumber);
+		stmt.setString(10,orderNumber);
 		stmt.setString(11,Location);
 		stmt.execute();
 	}
@@ -584,6 +742,41 @@ public abstract class SQL_Handler {
 		stmt.execute();		
 	}
 	
+	public static String getPalletLocation(String palletID) throws SQLException {
+		stmt = sql_statements.get("GetPalletLocation");
+		stmt.setString(1, palletID);
+		rs = stmt.executeQuery();
+		rs.next();
+		String index = rs.getString("pallet_location");
+		int temp = Integer.parseInt(index);
+		stmt = sql_statements.get("GetSubLocationName");
+		stmt.setInt(1, temp);
+		rs = stmt.executeQuery();
+		rs.next();
+		return rs.getString("location_coordinate");
+	}					
+	
+	public static ResultSet getPalletsWithSubloCoord(String fieldName, String fieldModifier, String fieldValue) throws SQLException{
+		String queryMod = getQueryModifierString(fieldModifier, sanitizeInput(fieldValue));
+		System.out.println(queryMod);
+		String table = "";
+		if(fieldName.equals(DBNamesManager.getItemCategoriesDbField()))
+			table = "iic.";
+		
+		String query = "SELECT i.*, group_concat(ic.type) "
+				+ "AS 'type' "
+				+ "FROM items AS i "
+				+ "LEFT OUTER JOIN items_item_category AS iic "
+				+ "ON (i.item_number = iic.item_number) "
+				+ "LEFT OUTER JOIN item_category AS ic "
+				+ "ON (ic.type = iic.type) WHERE " + table + fieldName + queryMod
+				+ " GROUP BY item_number"; 
+		System.out.println("modifier");
+		System.out.println(query);
+		stmt = customConnection.prepareStatement(query);
+		rs = stmt.executeQuery();
+		return rs;
+	}
 	
 	//#############################################Orders
 	public static boolean OrderInDB(String OrderNumber) throws SQLException {
@@ -609,20 +802,70 @@ public abstract class SQL_Handler {
 		stmt.execute();
 	}
 		
+	//#############################################Warehouses
+	public ResultSet getWarehouseNamesAndIDs() throws SQLException {
+		stmt = sql_statements.get("GetWHNamesIDs");
+		rs = stmt.executeQuery();
+		return rs;
+	}
 	
+	public static String[] getWarehouseNames() throws SQLException {
+		stmt = sql_statements.get("GetWHNames");
+		rs = stmt.executeQuery();
+		Object[] array = getColumnAsArray(rs, 1);
+		String[] names = Arrays.copyOf(array, array.length, String[].class);
+		return names;
+	}
+	
+	public static String[] getWarehouseIDs() throws SQLException {
+		stmt = sql_statements.get("GetWHIDs");
+		rs = stmt.executeQuery();
+		Object[] array = getColumnAsArray(rs, 1);
+		String[] IDs = Arrays.copyOf(array, array.length, String[].class);
+		return IDs;
+	}
+	
+	public static String[] getWarehouseCities() throws SQLException {
+		stmt = sql_statements.get("GetWHCities");
+		rs = stmt.executeQuery();
+		Object[] array = getColumnAsArray(rs, 1);
+		String[] cities = Arrays.copyOf(array, array.length, String[].class);
+		return cities;
+	}
+ 
 	//#############################################Display	
+	/**
+	 * @param result
+	 *            the result set to convert to a list of arrays
+	 * @return a list containing String arrays, where every index in the list is
+	 *         a row, where the String arrays each represent a row
+	 * @throws SQLException
+	 */
+	public static List<Object> getColumnAsList(ResultSet result, int col) throws SQLException {
+		List<Object> list = new ArrayList<>();
+		while( result.next()) {
+			Object next = result.getObject(col);
+		    list.add(next);
+		}
+		return list;
+	}
+	
+	public static Object[] getColumnAsArray(ResultSet result, int col) throws SQLException {
+		return getColumnAsList(result,col).toArray();
+	}
+	
 	/**
 	 * @param result the result set to convert to a list of arrays
 	 * @return a list containing String arrays, where every index in the list is a row,
 	 * where the String arrays each represent a row
 	 * @throws SQLException
 	 */
-	public static List<String[]> getResultSetAsListOfArrays(ResultSet result) throws SQLException
+public static List<Object[]> getResultSetAsListOfArrays(ResultSet result) throws SQLException
 	{
 		int nCol = result.getMetaData().getColumnCount();
-		List<String[]> table = new ArrayList<>();
+		List<Object[]> table = new ArrayList<>();
 		while( result.next()) {
-		    String[] row = new String[nCol];
+			Object[] row = new Object[nCol];
 		    for( int iCol = 1; iCol <= nCol; iCol++ ){
 		            Object obj = result.getObject( iCol );
 		            row[iCol-1] = (obj == null) ?null:obj.toString();
@@ -703,7 +946,7 @@ public abstract class SQL_Handler {
 			modifierString = " LIKE " + "\"" + "%" + fieldModifierValue + "\"";
 			break;
 		case DBNamesManager.STRING_FIELD_CONTAINS:
-			modifierString = " LIKE " + "\"" + "%" + fieldModifierValue + "%" + "\""; //TODO check syntaxes for all of these
+			modifierString = " LIKE " + "\"" + "%" + fieldModifierValue + "%" + "\""; 
 			break;
 		case DBNamesManager.STRING_FIELD_THAT_IS:
 			modifierString = " = " + "\'" + fieldModifierValue + "\'";
@@ -715,13 +958,15 @@ public abstract class SQL_Handler {
 			modifierString = " > " + "\'" + fieldModifierValue + "\'";
 			break;
 		case DBNamesManager.DATE_FIELD_ON:
-			modifierString = " = " + "\'" + fieldModifierValue + "\'";
+			modifierString = " BETWEEN \'" + fieldModifierValue + " 00:00:00\' AND \'" + fieldModifierValue + " 23:59:59\'";
+			System.out.println(modifierString);
+			//modifierString = " = " + "\'" + fieldModifierValue + "\'";
 			break;
 		case DBNamesManager.FLAG_FIELD_IS:
-			modifierString = " = " + "\'" + fieldModifierValue + "\'";
+			modifierString = " != " + "\'" + fieldModifierValue + "\'"; //TODO this was flipped to quick-fix display. look into this bug.
 			break;
 		case DBNamesManager.FLAG_FIELD_IS_NOT:
-			modifierString = " != " + "\'" + fieldModifierValue + "\'";
+			modifierString = " = " + "\'" + fieldModifierValue + "\'";
 			break;
 		}
 		return modifierString;
@@ -745,4 +990,43 @@ public abstract class SQL_Handler {
 
 		  return safeStr;
 		}
+	//#############################################Sublocation
+	
+	public static ArrayList<String> getAvailableSubLocations() throws SQLException {
+		ArrayList<String> subLocationList = new ArrayList<String>();
+		stmt = sql_statements.get("GetAvailableSubLocations");
+		rs = stmt.executeQuery();				//execute
+		while (rs.next()) {
+			subLocationList.add(rs.getString("location_coordinate"));
+		}
+		return subLocationList;
+	}
+	
+	public void incrementSubLocationPalletQuantity(String sublocation) throws SQLException {
+		stmt = sql_statements.get("GetSubLocationInfo");
+		stmt.setString(1, sublocation);
+		rs = stmt.executeQuery();								//get the info
+		int currentQuantity = rs.getInt("current_pallet_qty");	//set the variables
+		int maxQuantity = rs.getInt("max_pallet_qty");
+		if (maxQuantity != currentQuantity) { //if the current isnt maxed out increment
+			stmt = sql_statements.get("ChangeSubLocationCurrentQuantity");
+			stmt.setInt(1, currentQuantity + 1);
+			stmt.setString(2, sublocation);
+			stmt.execute();
+		}
+	}
+
+	public void decrementSubLocationPalletQuantity(String sublocation) throws SQLException {
+		stmt = sql_statements.get("GetSubLocationInfo");
+		stmt.setString(1, sublocation);
+		rs = stmt.executeQuery();
+		int currentQuantity = rs.getInt("current_pallet_qty");
+		if (currentQuantity != 0) { //if the current isnt 0 decrement
+			stmt = sql_statements.get("ChangeSubLocationCurrentQuantity");
+			stmt.setInt(1, currentQuantity - 1);
+			stmt.setString(2, sublocation);
+			stmt.execute();
+		}
+	}			
+
 }

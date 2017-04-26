@@ -29,7 +29,7 @@ public class NumericDataDocument extends PlainDocument {
 	            super.insertString(offset, txt, a);
 	        }
 	     } catch (Exception ex) {
-	        Logger.getLogger(EmployeeIDDocument.class.getName()).log(Level.SEVERE, null, ex);
+	        Logger.getLogger(IDDocument.class.getName()).log(Level.SEVERE, null, ex);
 	     }
 	}
 //	public DocIntFilter(int minInputLength, int maxInputLength) {

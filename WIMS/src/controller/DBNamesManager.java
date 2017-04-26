@@ -50,10 +50,12 @@ public abstract class DBNamesManager {
 	public static final String ITEM_WEIGHT_FIELD_DISPLAYNAME = "Weight (lb)";
 	public static final String ITEM_CURR_STOCK_FIELD_DISPLAYNAME = "Current Stock";
 	public static final String ITEM_RESTOCK_FIELD_DISPLAYNAME = "Restock Threshold";
+	public static final String ITEM_CATEGORIES_FIELD_DISPLAYNAME = "Types";
+	public static final String ITEM_SHORTAGES_FIELD_DISPLAYNAME = "Overages/Shortages";
 	//TODO handle item categories--get from SQL handler as 1 string with commas, display in one column
 	//Item fields for the fields combobox
 	public static final String[] ITEM_FIELD_DISPLAYNAMES = {ITEM_SIMPLE_INDEX_DISPLAYNAME, ITEM_NAME_FIELD_DISPLAYNAME, ITEM_NUMBER_FIELD_DISPLAYNAME, ITEM_PRICE_FIELD_DISPLAYNAME,
-													ITEM_WEIGHT_FIELD_DISPLAYNAME, ITEM_CURR_STOCK_FIELD_DISPLAYNAME, ITEM_RESTOCK_FIELD_DISPLAYNAME};
+													ITEM_WEIGHT_FIELD_DISPLAYNAME, ITEM_CURR_STOCK_FIELD_DISPLAYNAME, ITEM_RESTOCK_FIELD_DISPLAYNAME, ITEM_CATEGORIES_FIELD_DISPLAYNAME};
 	
 	//All of the Item database fields
 	public static final String ITEM_SIMPLE_INDEX_DB_FIELD = "simple_item_index";
@@ -63,6 +65,8 @@ public abstract class DBNamesManager {
 	public static final String ITEM_WEIGHT_DB_FIELD = "weight";
 	public static final String ITEM_CURR_STOCK_DB_FIELD = "current_stock";
 	public static final String ITEM_RESTOCK_DB_FIELD = "restock_threshold";
+	public static final String ITEM_CATEGORIES_DB_FIELD = "type"; //TODO this isnt quite accurate as it requires bridging
+	public static final String ITEM_SHORTAGES_DB_FIELD = "overages_shortages";
 	public static final String[] ITEM_DB_FIELDS = {ITEM_SIMPLE_INDEX_DB_FIELD, ITEM_NAME_DB_FIELD, ITEM_NUMBER_DB_FIELD, ITEM_PRICE_DB_FIELD,
 		ITEM_WEIGHT_DB_FIELD, ITEM_CURR_STOCK_DB_FIELD, ITEM_RESTOCK_DB_FIELD};
 		
@@ -97,7 +101,7 @@ public abstract class DBNamesManager {
 	public static final String PALLET_SIMPLE_INDEX_DB_FIELD = "simple_pallet_index";
 	public static final String PALLET_ID_DB_FIELD = "pallet_id";
 	public static final String PALLET_ORDER_NUM_DB_FIELD = "order_number";
-	public static final String PALLET_LOC_DB_FIELD = "location_coordinate";
+	public static final String PALLET_LOC_DB_FIELD = "pallet_location";
 	public static final String PALLET_PIECE_COUNT_DB_FIELD = "piece_count";
 	public static final String PALLET_WEIGHT_DB_FIELD = "weight";
 	public static final String PALLET_LENGTH_DB_FIELD = "length";
@@ -329,7 +333,6 @@ public abstract class DBNamesManager {
 	 * *******************************************************************************************************
 	 * =======================================================================================================
 	 */
-	//TODO FIELD DISPLAYNAME : DB NAME
 	private static HashMap<String, String> buildFieldDisplayNameByDBNameMap() {
 		HashMap<String, String> buildFieldDBNameToDisplayNameMap = new HashMap<String, String>();
 		addItemFieldDisplayNamesToMapByDBName(buildFieldDBNameToDisplayNameMap);
@@ -349,10 +352,12 @@ public abstract class DBNamesManager {
 		buildFieldDBNameToDisplayNameNameMap.put(ITEM_WEIGHT_DB_FIELD, ITEM_WEIGHT_FIELD_DISPLAYNAME);
 		buildFieldDBNameToDisplayNameNameMap.put(ITEM_CURR_STOCK_DB_FIELD, ITEM_CURR_STOCK_FIELD_DISPLAYNAME);
 		buildFieldDBNameToDisplayNameNameMap.put(ITEM_RESTOCK_DB_FIELD, ITEM_RESTOCK_FIELD_DISPLAYNAME);
+		buildFieldDBNameToDisplayNameNameMap.put(ITEM_SHORTAGES_DB_FIELD, ITEM_SHORTAGES_FIELD_DISPLAYNAME);
 		
 		//STRING TYPES
 		buildFieldDBNameToDisplayNameNameMap.put(ITEM_NAME_DB_FIELD, ITEM_NAME_FIELD_DISPLAYNAME);
 		buildFieldDBNameToDisplayNameNameMap.put(ITEM_NUMBER_DB_FIELD, ITEM_NUMBER_FIELD_DISPLAYNAME);
+		buildFieldDBNameToDisplayNameNameMap.put(ITEM_CATEGORIES_DB_FIELD, ITEM_CATEGORIES_FIELD_DISPLAYNAME);
 	}
 	
 	private static void addPalletFieldDisplayNamesToMapByDBName(HashMap<String, String> buildFieldDBNameToDisplayNameMap) 
@@ -444,7 +449,6 @@ public abstract class DBNamesManager {
 	 * *******************************************************************************************************
 	 * =======================================================================================================
 	 */
-	//TODO FIELD DB NAME : DISPLAYNAME
 	private static HashMap<String, String> buildFieldDBNameByDisplayNameMap() {
 		HashMap<String, String> buildLocalFieldNameToDBFieldNameMap = new HashMap<String, String>();
 		addItemFieldDBNamesToMapByDisplayName(buildLocalFieldNameToDBFieldNameMap);
@@ -464,10 +468,12 @@ public abstract class DBNamesManager {
 		buildLocalFieldNameToDBFieldNameMap.put(ITEM_WEIGHT_FIELD_DISPLAYNAME, ITEM_WEIGHT_DB_FIELD);
 		buildLocalFieldNameToDBFieldNameMap.put(ITEM_CURR_STOCK_FIELD_DISPLAYNAME, ITEM_CURR_STOCK_DB_FIELD);
 		buildLocalFieldNameToDBFieldNameMap.put(ITEM_RESTOCK_FIELD_DISPLAYNAME, ITEM_RESTOCK_DB_FIELD);
+		buildLocalFieldNameToDBFieldNameMap.put(ITEM_SHORTAGES_FIELD_DISPLAYNAME, ITEM_SHORTAGES_DB_FIELD);
 
 		//STRING TYPES
 		buildLocalFieldNameToDBFieldNameMap.put(ITEM_NAME_FIELD_DISPLAYNAME, ITEM_NAME_DB_FIELD);
 		buildLocalFieldNameToDBFieldNameMap.put(ITEM_NUMBER_FIELD_DISPLAYNAME, ITEM_NUMBER_DB_FIELD);
+		buildLocalFieldNameToDBFieldNameMap.put(ITEM_CATEGORIES_FIELD_DISPLAYNAME , ITEM_CATEGORIES_DB_FIELD);
 	}
 	
 	private static void addPalletFieldDBNamesToMapByDisplayName(HashMap<String, String> buildLocalFieldNameToDBFieldNameMap) 
@@ -559,7 +565,6 @@ public abstract class DBNamesManager {
 	 * *******************************************************************************************************
 	 * =======================================================================================================
 	 */
-	//TODO ENTITY DB NAME : DISPLAYNAME
 	private static HashMap<String, String> buildEntityDisplayNameByDBNameMap() {
 		HashMap<String, String> buildDBEntityNameToDisplayNameMap = new HashMap<String, String>();
 		buildDBEntityNameToDisplayNameMap.put(ITEM_DB_ENTITY_NAME,ITEM_ENTITY_DISPLAYNAME);
@@ -579,7 +584,6 @@ public abstract class DBNamesManager {
 	 * *******************************************************************************************************
 	 * =======================================================================================================
 	 */
-	//TODO ENTITY DISPLAYNAME : DB NAME
 	private static HashMap<String, String> buildEntityDBNameByDisplayNameMap() {
 		HashMap<String, String> buildbuildLocalEntityNameToDBEntityNameMap = new HashMap<String, String>();
 		buildbuildLocalEntityNameToDBEntityNameMap.put(ITEM_ENTITY_DISPLAYNAME,ITEM_DB_ENTITY_NAME);
@@ -599,7 +603,6 @@ public abstract class DBNamesManager {
 	 * *******************************************************************************************************
 	 * =======================================================================================================
 	 */
-	//TODO FIELD DB NAME : DATA TYPE
 	private static HashMap<String, String> buildDataTypeMapByFieldDBNameMap() {
 		HashMap<String, String> buildingFieldDBNameToDataTypeMap = new HashMap<String, String>();
 		addItemFieldTypesToMapByDBName(buildingFieldDBNameToDataTypeMap);
@@ -632,9 +635,12 @@ public abstract class DBNamesManager {
 		buildingFieldDBNameToDataTypeMap.put(ITEM_WEIGHT_DB_FIELD, NUMERIC_FIELD_TYPE_NAME);
 		buildingFieldDBNameToDataTypeMap.put(ITEM_CURR_STOCK_DB_FIELD, NUMERIC_FIELD_TYPE_NAME);
 		buildingFieldDBNameToDataTypeMap.put(ITEM_RESTOCK_DB_FIELD, NUMERIC_FIELD_TYPE_NAME);
+		buildingFieldDBNameToDataTypeMap.put(ITEM_SHORTAGES_DB_FIELD, NUMERIC_FIELD_TYPE_NAME);
 
 		buildingFieldDBNameToDataTypeMap.put(ITEM_NAME_DB_FIELD, STRING_FIELD_TYPE_NAME);
 		buildingFieldDBNameToDataTypeMap.put(ITEM_NUMBER_DB_FIELD, STRING_FIELD_TYPE_NAME);
+		buildingFieldDBNameToDataTypeMap.put(ITEM_CATEGORIES_DB_FIELD, STRING_FIELD_TYPE_NAME);
+
 	}
 	
 	private static void addPalletFieldTypesToMapByDBName(
@@ -703,7 +709,6 @@ public abstract class DBNamesManager {
 	 * *******************************************************************************************************
 	 * =======================================================================================================
 	 */
-	//TODO FIELD DISPLAYNAME : DATA TYPE
 	private static HashMap<String, String> buildFieldDisplayNameToDataTypeMap() {
 		HashMap<String, String> buildingFieldDisplayNameToDataTypesMap = new HashMap<String, String>();
 		addItemFieldTypesToMapByDisplayName(buildingFieldDisplayNameToDataTypesMap);
@@ -730,6 +735,9 @@ public abstract class DBNamesManager {
 		
 	}
 
+	/**
+	 * @param buildingDataTypesMap
+	 */
 	private static void addItemFieldTypesToMapByDisplayName(HashMap<String, String> buildingDataTypesMap)
 	{
 		buildingDataTypesMap.put(ITEM_SIMPLE_INDEX_DISPLAYNAME, NUMERIC_FIELD_TYPE_NAME);
@@ -737,9 +745,53 @@ public abstract class DBNamesManager {
 		buildingDataTypesMap.put(ITEM_WEIGHT_FIELD_DISPLAYNAME, NUMERIC_FIELD_TYPE_NAME);
 		buildingDataTypesMap.put(ITEM_CURR_STOCK_FIELD_DISPLAYNAME, NUMERIC_FIELD_TYPE_NAME);
 		buildingDataTypesMap.put(ITEM_RESTOCK_FIELD_DISPLAYNAME, NUMERIC_FIELD_TYPE_NAME);
+		buildingDataTypesMap.put(ITEM_SHORTAGES_FIELD_DISPLAYNAME, NUMERIC_FIELD_TYPE_NAME);
 
 		buildingDataTypesMap.put(ITEM_NAME_FIELD_DISPLAYNAME, STRING_FIELD_TYPE_NAME);
 		buildingDataTypesMap.put(ITEM_NUMBER_FIELD_DISPLAYNAME, STRING_FIELD_TYPE_NAME);
+		buildingDataTypesMap.put(ITEM_CATEGORIES_FIELD_DISPLAYNAME, STRING_FIELD_TYPE_NAME);
+	}
+
+	/**
+	 * @return the itemCategoriesFieldDisplayname
+	 */
+	public static String getItemCategoriesFieldDisplayname() {
+		return ITEM_CATEGORIES_FIELD_DISPLAYNAME;
+	}
+
+	/**
+	 * @return the itemCategoriesDbField
+	 */
+	public static String getItemCategoriesDbField() {
+		return ITEM_CATEGORIES_DB_FIELD;
+	}
+
+	/**
+	 * @return the warehouseIdFieldDbField
+	 */
+	public static String getWarehouseIdFieldDbField() {
+		return WAREHOUSE_ID_FIELD_DB_FIELD;
+	}
+
+	/**
+	 * @return the employeeFieldDisplaynames
+	 */
+	public static String[] getEmployeeFieldDisplaynames() {
+		return EMPLOYEE_FIELD_DISPLAYNAMES;
+	}
+
+	/**
+	 * @return the employeeDbFields
+	 */
+	public static String[] getEmployeeDbFields() {
+		return EMPLOYEE_DB_FIELDS;
+	}
+
+	/**
+	 * @return the flagFieldIsNot
+	 */
+	public static String getFlagFieldIsNot() {
+		return FLAG_FIELD_IS_NOT;
 	}
 
 	private static void addPalletFieldTypesToMapByDisplayName(HashMap<String, String> buildingDataTypesMap)
@@ -895,7 +947,6 @@ public abstract class DBNamesManager {
 	 * =======================================================================================================
 	 */
 	
-	//TODO GETTER METHODS
 	/**
 	 * Getter for all entity displaynames.
 	 * @return an array of Strings, where each string is an entity's display name
