@@ -4,8 +4,10 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
 import javax.swing.border.TitledBorder;
 
+import controller.FocusGrabber;
 import controller.Order;
 import controller.SQL_Handler;
 import controller.Valid;
@@ -61,6 +63,7 @@ public class ItemPanel extends JPanel{
 			@Override
 			public void focusGained(FocusEvent evt) {
 				btnCheck.setEnabled(true);
+				btnAdd.setEnabled(false);
 				OrderWindow.getFrame().getRootPane().setDefaultButton(btnCheck);
 			}
 		});
@@ -73,6 +76,7 @@ public class ItemPanel extends JPanel{
 		//disable add and itemqty until checked again
 		
 		txtItemQuantity = new JTextField();
+		
 		txtItemQuantity.setEditable(false);		
 		txtItemQuantity.setBounds(105, 50, 60, 20);		
 		txtItemQuantity.setColumns(10);
@@ -83,6 +87,13 @@ public class ItemPanel extends JPanel{
 				Valid.intInput(evt.getKeyChar(), evt);
 			}
 		});
+		txtItemQuantity.addFocusListener(new FocusAdapter() {
+			@Override
+			public void focusGained(FocusEvent arg0) {
+				btnAdd.setEnabled(true);
+				OrderWindow.getFrame().getRootPane().setDefaultButton(btnAdd);
+			}
+		});
 		
 		btnCheck = new JButton("Check");
 		btnCheck.setEnabled(false);
@@ -91,7 +102,8 @@ public class ItemPanel extends JPanel{
 		btnCheck.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				String itemNumber = getItemNumber();
-				searchDB(itemNumber);				
+				searchDB(itemNumber);	
+				
 			}
 		});
 		
@@ -111,7 +123,10 @@ public class ItemPanel extends JPanel{
 		this.add(btnEdit);
 		btnEdit.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				//call ScanWindow on currently selected item
+				boolean ism = OrderWindow.getManagement();
+				String currentItemNumber = ItemsInPalletPanel.getCurrentList().getSelectedValue().toString();
+				ScanWindow scanWindow = new ScanWindow(ism, currentItemNumber);
+				scanWindow.getFrame().setVisible(true);
 			}
 		});
 		
@@ -131,7 +146,9 @@ public class ItemPanel extends JPanel{
 					int index = PalletPanel.getSelectedPalletIndex();
 					//OrderWindow.getPalletList().get(index).addItem(itemID, itemQty); //add the item to the pallet selected on the palletList TODO 	
 					txtItemNumber.setText("");
+					txtItemNumber.requestFocus();
 					txtItemQuantity.setText("");
+					txtItemQuantity.setEditable(false);
 				}
 				 
 				//if so add the fields here to a new itemList
@@ -163,6 +180,9 @@ public class ItemPanel extends JPanel{
 	public void searchDB(String itemNumber) {
 		if (itemNumber.equals(""))
 			return;
+		if (!Valid.notInCurrentList(itemNumber, ItemsInPalletPanel.getListModel())) {
+			JOptionPane.showMessageDialog(OrderWindow.getFrame(), "That Item has already been added to this Pallet");
+		}
 		boolean found = false;
 		try {
 			found = SQL_Handler.itemInDB(itemNumber);	//try to find the item
@@ -177,6 +197,7 @@ public class ItemPanel extends JPanel{
 		else { //otherwise ask them if they want to add that item
 			askAddItem(itemNumber);
 		}
+		btnAdd.setEnabled(true);
 	}
 	
 	/**
@@ -196,6 +217,7 @@ public class ItemPanel extends JPanel{
 		}
 		else {
 			JOptionPane.showMessageDialog(this.getParent(), "Please enter a known item number or add that item to the inventory");	
+			SwingUtilities.invokeLater(new FocusGrabber(txtItemNumber));
 		}
 		
 	}//askAddItem end
@@ -239,6 +261,7 @@ public class ItemPanel extends JPanel{
 	 *Allow other sections of the OrderWindow to enable and disable 
 	 *the fields and buttons as needed
 	 */
+
 	
 	public static void enableCheck() {
 		btnCheck.setEnabled(true);
@@ -274,6 +297,7 @@ public class ItemPanel extends JPanel{
 	
 	public static void enableTxtItemNumber() {
 		txtItemNumber.setEditable(true);
+		txtItemNumber.requestFocus();
 	}
 	
 	public static void disableTxtItemNumber() {

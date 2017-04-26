@@ -1,8 +1,19 @@
 package gui;
 
-import javax.swing.JPanel;
+import java.awt.Dimension;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.sql.SQLException;
+import java.util.ArrayList;
+
+import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
+import javax.swing.JPanel;
 import javax.swing.JTextField;
 
 import controller.Order;
@@ -10,82 +21,81 @@ import controller.Pallet;
 import controller.SQL_Handler;
 import controller.Valid;
 
-import java.awt.Dimension;
+public class SublocationPanel extends JPanel {
 
-import javax.swing.JButton;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.awt.event.ActionListener;
-import java.awt.event.ActionEvent;
-import java.awt.event.FocusAdapter;
-import java.awt.event.FocusEvent;
-
-public class OrderPanel extends JPanel {
-	private static JTextField txtDestination;
-	private static JTextField txtOrigin;
-	private static JTextField txtOrderNumber;
+	private static JTextField txtMax, txtCurrent, txtSublocationName, txtWarehouseID;
 	private static JButton btnCheck;
 	private static Dimension pref = new Dimension(350, 120);
-	private JButton btnSearchAgain;
-	private Order currentOrder;
+	private boolean found;
 
 	/**
 	 * Create the panel.
 	 */
-	public OrderPanel() {
+	public SublocationPanel() {
 		setLayout(null);
 		this.setPreferredSize(new Dimension(350, 120));
 		this.setMinimumSize(pref);
 		this.setMaximumSize(pref);
 		
-		JLabel lblOrderId = new JLabel("Order ID:");
-		lblOrderId.setBounds(10, 22, 58, 14);
-		add(lblOrderId);
+		JLabel lblSublocationName = new JLabel("Sublocation Name:");
+		lblSublocationName.setBounds(10, 18, 97, 14);
+		add(lblSublocationName);
 		
-		JLabel lblOrigin = new JLabel("Origin:");
-		lblOrigin.setBounds(10, 47, 58, 14);
-		add(lblOrigin);
+		JLabel lblSublocationCurrent = new JLabel("Current Pallet Count:");
+		lblSublocationCurrent.setBounds(10, 43, 108, 14);
+		add(lblSublocationCurrent);
 		
-		JLabel lblDestination = new JLabel("Destination:");
-		lblDestination.setBounds(10, 72, 80, 14);
-		add(lblDestination);
+		JLabel lblmax = new JLabel("Max Pallet Count:");
+		lblmax.setBounds(10, 68, 97, 14);
+		add(lblmax);
 		
-		txtOrderNumber = new JTextField();		
-		txtOrderNumber.setText("");
-		txtOrderNumber.setBounds(100, 19, 150, 20);
-		this.add(txtOrderNumber);
-		txtOrderNumber.setColumns(10);
-		txtOrderNumber.addKeyListener(new KeyAdapter() {
+		JLabel lblWarehouseId = new JLabel("Warehouse ID:");
+		lblWarehouseId.setBounds(10, 93, 97, 14);
+		add(lblWarehouseId);
+		
+		txtSublocationName = new JTextField();		
+		txtSublocationName.setText("");
+		txtSublocationName.setBounds(153, 15, 97, 20);
+		this.add(txtSublocationName);
+		txtSublocationName.setColumns(10);
+		txtSublocationName.addKeyListener(new KeyAdapter() {
 			@Override
 			public void keyTyped(KeyEvent evt) {
 				Valid.intInput(evt.getKeyChar(), evt);
 			}
 		});
-		txtOrderNumber.addFocusListener(new FocusAdapter() {
+		txtSublocationName.addFocusListener(new FocusAdapter() {
 			@Override
 			public void focusGained(FocusEvent e) {
 				OrderWindow.getFrame().getRootPane().setDefaultButton(btnCheck);
 			}
 		});
 		
-		txtOrigin = new JTextField();
-		txtOrigin.setEditable(false);
-		txtOrigin.setBounds(100, 44, 150, 20);
-		this.add(txtOrigin);
-		txtOrigin.setColumns(10);
+		txtCurrent = new JTextField();
+		txtCurrent.setEditable(false);
+		txtCurrent.setBounds(153, 40, 97, 20);
+		this.add(txtCurrent);
+		txtCurrent.setColumns(10);
 		
-		txtDestination = new JTextField();
-		txtDestination.setEditable(false);
-		txtDestination.setBounds(100, 69, 150, 20);
-		this.add(txtDestination);
-		txtDestination.setColumns(10);	
+		txtMax = new JTextField();
+		txtMax.setEditable(false);
+		txtMax.setBounds(153, 65, 97, 20);
+		this.add(txtMax);
+		txtMax.setColumns(10);	
 		
+		txtWarehouseID = new JTextField();
+		txtWarehouseID.setBounds(153, 90, 97, 20);
+		add(txtWarehouseID);
+		txtWarehouseID.setColumns(10);
 		
 		btnCheck = new JButton("Check");		
-		btnCheck.setBounds(260, 18, 89, 23);
-		this.add(btnCheck);
+		btnCheck.setBounds(261, 14, 89, 23);
+		this.add(btnCheck);	
+		
+		
+		JButton btnAdd = new JButton("Add");
+		btnAdd.setBounds(283, 91, 57, 23);
+		add(btnAdd);
 		btnCheck.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				String orderNumber = getOrderNumber();
@@ -94,42 +104,31 @@ public class OrderPanel extends JPanel {
 			}
 		});
 		
-		btnSearchAgain = new JButton("Search Again");
-		btnSearchAgain.setVisible(false);
-		btnSearchAgain.setBounds(239, 97, 110, 23);
-		this.add(btnSearchAgain);
-		btnSearchAgain.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				//CLEAR EVERYTHING AND START OVER			
-			}
-		});
-		
 	}//orderPanel() end
 	
 	/** 
-	 * @param orderNumber
+	 * @param sublocationName
 	 * @return boolean found or not depending on if the item is in the database
 	 */
-	public void searchDB(String orderNumber) {
-		if (orderNumber.equals(""))							//if the txtField is empty do nothing
+	public void searchDB(String sublocationName) {
+		if (sublocationName.equals(""))							//if the txtField is empty do nothing
 			return;
 		boolean found = false;
 		try {
-			found = SQL_Handler.OrderInDB(orderNumber);		//try to find the item
+			found = SQL_Handler.SublocationInDB(sublocationName);		//try to find the sublocation
 		} catch (SQLException e1) {							//let user know there was an error
 			JOptionPane.showMessageDialog(this.getParent(), "An error occurred trying to reach the database, \nPlease try again");			
 		}
 		if (found) {  										//if the order is found 
 			// TODO fill out the Lists with info, SQL_Handler.allPalletsInOrder only returns one row with the rs			
 			try {
-				String o = SQL_Handler.getOrderOrigin(orderNumber);
-				String d = SQL_Handler.getOrderDestination(orderNumber);
-				OrderWindow.setCurrentOrder(orderNumber);
+				int current = SQL_Handler.getCurrentFromSublocation(sublocationName);
+				int max = SQL_Handler.getMaxFromSublocation(sublocationName);
 				OrderWindow.setFoundOrder(true);			
 				postSearch();
-				txtOrigin.setText(o);
-				txtDestination.setText(d);    //set the origin and destination fields
-				ArrayList<Pallet> PalletList = SQL_Handler.allPalletsInOrder(orderNumber);
+				txtCurrent.setText("" + current);
+				txtMax.setText("" + max);    //set the origin and destination fields
+				ArrayList<Pallet> PalletList = SQL_Handler.allPalletsInOrder(sublocationName);
 				for (Pallet temp : PalletList) {
 					OrderWindow.addPalletToJList(temp.getID(), temp.getSubLocation());
 					
@@ -145,17 +144,17 @@ public class OrderPanel extends JPanel {
 			OrderWindow.getCurrentPalletPanel().enableTxt();
 			OrderWindow.getFrame().setTitle("Create A New Order");
 			
-			OrderWindow.setCurrentOrder(orderNumber);    	//create the order object with the input			
+			OrderWindow.setCurrentOrder(sublocationName);    	//create the order object with the input			
 		}  
 	}//searchDB end
 	
 	public void postSearch() {
 		//btnSearchAgain.setVisible(true);    //not going to use rn
 		btnCheck.setVisible(false);
-		txtOrderNumber.setEditable(false);
-		txtOrigin.setEditable(true);
-		txtDestination.setEditable(true);
-		txtOrigin.requestFocus();
+		txtSublocationName.setEditable(false);
+		txtCurrent.setEditable(true);
+		txtMax.setEditable(true);
+		txtCurrent.requestFocus();
 	}
 	
 	
@@ -164,7 +163,7 @@ public class OrderPanel extends JPanel {
 	 * @return User input as String
 	 */
 	public String getOrderNumber() {
-		String orderNumberInput = txtOrderNumber.getText();
+		String orderNumberInput = txtSublocationName.getText();
 		if (Valid.validItemNumber(orderNumberInput))
 			return orderNumberInput;
 		else
@@ -176,7 +175,7 @@ public class OrderPanel extends JPanel {
 	 * @return User input as String
 	 */
 	public static String getOrigin() {
-		String originInput= txtOrigin.getText();
+		String originInput= txtCurrent.getText();
 		if (Valid.validString(originInput))
 			return originInput;
 		else
@@ -188,7 +187,7 @@ public class OrderPanel extends JPanel {
 	 * @return User input as String
 	 */
 	public static String getDestination() {
-		String destinationInput= txtDestination.getText();
+		String destinationInput= txtMax.getText();
 		if (Valid.validString(destinationInput))
 			return destinationInput;
 		else
@@ -196,10 +195,10 @@ public class OrderPanel extends JPanel {
 	}
 	
 	public static void setTxtOrderNumber(String orderNumber) {
-		txtOrderNumber.setText(orderNumber);
+		txtSublocationName.setText(orderNumber);
 	}
 
 	public static void clickCheck() {
 		btnCheck.doClick();
 	}
-}//class end
+}

@@ -85,6 +85,10 @@ public class ItemsInPalletPanel extends JPanel {
 		              System.out.print(selections[i] + "/" + selectionValues[i] + " ");
 		              
 		            }
+		            ItemPanel.enableEdit();
+		            if (!OrderWindow.getFoundOrder()) { //cant delete an item if its already in an order
+		            	ItemPanel.enableDelete();
+		            }
 		            System.out.println();
 		          }
 		        }
@@ -120,7 +124,7 @@ public class ItemsInPalletPanel extends JPanel {
                 Component renderer = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
                 if (renderer instanceof JLabel && value instanceof Item) {
                     // Here value will be of the Type 'CD'
-                    ((JLabel) renderer).setText("Item ID: " + ((Item) value).getItemNumber() + " Quantity: " + ((Item) value).getQuantity());
+                    ((JLabel) renderer).setText("Item ID: " + ((Item) value).getItemNumber() + " " + ((Item) value).getItemName() + " - Quantity: " + ((Item) value).getQuantity());
                 }
                 return renderer;
             }
@@ -129,7 +133,7 @@ public class ItemsInPalletPanel extends JPanel {
 				
 		//Scroll Section
 		itemScroll = new JScrollPane(itemJList);
-		itemScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+		itemScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 		add(itemScroll);	
 		itemScroll.setSize(285, 360);
 		itemScroll.setPreferredSize(iScrollSize);

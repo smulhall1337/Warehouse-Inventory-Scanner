@@ -81,9 +81,9 @@ public class PalletPanel extends JPanel {
 		});
 		txtPalletID.addFocusListener(new FocusAdapter() {
 			@Override
-			public void focusGained(FocusEvent e) {	
-				//probably would be good to not do this every single time? but theres no time to add a check rn	
-				populateSubLocationCB();
+			public void focusGained(FocusEvent e) {
+				if (!OrderWindow.getFoundOrder())
+					populateSubLocationCB();
 			}
 
 			@Override
@@ -136,19 +136,14 @@ public class PalletPanel extends JPanel {
 					//TODO remove selected pallet
 					int index = PalletsInOrderPanel.getCurrentList().getSelectedIndex();
 					if (index != -1) {
-					    PalletsInOrderPanel.getListModel().remove(index);
-					    OrderWindow.getPalletList().remove(index);
-					    //clear item list model
-					    ItemsInPalletPanel.getListModel().clear();
-					    if (cbSubLocation.getSelectedIndex() != 0) {										//make sure a sublocation is selected		
-							SubLocation sublocation = (SubLocation) cbSubLocation.getSelectedItem();		//get the selected sublocation from the combobox
-							if (sublocation.decrementCurrent()) {											//if you are able to increase the current count on the sub location so it cant be under 0 when creating the order
-								OrderWindow.getPalletList().remove(index); //
-							}													
-									
-						}
-					}
-					
+						Pallet p = (Pallet) PalletsInOrderPanel.getCurrentList().getSelectedValue();
+						SubLocation sublocation = p.getSubLocation();
+							if (sublocation.decrementCurrent()) {											//if you are able to increase the current count on the sub location so it cant be under 0 when creating the order								
+							    PalletsInOrderPanel.getListModel().remove(index);
+							    OrderWindow.getPalletList().remove(index);							    
+							    ItemsInPalletPanel.getListModel().clear();	//clear item list model
+							}
+					}					
 					if (PalletsInOrderPanel.getListModel().isEmpty()) {
 						btnDelete.setEnabled(false);
 					}
