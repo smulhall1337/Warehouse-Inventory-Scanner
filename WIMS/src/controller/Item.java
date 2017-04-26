@@ -3,13 +3,18 @@ package controller;
 import java.sql.SQLException;
 
 public class Item {
-	private String itemNumber;
+	private String itemNumber, itemName;
 	private int quantity, weight;
 	
 	public Item(String itemNumber, int quantity) {
 		this.itemNumber = itemNumber;
 		this.quantity = quantity;
 		setWeight();
+		setName();
+	}
+	
+	public String getItemName() {
+		return itemName;
 	}
 
 	public String getItemNumber() {
@@ -41,6 +46,14 @@ public class Item {
 			this.weight = SQL_Handler.getItemWeight(itemNumber);
 		} catch (SQLException e) {
 			weight = 0;
+		}
+	}
+	
+	public void setName() {
+		try {
+			this.itemName = SQL_Handler.getItemName(itemNumber);
+		} catch (SQLException e) {
+			this.itemName = "";
 		}
 	}
 	

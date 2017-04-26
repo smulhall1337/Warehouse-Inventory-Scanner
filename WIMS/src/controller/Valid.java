@@ -124,7 +124,7 @@ abstract public class Valid {
 	 * @return
 	 */
 	public static boolean validCStock(String s) {
-		if (validString(s) && validID(s)) {
+		if (validString(s) && validInt(s)) {
 				return true;
 			} 
 			else {
@@ -138,7 +138,7 @@ abstract public class Valid {
 	 * @return
 	 */
 	public static boolean validRStock(String s) {
-		if (validString(s) && validID(s)) {
+		if (validString(s) && validInt(s)) {
 				return true;
 			} 
 			else {
@@ -152,7 +152,7 @@ abstract public class Valid {
 	 * @return
 	 */
 	public static boolean validAdd(String s) {
-		if (validString(s) && validID(s)) {
+		if (validString(s) && validInt(s)) {
 				return true;
 			} 
 			else {

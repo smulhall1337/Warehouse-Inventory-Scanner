@@ -241,6 +241,15 @@ public abstract class SQL_Handler {
 			stmt_key = "OrderEmployeesInOut";
 			statement = conn.prepareStatement("SELECT * FROM orders_employees WHERE order_number = ? and employee_ID = ?");
 			statements.put(stmt_key, statement);
+			
+			stmt_key = "OrderOrigin";
+			statement = conn.prepareStatement("SELECT origin FROM orders WHERE order_number = ?");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "OrderDestination";
+			statement = conn.prepareStatement("SELECT destination FROM orders WHERE order_number = ?");
+			statements.put(stmt_key, statement);
+			
 			//#############################################Warehouses
 			stmt_key = "GetWHNamesIDs";
 			statement = conn.prepareStatement("SELECT warehouse_id, name FROM warehouses");
@@ -820,6 +829,22 @@ public static boolean employeeExists(String employee_id) throws SQLException {
 		inOut = rs.getString("shipped/recieved");
 		return inOut;
 	}
+	
+	public static String getOrderOrigin(String orderNumber) throws SQLException {
+		stmt = sql_statements.get("OrderOrigin");  //TODO
+		stmt.setString(1, orderNumber);
+		rs = stmt.executeQuery();
+		rs.next();
+		return rs.getString("origin");
+	}
+	
+	public static String getOrderDestination(String orderNumber) throws SQLException {
+		stmt = sql_statements.get("OrderDestination");
+		stmt.setString(1, orderNumber);
+		rs = stmt.executeQuery();
+		rs.next();
+		return rs.getString("destination");
+	}
 		
 	//#############################################Warehouses
 	public ResultSet getWarehouseNamesAndIDs() throws SQLException {
@@ -1119,6 +1144,16 @@ public static List<Object[]> getResultSetAsListOfArrays(ResultSet result) throws
 			pallets.add(p);   			
 		}
 		return pallets;
+	}
+	
+	public static boolean SublocationInDB(String sublocationName) throws SQLException {
+		stmt = sql_statements.get("GetBlankFromSublocation");
+		stmt.setString(1, sublocationName);
+		rs = stmt.executeQuery();
+		if (rs.next())
+			return true;
+		else
+			return false;
 	}
 
 }
