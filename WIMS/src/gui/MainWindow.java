@@ -356,22 +356,31 @@ public class MainWindow implements ErrorStatusReportable{
 	private void initializeWHMenu(){
 		
 		whMenu = new JMenu("Warehouses");
+		whMenu.setFont(MENUBAR_FONT);
 		menubar.add(whMenu);
 		
 		addWHItem = new JMenuItem("Add Warehouse");
-		addWHItem.addMouseListener(new MouseAdapter() {
+		whMenu.add(manageEmployeesItem);
+		addWHItem.addActionListener(new ActionListener() {
 			@Override
-			public void mouseClicked(MouseEvent e) {
+			public void actionPerformed(ActionEvent ae) {
+				launchWarehouseWindow();
 			}
+
 		});
 		whMenu.add(addWHItem);
 	
 	}
+	
+	private void launchWarehouseWindow() {
+		// TODO Auto-generated method stub
+		
+	}
 
 	private void launchManageEmployees(String initializerEmpID)
 	{
-		ManageEmployees manageEmployeesWindow = new ManageEmployees(this.loggedInEmpID, this.loggedInIsManager, initializerEmpID);
-		manageEmployeesWindow.getFrame().setVisible(true);
+		WarehouseWindow whw = new WarehouseWindow();
+		whw.getFrame().setVisible(true);
 	}
 	
 	private void launchScanWindow(String initialItemNumber){
