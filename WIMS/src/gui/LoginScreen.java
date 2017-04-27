@@ -88,6 +88,10 @@ public class LoginScreen extends JFrame {
 		initializeLoginPanel();
 		initializeBottomBorder();
 	}
+	
+	private void launchMainWindow() throws SQLException {
+		new MainWindow(emp_txtBox.getText(), SQL_Handler.isEmployeeManager(emp_txtBox.getText()));
+	}
 
 	private void initializeEntryPanel() {
 		panelEntryFields = new JPanel();
@@ -224,9 +228,10 @@ public class LoginScreen extends JFrame {
 				// Check user privileges
 				// Wait a couple seconds then close login screen
 				TimeUnit.SECONDS.sleep(1);
-				// Notify driver to open main window
-				frame.dispose();
 				// Open application window with correct privileges
+				this.frame.setVisible(false);
+				this.dispose();
+				launchMainWindow();
 			} else {
 				lblConnection.setForeground(Color.RED);
 				lblConnection.setText("Invalid Employee ID or Password.");
