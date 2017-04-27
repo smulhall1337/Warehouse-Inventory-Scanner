@@ -1,5 +1,6 @@
 package gui;
 
+import java.awt.Component;
 import java.awt.EventQueue;
 
 import javax.swing.JFrame;
@@ -8,7 +9,7 @@ import com.jgoodies.forms.layout.FormLayout;
 import com.jgoodies.forms.layout.ColumnSpec;
 import com.jgoodies.forms.layout.RowSpec;
 
-import controller.SQL_Handler1;
+import controller.SQL_Handler;
 import controller.Valid;
 import net.miginfocom.swing.MigLayout;
 import javax.swing.JLabel;
@@ -24,7 +25,7 @@ import java.awt.event.MouseEvent;
 import java.sql.SQLException;
 import javax.swing.JFormattedTextField;
 
-public class WarehouseWindow {
+public class WarehouseWindow extends JFrame{
 
 	private JFrame frmAddWarehouse;
 	private JTextField ID;
@@ -107,7 +108,7 @@ public class WarehouseWindow {
 			public void mouseClicked(MouseEvent e) {
 				try {
 					
-					SQL_Handler1.addNewWarehouse(ID.getText(), city.getText(), state.getText(), address.getText(), Integer.parseInt(zip.getText()), 
+					SQL_Handler.addNewWarehouse(ID.getText(), city.getText(), state.getText(), address.getText(), Integer.parseInt(zip.getText()), 
 							name.getText(), telephone.getText(), email.getText());
 					JOptionPane.showMessageDialog(frmAddWarehouse, "It probably worked, i dunno tho.");
 				} catch (NumberFormatException e1) {
@@ -176,5 +177,10 @@ public class WarehouseWindow {
 		email.setColumns(10);
 		email.setBounds(210, 216, 130, 26);
 		frmAddWarehouse.getContentPane().add(email);
+	}
+
+	public Component getFrame() {
+		// TODO Auto-generated method stub
+		return frmAddWarehouse;
 	}
 }

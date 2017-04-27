@@ -383,6 +383,17 @@ public class MainWindow implements ErrorStatusReportable{
 		OrderWindow orderWindow = new OrderWindow(this.loggedInIsManager);
 		orderWindow.getFrame().setVisible(true);
 	}
+	
+	private void launchOrderWindow(String orderID){
+		OrderWindow orderWindow = new OrderWindow(this.loggedInIsManager, orderID);
+		orderWindow.getFrame().setVisible(true);
+	}
+	
+	private void launchWarehouseWindow(String warehouseID) {
+		WarehouseWindow warehouseWindow = new WarehouseWindow();
+		warehouseWindow.getFrame().setVisible(true);
+	}
+	
 	/**
 	 * Initialize the reports submenu (and all of its JMenuItems) on the menubar
 	 */
@@ -629,7 +640,7 @@ public class MainWindow implements ErrorStatusReportable{
 							dbFieldName, fieldModifier, fieldModifierValue);
 				} else 
 				{
-					queryResult = null; //TODO //SQL_Handler.getPalletsWithSubloCoord();
+					queryResult = SQL_Handler.getPalletsWithSubloCoord(); //TODO //SQL_Handler.getPalletsWithSubloCoord();
 				}
 			} else if (modifierValueEntered) 
 			{ // if there is a modifier value
@@ -656,28 +667,19 @@ public class MainWindow implements ErrorStatusReportable{
 				// move up one so we dont skip the first value
 				// result.previous();
 
-				// TODO delete this debug sysout
-				// System.out.println("TABLE RESULT SET COLUMN STRING: " +
-				// result.getString(3));
 
 				// say that the table is being updated on the loading status
 				lblLoadingIcon.setText(UPDATING_TABLE_STATUS_MESSAGE);
 
 				// change the DB variable column names to the display names
-				SQL_Handler.updateColumnNamesToDisplayNames(columnNames);
+				//SQL_Handler.updateColumnNamesToDisplayNames(columnNames); //TODO
+				
 				// update the data in the table to have the queried data and
 				// display column names
-
 				int updateTableRows = data.length;
 				updateTable(data, columnNames);
 				currentTableEntity = entityName;
 
-				// System.out.println("data length:" + data.length);
-				// System.out.println("~~~~~printing data after update table~~~~~");
-				// for(int row = 0; row < data.length; row++)
-				// for(int col = 0; col < data[col].length; col++)
-				// System.out.println(columnNames[col] + ": " + data[row][col]);
-				// System.out.println("~~~~~~~~~~~~~~~end of data~~~~~~~~~~~~~~~~");
 				// now that we have the data, return whether it actually has
 				// data in it just in case
 				boolean success = updateTableRows > 0;
@@ -733,6 +735,7 @@ public class MainWindow implements ErrorStatusReportable{
 	void updateTable(Object[][] data, String[] columnNames)
 	{
 		//make a new wimstable, override the viewport tracking so autoresize and scroll is utilized
+		SQL_Handler.updateColumnNamesToDisplayNames(columnNames);
 		mainTable = new WIMSTable();
 		mainTable.setFont(TABLE_FONT);
 		WIMSTableModel tabelModel = new WIMSTableModel(data, columnNames);
@@ -818,12 +821,13 @@ public class MainWindow implements ErrorStatusReportable{
 			case DBNamesManager.ORDER_NUM_FIELD_DISPLAYNAME:
 				//here valueString = the selected order number
 				System.out.println("Selected Order Number: " + valueString);
-				launchOrderWindow();
+				launchOrderWindow(valueString);
 				break;
 			case DBNamesManager.WAREHOUSE_ID_FIELD_DISPLAYNAME:
 				//TODO display warehouse menu
 				//here valueString = the selected warehouse id
 				System.out.println("Selected Warehouse ID: " + value);
+				launchWarehouseWindow(valueString);
 				break;
 			case DBNamesManager.SUBLOCATION_LOC_COORD_DISPLAYNAME:
 				//TODO sublocation menu/functionality
@@ -844,7 +848,7 @@ public class MainWindow implements ErrorStatusReportable{
 			return;
 		}
 	}
-	
+
 	private void showMenuForRow(String colHeader, Object[] row)
 	{
 		String currentEntity = entityAndFieldSelectPanel.getSelectedEntity();
