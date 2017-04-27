@@ -1,5 +1,6 @@
 package gui;
 
+import java.awt.Component;
 import java.awt.EventQueue;
 
 import javax.swing.JFrame;
@@ -24,7 +25,7 @@ import java.awt.event.MouseEvent;
 import java.sql.SQLException;
 import javax.swing.JFormattedTextField;
 
-public class WarehouseWindow {
+public class WarehouseWindow extends JFrame{
 
 	private JFrame frmAddWarehouse;
 	private JTextField ID;
@@ -66,7 +67,7 @@ public class WarehouseWindow {
 		frmAddWarehouse = new JFrame();
 		frmAddWarehouse.setTitle("Add Warehouse");
 		frmAddWarehouse.setBounds(100, 100, 391, 318);
-		frmAddWarehouse.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frmAddWarehouse.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		frmAddWarehouse.getContentPane().setLayout(null);
 		
 		JLabel lblWarehouseId = new JLabel("Warehouse ID");
@@ -106,15 +107,17 @@ public class WarehouseWindow {
 			@Override
 			public void mouseClicked(MouseEvent e) {
 				try {
-					
+					System.out.println(ID.getText());
 					SQL_Handler.addNewWarehouse(ID.getText(), city.getText(), state.getText(), address.getText(), Integer.parseInt(zip.getText()), 
 							name.getText(), telephone.getText(), email.getText());
-					JOptionPane.showMessageDialog(frmAddWarehouse, "It probably worked, i dunno tho.");
+					JOptionPane.showMessageDialog(frmAddWarehouse, "Warehouse added");
+					dispose();
 				} catch (NumberFormatException e1) {
-					// TODO Auto-generated catch block
+					JOptionPane.showMessageDialog(frmAddWarehouse, "Error adding warehouse", "Warehouse add error", JOptionPane.ERROR_MESSAGE);
 					e1.printStackTrace();
 				} catch (SQLException e1) {
 					// TODO Auto-generated catch block
+					JOptionPane.showMessageDialog(frmAddWarehouse, "Error adding warehouse", "Warehouse add error", JOptionPane.ERROR_MESSAGE);
 					e1.printStackTrace();
 				}
 			}
@@ -177,8 +180,9 @@ public class WarehouseWindow {
 		email.setBounds(210, 216, 130, 26);
 		frmAddWarehouse.getContentPane().add(email);
 	}
-	
-	public JFrame getFrame(){
-		return this.frmAddWarehouse;
+
+	public Component getFrame() {
+		// TODO Auto-generated method stub
+		return frmAddWarehouse;
 	}
 }

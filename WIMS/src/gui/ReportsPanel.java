@@ -166,7 +166,7 @@ public class ReportsPanel extends JPanel implements ErrorStatusReportable {
 		wrapperPanel.setBorder(borderEtched);
 		initializeSelectionPanel();
 		initializeLabelPanel();
-		intializeOptionsPanel();
+		initializeOptionsPanel();
 		initializeButtonsPanel();
 	}
 	
@@ -191,7 +191,7 @@ public class ReportsPanel extends JPanel implements ErrorStatusReportable {
 		intializeReportSelector();
 	}
 	
-	private void intializeOptionsPanel(){
+	private void initializeOptionsPanel(){
 		optionPanel = new JPanel();
 		wrapperPanel.add(optionPanel, BorderLayout.CENTER);
 		GridBagLayout gbl_optionsPanel = new GridBagLayout();
@@ -207,6 +207,7 @@ public class ReportsPanel extends JPanel implements ErrorStatusReportable {
 				(new Dimension(ColumnHeaderControllerPanel.RIGHT_MARGIN, ColumnHeaderControllerPanel.RIGHT_MARGIN));
 		//emptyPanel.add(rigidAreaRight);
 		wrapperPanel.add(emptyPanel, BorderLayout.EAST);
+		displayAgingItemsOptions();
 	}
 	
 	private void initializeButtonsPanel(){
@@ -525,6 +526,7 @@ public class ReportsPanel extends JPanel implements ErrorStatusReportable {
 				break;
 			case TOP_X_PRICED_ITEMS: 
 				x = getTopX();
+				result = SQL_Handler.getTopXPricedItems(x);
 				break;
 			case BOTTOM_X_PRICED_ITEMS: 
 				x = getTopX();
@@ -602,7 +604,7 @@ public class ReportsPanel extends JPanel implements ErrorStatusReportable {
 
 	private boolean exportReport() {
 		try {
-			String timeStamp = new SimpleDateFormat("MM-dd-yy").format(new java.util.Date());
+			String timeStamp = new SimpleDateFormat("MM-dd-yy-hh;mm;ss").format(new java.util.Date());
 			String type = "";
 			if(this.generateButtonPressed)
 				type = infoController.getTableEntity();
