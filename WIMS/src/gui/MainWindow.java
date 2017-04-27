@@ -180,6 +180,8 @@ public class MainWindow implements ErrorStatusReportable{
 
 	private static final String TEST_EMP_ID = "894189";
 	private static final boolean TEST_EMP_ISMANAGER = true;
+	private JMenu whMenu;
+	private JMenuItem addWHItem;
 	
 	/**
 	 * Launch the application.
@@ -278,6 +280,7 @@ public class MainWindow implements ErrorStatusReportable{
 		initializeItemsMenu();
 		initializeOrdersMenu();
 		initializeEmployeesMenu();
+		initializeWHMenu();
 		if(this.loggedInIsManager)
 			initializeManagerMenu();
 	}
@@ -347,6 +350,22 @@ public class MainWindow implements ErrorStatusReportable{
 		
 		extraMenuItem = new JMenuItem("An extra menu item to be filled out later");
 		manageEmployeesMenu.add(extraMenuItem);
+		
+	}
+	
+	private void initializeWHMenu(){
+		
+		whMenu = new JMenu("Warehouses");
+		menubar.add(whMenu);
+		
+		addWHItem = new JMenuItem("Add Warehouse");
+		addWHItem.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+			}
+		});
+		whMenu.add(addWHItem);
+	
 	}
 
 	private void launchManageEmployees(String initializerEmpID)
