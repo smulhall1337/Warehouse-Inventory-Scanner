@@ -36,6 +36,8 @@ public abstract class SQL_Handler {
 	//This must be moved to a file or private location and loaded in for security
 	protected static String salt = "Random$SaltValue#With^ManySpecials(@*&Q$^T(^&#%$";
 	
+	private static Connection customConnection = getConnection();
+	
 	/**
 	 * method used to connect to the database 
 	 * @return the connection to the database, null if connection cannot be established
@@ -321,19 +323,19 @@ public abstract class SQL_Handler {
 	
 	//#############################################All Entities
 	public static ResultSet getAllFromTable(String tableName) throws SQLException{
-		Connection conn = getConnection();
+		//Connection conn = getConnection();
 		String query = "SELECT * FROM " + tableName;
-			stmt = conn.prepareStatement(query);
+			stmt = customConnection.prepareStatement(query);
 			rs = stmt.executeQuery();
 			return rs;
 	}
 	
 	public static ResultSet getAllFromTable(String tableName, String fieldName, 
 			String fieldModifier, String fieldValue) throws SQLException{
-		Connection conn = getConnection();
+		//Connection conn = getConnection();
 		String query = "SELECT * FROM " + tableName + " WHERE " 
 			+ fieldName + getQueryModifierString(fieldModifier, sanitizeInput(fieldValue));
-		stmt = conn.prepareStatement(query);
+		stmt = customConnection.prepareStatement(query);
 		rs = stmt.executeQuery();
 		return rs;
 	}
