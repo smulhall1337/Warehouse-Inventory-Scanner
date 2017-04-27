@@ -67,8 +67,7 @@ public class ManageEmployees extends JFrame implements ErrorStatusReportable {
 	private static final String DEFAULT_BUTTON_TEXT = "Perform";
 	
 	private static final String DEFAULT_EMPLOYEE_ID = "";
-	private static final int EMPLOYEE_NAME_TEXTFIELD_COLUMNS = 25;
-	private static final int ID_TEXTFIELD_COLUMNS = 25;
+	
 	private static final int PASSWORD_FIELD_COLUMNS = 25;
 	private static final int OPTIONS_LEFT_MARGIN = 10;
 	private static final int STARTING_OPTION_ROW = 0;
@@ -129,10 +128,10 @@ public class ManageEmployees extends JFrame implements ErrorStatusReportable {
 	private static final String TEST_EMP_ID = "894189";
 	private static final boolean TEST_EMP_ISMANAGER = true;
 
-	private static final int WINDOW_WIDTH = 475;
-	private static final int WINDOW_HEIGHT = 310;
+	private static final int WINDOW_WIDTH = 575;
+	private static final int WINDOW_HEIGHT = 375;
 	
-	private static final int MIN_WINDOW_WIDTH = 350;
+	private static final int MIN_WINDOW_WIDTH = 575;
 	private static final int MIN_WINDOW_HEIGHT = WINDOW_HEIGHT;
 	private static final Dimension MIN_WINDOW_DIM = new Dimension(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT);
 	
@@ -145,6 +144,10 @@ public class ManageEmployees extends JFrame implements ErrorStatusReportable {
 	protected static final Color ERROR_DISPLAY_COLOR = Color.RED;//new Color(112, 211, 0);
 	protected static final Color SUCCESS_DISPLAY_COLOR = new Color(58, 193, 0);
 	protected static final Color NEUTRAL_DISPLAY_COLOR = Color.BLACK;//new Color(112, 211, 0);
+
+	private static final int ERROR_STATUS_ROWS = 4;
+
+	private static final int ERROR_STATUS_COLUMNS = 30;
 	
 	
 	
@@ -178,7 +181,10 @@ public class ManageEmployees extends JFrame implements ErrorStatusReportable {
 	{
 		this.loggedInEmpIsManager = isManager;
 		this.loggedInEmployeeID = loggedInEmployeeID;
-		this.initialEmployeeID = initializerEmployeeID;
+		if(loggedInEmpIsManager)
+			this.initialEmployeeID = initializerEmployeeID;
+		else
+			this.initialEmployeeID = loggedInEmployeeID;
 		initialize();
 	}
 
@@ -278,7 +284,7 @@ public class ManageEmployees extends JFrame implements ErrorStatusReportable {
 	
 	private void initializeInputFields() {
 		formattedTextFieldEmployeeID = getEmployeeIDTextField();
-		formattedTextFieldEmployeeName = getEmployeeNameTextField();		
+		formattedTextFieldEmployeeName = ComponentProvider.getNameTextField();		
 		comboBoxWarehouseID = new JComboBox();
 		comboBoxWarehouseID.setModel(new DefaultComboBoxModel(warehouseInfo.toArray()));
 		passFieldCurrentPass = getPasswordField();
@@ -332,7 +338,8 @@ public class ManageEmployees extends JFrame implements ErrorStatusReportable {
 		btnPerformAction.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent ae) {
-				if(((String) comboBoxSelectAction.getSelectedItem()).equals(errorTab))
+				if(comboBoxSelectAction != null  && 
+						((String) comboBoxSelectAction.getSelectedItem()).equals(errorTab))
 				{
 					String employeeID = formattedTextFieldEmployeeID.getText();
 					displayErrorStatus("There is no employee with ID " + employeeID 
@@ -352,8 +359,8 @@ public class ManageEmployees extends JFrame implements ErrorStatusReportable {
 			errorStatusTextArea.setLineWrap(true);
 			errorStatusTextArea.setWrapStyleWord(true);
 			errorStatusTextArea.setBackground(panelPerformAction.getBackground());
-			errorStatusTextArea.setColumns(20);
-			errorStatusTextArea.setRows(3);
+			errorStatusTextArea.setColumns(ERROR_STATUS_COLUMNS);
+			errorStatusTextArea.setRows(ERROR_STATUS_ROWS);
 		}
 		panelPerformAction.add(errorStatusTextArea);
 		panelPerformAction.add(btnPerformAction);
@@ -450,7 +457,7 @@ public class ManageEmployees extends JFrame implements ErrorStatusReportable {
 	private void addEnteredEmployee() {
 		String employeeID = formattedTextFieldEmployeeID.getText();
 		String employeeName = formattedTextFieldEmployeeName.getText();
-		String warehouseID = (String) comboBoxWarehouseID.getSelectedItem();
+		String warehouseID = warehouseIDs[comboBoxWarehouseID.getSelectedIndex()];
 		boolean isManager = checkBoxIsManager.isSelected();
 		String password = textFieldTempPassword.getText();
 		try {
@@ -593,13 +600,7 @@ public class ManageEmployees extends JFrame implements ErrorStatusReportable {
 		addRowToOptions(null, checkBoxIsManager);
 	}
 
-	private JFormattedTextField getEmployeeNameTextField() {
-		NameDocument employeeNameDoc = new NameDocument();
-		formattedTextFieldEmployeeName = new JFormattedTextField();
-		formattedTextFieldEmployeeName.setDocument(employeeNameDoc);
-		formattedTextFieldEmployeeName.setColumns(EMPLOYEE_NAME_TEXTFIELD_COLUMNS);
-		return formattedTextFieldEmployeeName;
-	}
+	
 
 	private void displayChangeEmployeePassOptions() {
 		
@@ -610,7 +611,7 @@ public class ManageEmployees extends JFrame implements ErrorStatusReportable {
 		//also managers shouldnt have to enter the current password to change a password
 		//TODO if current entered employee ID is a manager, make this require their password
 		//formattedTextFieldEmployeeID.setEnabled(true);
-		formattedTextFieldEmployeeID.setEditable(true);
+		formattedTextFieldEmployeeID.setEditable(this.loggedInEmpIsManager);
 		addIDActionListener();
 		addRowToOptions(labelEmployeeID, formattedTextFieldEmployeeID);
 		addRowToOptions(labelCurrentPassword, passFieldCurrentPass);
@@ -726,9 +727,9 @@ public class ManageEmployees extends JFrame implements ErrorStatusReportable {
 		formattedTextFieldEmployeeID.setText("");
 		formattedTextFieldEmployeeName.setText("");
 		formattedTextFieldEmployeeName.setEditable(true);
-		//formattedTextFieldEmployeeName.setEnabled(true);
 		comboBoxWarehouseID.setEnabled(true);
 		checkBoxIsManager.setSelected(false);
+		checkBoxIsManager.setEnabled(true);
 		addRowToOptions(labelEmployeeID, formattedTextFieldEmployeeID);
 		addRowToOptions(labelEmployeeName, formattedTextFieldEmployeeName);
 		addRowToOptions(labelTempPassword, textFieldTempPassword);
@@ -799,18 +800,11 @@ public class ManageEmployees extends JFrame implements ErrorStatusReportable {
 		  }
 	  }
 	
-	private JFormattedTextField getIDTextField()
-	{
-		JFormattedTextField formattedTextFieldID = new JFormattedTextField();
-		IDDocument idDoc = new IDDocument();
-		formattedTextFieldID.setDocument(idDoc);
-		formattedTextFieldID.setColumns(ID_TEXTFIELD_COLUMNS);
-		return formattedTextFieldID;
-	}
+	
 	
 	private JFormattedTextField getEmployeeIDTextField()
 	{
-		JFormattedTextField formattedTextFieldEmployeeID = this.getIDTextField();
+		JFormattedTextField formattedTextFieldEmployeeID = ComponentProvider.getIDTextField();
 		formattedTextFieldEmployeeID.setEditable(this.loggedInEmpIsManager); 
 		formattedTextFieldEmployeeID.setText(this.initialEmployeeID);
 		return formattedTextFieldEmployeeID;

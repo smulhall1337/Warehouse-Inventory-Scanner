@@ -7,6 +7,7 @@ import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.Insets;
 import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -18,6 +19,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -31,11 +33,13 @@ import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
 import javax.swing.SwingWorker;
 import javax.swing.Timer;
+import javax.swing.UIManager;
 import javax.swing.border.Border;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
@@ -86,15 +90,16 @@ public class MainWindow implements ErrorStatusReportable{
 	private static final int MAX_MENUBAR_PANEL_HEIGHT = 25;
 	
 	//Dimension constants for options panel (the panel containing checkboxes)
-	private static final int MAX_OPTIONS_PANEL_HEIGHT = 265;
-	private static final int MAX_OPTIONS_PANEL_WIDTH = MIN_WINDOW_WIDTH - 35;
+	static final int MAX_TAB_PANEL_HEIGHT = 265;
+	static final int MAX_TAB_PANEL_WIDTH = MIN_WINDOW_WIDTH - 35;
+	private static final Dimension MAX_TAB_DIM = new Dimension(MAX_TAB_PANEL_WIDTH, MAX_TAB_PANEL_HEIGHT);
 	
 	//How many pixels will be between the table panel and the edge of the window
-	private static final int TABLE_PANEL_MARGIN = 20;
+	static final int TABLE_PANEL_MARGIN = 20;
 	//how far with the update button be from the right
-	private static final int UPDATE_BUTTON_RIGHT_SPACING = 50;
+	public static final int UPDATE_BUTTON_RIGHT_SPACING = 50;
 	//how many pixels will be to the left/right of the options panel
-	private static final int OPTIONSPANEL_MAX_LEFT_SPACE = 50;
+	public static final int OPTIONSPANEL_MAX_LEFT_SPACE = 50;
 	private static final int OPTIONSPANEL_MAX_RIGHT_SPACE = 50;
 		
 	
@@ -155,8 +160,8 @@ public class MainWindow implements ErrorStatusReportable{
 	
 
 	private JLabel lblLoadingIcon;
-	private String currentTableEntity; //TODO use this to keep track of the entity currently in the table view
-
+	private String currentTableEntity; 
+	
 	private static final String LOADING_GIF_ICON_NAME = "loading.gif";
 
 	private static final String BUILDING_QUERY_STATUS_MESSAGE = "Building query...";
@@ -169,6 +174,10 @@ public class MainWindow implements ErrorStatusReportable{
 
 	private int tableSelectedIndex;
 
+	private JTabbedPane tabsWithReports;
+
+	private ReportsPanel reportsPanel;
+
 	private static final String TEST_EMP_ID = "894189";
 	private static final boolean TEST_EMP_ISMANAGER = true;
 	
@@ -180,7 +189,7 @@ public class MainWindow implements ErrorStatusReportable{
 			@Override
 			public void run() {
 				try {
-					MainWindow window = new MainWindow("894189",true);
+					MainWindow window = new MainWindow("123456",true);
 					window.frame.setVisible(true);
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -203,8 +212,29 @@ public class MainWindow implements ErrorStatusReportable{
 		initializeMainFrame();
 		initializeMenuBar();
 		initializeInfoController();
-		initializeAllOptionsPanel();
+		if(this.loggedInIsManager)
+		{
+			initializeTabbedPanel();
+			initializeAllOptionsPanel();
+			initializeReportsPanel();
+		}else{
+			initializeAllOptionsPanel();
+		}
 		initializeTablePanel();
+	}
+
+	private void initializeReportsPanel() {
+		//Initialize the panel that contains the entity/field/search comboboxes
+		reportsPanel = new ReportsPanel(infoController);
+		tabsWithReports.addTab("Reports", reportsPanel);
+	}
+
+	private void initializeTabbedPanel() {
+		// TODO Auto-generated method stub
+		UIManager.getDefaults().put("TabbedPane.contentBorderInsets", new Insets(2,0,0,0));
+		UIManager.getDefaults().put("TabbedPane.tabsOverlapBorder", false);
+		tabsWithReports = new JTabbedPane();
+		frame.getContentPane().add(tabsWithReports);
 	}
 
 	private void initializeInfoController() {
@@ -319,7 +349,6 @@ public class MainWindow implements ErrorStatusReportable{
 		manageEmployeesMenu.add(extraMenuItem);
 	}
 
-	//TODO update when manageemployees is updated
 	private void launchManageEmployees(String initializerEmpID)
 	{
 		ManageEmployees manageEmployeesWindow = new ManageEmployees(this.loggedInEmpID, this.loggedInIsManager, initializerEmpID);
@@ -387,7 +416,7 @@ public class MainWindow implements ErrorStatusReportable{
 		
 		//Initialize the panel that contains the entity/field/search comboboxes
 		allOptionsPanel = new JPanel();
-		allOptionsPanel.setMaximumSize(new Dimension(MAX_OPTIONS_PANEL_WIDTH, MAX_OPTIONS_PANEL_HEIGHT));
+		allOptionsPanel.setMaximumSize(new Dimension(MAX_TAB_PANEL_WIDTH, MAX_TAB_PANEL_HEIGHT));
 		allOptionsPanel.setLayout(new BorderLayout(0, 0));
 		
 		//A wrapper panel with a boxlayout so that the maximum size of the entity selection
@@ -410,7 +439,11 @@ public class MainWindow implements ErrorStatusReportable{
 		//Give the panel an etched border
 		Border borderEtched = BorderFactory.createEtchedBorder();
 		allOptionsPanel.setBorder(borderEtched);
-		frame.getContentPane().add(resizingPanelForOptions);
+		if(this.loggedInIsManager){
+			tabsWithReports.addTab("Main", resizingPanelForOptions);
+		}else{
+			frame.getContentPane().add(resizingPanelForOptions);
+		}
 		
 		initializeShowColumnsForPanel();
 		initializeEntityAndFieldSelectPanel();
@@ -538,85 +571,134 @@ public class MainWindow implements ErrorStatusReportable{
 	 * @param fieldModifierValue the value the user entered in the field modifier entry field
 	 * @return true if update successful, and false otherwise
 	 */
-	private boolean updateTableBasedOnSelection(String entityName, String fieldName, String fieldModifier, String fieldModifierValue){
-		//TODO finish this functionality to interact with the database
-		if (entityName.equals(DBNamesManager.getAllEntitySpecifierDisplayname())) 
-		{
-			return false; //TODO finish
-		} else { //we are looking at an actual entity
-			//say that the query is being built on the loading status
-			lblLoadingIcon.setText(BUILDING_QUERY_STATUS_MESSAGE);
-			//get the database variable for the selected entity
-			String dbEntityName = DBNamesManager.getEntityDatabaseVariableByDisplayName(entityName);
+	public boolean updateTableBasedOnSelection(String entityName,
+			String fieldName, String fieldModifier, String fieldModifierValue) {
+		// TODO finish this functionality to interact with the database
 
-			boolean modifierValueEntered = entityAndFieldSelectPanel.isModifierValueEntered();
-			ResultSet queryResult;
-			try {
-				//try executing the query
-				//say that the query is being executed on the loading status
-				lblLoadingIcon.setText(EXECUTING_QUERY_STATUS_MESSAGE);
+		// we are looking at an actual entity
+		// say that the query is being built on the loading status
+		lblLoadingIcon.setText(BUILDING_QUERY_STATUS_MESSAGE);
+		// get the database variable for the selected entity
+		String dbEntityName = DBNamesManager
+				.getEntityDatabaseVariableByDisplayName(entityName);
+
+		boolean modifierValueEntered = entityAndFieldSelectPanel
+				.isModifierValueEntered();
+		ResultSet queryResult = null;
+		Object[][] data;
+		String[] columnNames;
+		try {
+			// try executing the query
+			// say that the query is being executed on the loading status
+			lblLoadingIcon.setText(EXECUTING_QUERY_STATUS_MESSAGE);
+			// if the selected entity is items
+			if (entityName.equals(DBNamesManager.getItemEntityDisplayname())) 
+			{
+				// call separate queries to handle item categories and put them
+				// into one column
 				if (modifierValueEntered) 
-				{ //if there is a modifier value
-					//get the database variable for the selected field
-					String dbFieldName = DBNamesManager.getFieldDatabaseVariableFieldByDisplayName(fieldName);
-					//get the modifier string, i.e. "less than 10"
-					queryResult = SQL_Handler.getAllFromTable(dbEntityName, dbFieldName, fieldModifier, fieldModifierValue);
-				}else{//there is no modifier value
-					queryResult = SQL_Handler.getAllFromTable(dbEntityName);
-				}
-			
-				//save the data and column names into arrays
-				Object[][] data = controller.SQL_Handler.getResultSetAs2DObjArray(queryResult);			
-				String[] columnNames = controller.SQL_Handler.getColumnNamesFromResultSet(queryResult);
-				
-				
-				//if the results arent empty, if there is a next value
-				if(queryResult.next())
 				{
-					//move up one so we dont skip the first value
-					//result.previous();
-					
-					//TODO delete this debug sysout
-					//System.out.println("TABLE RESULT SET COLUMN STRING: " + result.getString(3));
-					
-					//say that the table is being updated on the loading status
-					lblLoadingIcon.setText(UPDATING_TABLE_STATUS_MESSAGE);
-					
-					//change the DB variable column names to the display names
-					SQL_Handler.updateColumnNamesToDisplayNames(columnNames);
-					//update the data in the table to have the queried data and display column names
-					
-					int updateTableRows = data.length;
-					updateTable(data, columnNames);
-		        	currentTableEntity = entityName;
-					
-					//TODO comment out or delete this printing of data's contents
-					//System.out.println("data length:" + data.length);
-					//System.out.println("~~~~~printing data after update table~~~~~");
-					//for(int row = 0; row < data.length; row++)
-					//	for(int col = 0; col < data[col].length; col++)
-					//		System.out.println(columnNames[col] + ": " + data[row][col]);
-					//System.out.println("~~~~~~~~~~~~~~~end of data~~~~~~~~~~~~~~~~");
-					//now that we have the data, return whether it actually has data in it just in case
-					boolean success = updateTableRows > 0;
-					return success;
+					String dbFieldName = DBNamesManager
+							.getFieldDatabaseVariableFieldByDisplayName(fieldName);
+					queryResult = SQL_Handler.getAllFromItemsWithCategory(
+							dbFieldName, fieldModifier, fieldModifierValue);
+				} else 
+				{
+					queryResult = SQL_Handler.getAllFromItemsWithCategory();
 				}
-				else{ //the query result was empty, return false
-					//TODO delete this sysout
-					System.out.println("UHHHHH says the query is empty?");
-					return false;
+			} else if (entityName.equals(DBNamesManager.getEmployeeEntityDisplayname()))
+			{
+				if (modifierValueEntered) 
+				{
+					String dbFieldName = DBNamesManager
+							.getFieldDatabaseVariableFieldByDisplayName(fieldName);
+					queryResult = SQL_Handler.getEmployeesNoSalt(dbFieldName, fieldModifier, fieldModifierValue);
+				} else 
+				{
+					queryResult =  SQL_Handler.getEmployeesNoSalt();
 				}
-			} catch (SQLException e) {
-				e.printStackTrace();
-				//System.out.println("sql exception caught");
-				ComponentProvider.showDBConnectionError(frame);
-				return false; 
+			}else if (entityName.equals(DBNamesManager.getPalletEntityDisplayname())) 
+			{
+				// call separate queries to handle item categories and put them
+				// into one column
+				if (modifierValueEntered) 
+				{
+					String dbFieldName = DBNamesManager
+							.getFieldDatabaseVariableFieldByDisplayName(fieldName);
+					queryResult = SQL_Handler.getPalletsWithSubloCoord(
+							dbFieldName, fieldModifier, fieldModifierValue);
+				} else 
+				{
+					queryResult = null; //TODO //SQL_Handler.getPalletsWithSubloCoord();
+				}
+			} else if (modifierValueEntered) 
+			{ // if there is a modifier value
+												// get the database variable for
+												// the selected field
+				String dbFieldName = DBNamesManager
+						.getFieldDatabaseVariableFieldByDisplayName(fieldName);
+				// get the modifier string, i.e. "less than 10"
+				queryResult = SQL_Handler.getAllFromTable(dbEntityName,
+						dbFieldName, fieldModifier, fieldModifierValue);
+			} else 
+			{// there is no modifier value
+				queryResult = SQL_Handler.getAllFromTable(dbEntityName);
 			}
-			
+
+			// save the data and column names into arrays
+			data = controller.SQL_Handler.getResultSetAs2DObjArray(queryResult);
+			columnNames = controller.SQL_Handler
+					.getColumnNamesFromResultSet(queryResult);
+
+			// if the results arent empty, if there is a next value
+			if (queryResult.next()) 
+			{
+				// move up one so we dont skip the first value
+				// result.previous();
+
+				// TODO delete this debug sysout
+				// System.out.println("TABLE RESULT SET COLUMN STRING: " +
+				// result.getString(3));
+
+				// say that the table is being updated on the loading status
+				lblLoadingIcon.setText(UPDATING_TABLE_STATUS_MESSAGE);
+
+				// change the DB variable column names to the display names
+				SQL_Handler.updateColumnNamesToDisplayNames(columnNames);
+				// update the data in the table to have the queried data and
+				// display column names
+
+				int updateTableRows = data.length;
+				updateTable(data, columnNames);
+				currentTableEntity = entityName;
+
+				// System.out.println("data length:" + data.length);
+				// System.out.println("~~~~~printing data after update table~~~~~");
+				// for(int row = 0; row < data.length; row++)
+				// for(int col = 0; col < data[col].length; col++)
+				// System.out.println(columnNames[col] + ": " + data[row][col]);
+				// System.out.println("~~~~~~~~~~~~~~~end of data~~~~~~~~~~~~~~~~");
+				// now that we have the data, return whether it actually has
+				// data in it just in case
+				boolean success = updateTableRows > 0;
+				return success;
+			} else 
+			{ // the query result was empty, return false
+						// TODO delete this sysout
+				System.out.println("UHHHHH says the query is empty?");
+				return false;
+			}
+		} catch (SQLException e) 
+		{
+			e.printStackTrace();
+			// System.out.println("sql exception caught");
+			ComponentProvider.showDBConnectionError(frame);
+			return false;
 		}
-		//TODO make it update the table neatly, probably in another method
-		//TODO THISIS BAD
+
 	}
+
+
 	
 	/**
 	 * Initialize the table panel and the table within.
@@ -648,7 +730,7 @@ public class MainWindow implements ErrorStatusReportable{
 	    
 	}
 	
-	private void updateTable(Object[][] data, String[] columnNames)
+	void updateTable(Object[][] data, String[] columnNames)
 	{
 		//make a new wimstable, override the viewport tracking so autoresize and scroll is utilized
 		mainTable = new WIMSTable();
@@ -662,7 +744,7 @@ public class MainWindow implements ErrorStatusReportable{
 		tableSelectedIndex =-1;
 		mainTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		ListSelectionModel selectionModel = mainTable.getSelectionModel();
-
+		
 		selectionModel.addListSelectionListener(new ListSelectionListener() {
 		    public void valueChanged(ListSelectionEvent e) {
 		        handleSelectionEvent(e);
@@ -681,12 +763,17 @@ public class MainWindow implements ErrorStatusReportable{
 		});
 		
 		mainTable.setRowSorter(new TableRowSorter(tabelModel));
-		//TODO investigate use of width adjuster
 		TableWidthAdjuster = new WidthAdjuster(mainTable);
 		
 		mainTable.updateColumnWidths();
 		if(mainTableScrollPane != null)
 			mainTableScrollPane.setViewportView(mainTable);
+	}
+	
+	private void updateTable(Object[][] data, String[] columnNames, boolean clearEntity){
+		if(clearEntity)
+			this.currentTableEntity = "";
+		updateTable(data, columnNames);
 	}
 	
 	private void showOptionMenuForDataAt(int viewRowIndex, int viewColIndex){
@@ -700,15 +787,15 @@ public class MainWindow implements ErrorStatusReportable{
 	    int modelRowIndex = mainTable.getRowSorter().convertRowIndexToModel(viewRowIndex);
 	    int modelColIndex = mainTable.getColumn(colHeader).getModelIndex();
 	    
-	    //Object[] row = model.getRowAt(modelRowIndex);
-	    
+	    Object[] row = model.getRowAt(modelRowIndex);
+	    showMenuForRow(colHeader, row);
 	    //get the value in this cell in the model
-	    Object value = model.getValueAt(modelRowIndex, modelColIndex);
-	    showMenuForValue(colHeader, value);
+	    //Object value = model.getValueAt(modelRowIndex, modelColIndex);
+	    //showMenuForValue(colHeader, value);
 	    
-	    System.out.println("Cell selected at (row" + viewRowIndex + ",col" + viewColIndex
-	    		+ ") " + "(" + colHeader + ") " +  value);
-	    System.out.println(model.getValueAt(modelRowIndex, modelColIndex));
+	    //System.out.println("Cell selected at (row" + viewRowIndex + ",col" + viewColIndex
+	    //		+ ") " + "(" + colHeader + ") " +  value);
+	    //System.out.println(model.getValueAt(modelRowIndex, modelColIndex));
 	}
 	
 	private void showMenuForValue(String header, Object value)
@@ -729,7 +816,6 @@ public class MainWindow implements ErrorStatusReportable{
 				launchPalletWindow(valueString);
 				break;
 			case DBNamesManager.ORDER_NUM_FIELD_DISPLAYNAME:
-				//TODO display order menu
 				//here valueString = the selected order number
 				System.out.println("Selected Order Number: " + valueString);
 				launchOrderWindow();
@@ -745,7 +831,6 @@ public class MainWindow implements ErrorStatusReportable{
 				System.out.println("Selected Sublocation Coordinate: " + valueString);
 				break;
 			case DBNamesManager.EMPLOYEE_ID_DISPLAYNAME:
-				//TODO display employee menu
 				//here valueString = the selected employeeID
 				System.out.println("Selected Employee ID: " + valueString);
 				launchManageEmployees(valueString);
@@ -759,43 +844,54 @@ public class MainWindow implements ErrorStatusReportable{
 			return;
 		}
 	}
-//	private void showMenuForRow(String[] row)
-//	{
-//		String currentEntity = entityAndFieldSelectPanel.getSelectedEntity();
-//		WIMSTableModel model = (WIMSTableModel) mainTable.getModel();
-//		String entityID;
-//		//
-//		try{
-//		int indexOfID = mainTable.getColumn(colHeader).getModelIndex();
-//		}catch(NullPointerException ex)
-//		{
-//			indexOfID = this.showColumnsForPanel.getDeletedColumn(colHeader);
-//		}
-//		mainTable.getColumn(colHeader).getModelIndex();
-//		switch(currentEntity){
-//		case DBNamesManager.ITEM_ENTITY_DISPLAYNAME:
-//			//TODO diplsay item menu
-//			break;
-//		case DBNamesManager.PALLET_ENTITY_DISPLAYNAME:
-//			//TODO display pallet menu
-//			break;
-//		case DBNamesManager.ORDER_ENTITY_DISPLAYNAME:
-//			//TODO display order menu
-//			break;
-//		case DBNamesManager.SUBLOCATION_ENTITY_DISPLAYNAME:
-//			//TODO sublocation menu/functionality
-//			break;
-//		case DBNamesManager.EMPLOYEE_ENTITY_DISPLAYNAME:
-//			//TODO display employee menu
-//			break;
-//		}
-//	}
+	
+	private void showMenuForRow(String colHeader, Object[] row)
+	{
+		String currentEntity = entityAndFieldSelectPanel.getSelectedEntity();
+		String IDHeaderName = getIDHeaderForEntity(currentEntity);
+		ArrayList<String> columnHeaders = mainTable.getColumnHeaders();
+		int idNdx = columnHeaders.indexOf(IDHeaderName);
+		if(idNdx >= 0)
+		{
+			//get the id from this row and launch the appropriate window
+			String idValue = row[idNdx].toString();
+			showMenuForValue(IDHeaderName, idValue);
+		}else{
+			displayErrorStatus("The " + IDHeaderName + " column must be visible to launch"
+					+ " the " + currentEntity + " menu via clicking the table");
+		}
+	}
+	
+	private String getIDHeaderForEntity(String entityName){
+		String IDHeaderName = null;
+		switch(entityName){
+		case DBNamesManager.ITEM_ENTITY_DISPLAYNAME:
+			IDHeaderName = DBNamesManager.getItemNumberFieldDisplayname();
+			break;
+		case DBNamesManager.PALLET_ENTITY_DISPLAYNAME:
+			IDHeaderName = DBNamesManager.getPalletIdFieldDisplayname();
+			break;
+		case DBNamesManager.ORDER_ENTITY_DISPLAYNAME:
+			IDHeaderName = DBNamesManager.getOrderNumFieldDisplayname();
+			break;
+		case DBNamesManager.SUBLOCATION_ENTITY_DISPLAYNAME:
+			IDHeaderName = DBNamesManager.getSublocationSimpleIndexDisplayname();
+			break;
+		case DBNamesManager.EMPLOYEE_ENTITY_DISPLAYNAME:
+			IDHeaderName = DBNamesManager.getEmployeeIdDisplayname();
+			break;
+		case DBNamesManager.WAREHOUSE_ENTITY_DISPLAYNAME:
+			IDHeaderName = DBNamesManager.getWarehouseIdFieldDisplayname();
+			break;
+		}
+		return IDHeaderName;
+	}
 	
 	
 	private void updateTableResizeBasedOnScrollPane() {
 		//mainTable.updateColumnWidths();
 		if (mainTable.getPreferredSize().width < mainTableScrollPane.getWidth()) {
-        	mainTable.setAutoResizeMode(JTable.AUTO_RESIZE_NEXT_COLUMN);//TODO edit this
+        	mainTable.setAutoResizeMode(JTable.AUTO_RESIZE_NEXT_COLUMN);
         } else {
         	mainTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         }
@@ -925,7 +1021,7 @@ public class MainWindow implements ErrorStatusReportable{
 		}
 	}
 
-	public JTable getDisplayTable() {
+	public WIMSTable getDisplayTable() {
 		return mainTable;
 	}
 
@@ -940,5 +1036,13 @@ public class MainWindow implements ErrorStatusReportable{
 	public String getCurrentTableEntity()
 	{
 		return currentTableEntity;
+	}
+	
+	public JScrollPane getMainTableScrollPane(){
+		return this.mainTableScrollPane;
+	}
+	
+	public JLabel getLoadingLabel(){
+		return this.lblLoadingIcon;
 	}
 }
