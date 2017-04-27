@@ -178,6 +178,14 @@ public abstract class SQL_Handler {
 			statement = conn.prepareStatement("SELECT * FROM items");
 			statements.put(stmt_key, statement);
 			
+			stmt_key = "UpdateOverage";
+			statement = conn.prepareStatement("UPDATE items SET overage_shortage = ? WHERE item_number = ?");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "GetOverage";
+			statement = conn.prepareStatement("SELECT overage_sortage FROM items WHERE item_number = ?");
+			statements.put(stmt_key, statement);
+			
 			//#############################################Pallets
 			stmt_key = "PalletInDB";
 			statement = conn.prepareStatement("SELECT * FROM pallets WHERE pallet_id = ?");
@@ -216,6 +224,12 @@ public abstract class SQL_Handler {
 			stmt_key = "GetPalletsInOrder";
 			statement = conn.prepareStatement("SELECT * FROM swenggdb.pallets WHERE order_number = ?");
 			statements.put(stmt_key, statement);
+			
+			stmt_key = "GetPalletsInSublocation";
+			statement = conn.prepareStatement("SELECT * FROM swenggdb.pallets WHERE pallet_location = ?");
+			statements.put(stmt_key, statement);
+			
+			
 			//#############################################Orders
 			stmt_key = "OrderInDB";
 			statement = conn.prepareStatement("SELECT * FROM orders WHERE order_number = ?");
@@ -233,6 +247,15 @@ public abstract class SQL_Handler {
 			stmt_key = "OrderEmployeesInOut";
 			statement = conn.prepareStatement("SELECT * FROM orders_employees WHERE order_number = ? and employee_ID = ?");
 			statements.put(stmt_key, statement);
+			
+			stmt_key = "OrderOrigin";
+			statement = conn.prepareStatement("SELECT origin FROM orders WHERE order_number = ?");
+			statements.put(stmt_key, statement);
+			
+			stmt_key = "OrderDestination";
+			statement = conn.prepareStatement("SELECT destination FROM orders WHERE order_number = ?");
+			statements.put(stmt_key, statement);
+			
 			//#############################################Warehouses
 			stmt_key = "GetWHNamesIDs";
 			statement = conn.prepareStatement("SELECT warehouse_id, name FROM warehouses");
@@ -650,6 +673,24 @@ public static boolean employeeExists(String employee_id) throws SQLException {
 		return rs;
 	}
 	
+	public static int getOverage(String itemNumber) throws SQLException {
+		int reStock = 0;
+		stmt = sql_statements.get("ItemInfo");
+		stmt.setString(1, itemNumber);
+		rs = stmt.executeQuery();
+		rs.next();
+		reStock = rs.getInt("restock_threshold");
+		return reStock;
+	}
+	
+	public static void updateOverages(int quantity, String itemNumber) throws SQLException {
+		int current = getOverage(itemNumber);
+		stmt = sql_statements.get("UpdateOverage");
+		stmt.setInt(1, current + quantity);
+		stmt.setString(2, itemNumber);
+		stmt.execute();
+	}
+	
 	
 	//#############################################Pallets
 		public static boolean palletInDB(String palletID) throws SQLException {
@@ -680,6 +721,17 @@ public static boolean employeeExists(String employee_id) throws SQLException {
 		rs = stmt.executeQuery();
 		while (rs.next()) {
 			result.add(rs.getString("item_number"));
+		}
+		return result;
+	}
+	
+	public static ArrayList<Item> getItemsOnPalletAsObject(String palletID) throws SQLException {
+		ArrayList<Item> result = new ArrayList<Item>();
+		stmt = sql_statements.get("GetItemsOnPallet");
+		stmt.setString(1, palletID);
+		ResultSet rs = stmt.executeQuery();
+		while (rs.next()) {
+			result.add(new Item(rs.getString("item_number"), rs.getInt("item_quantity")));
 		}
 		return result;
 	}
@@ -735,7 +787,27 @@ public static boolean employeeExists(String employee_id) throws SQLException {
 		rs = stmt.executeQuery();
 		rs.next();
 		return rs.getString("location_coordinate");
-	}																		  
+	}	
+	
+	public static ArrayList<Pallet> getPalletsBySublocation(int subloIndex, SubLocation sub) throws SQLException {
+		ArrayList<Pallet> palletList = new ArrayList<Pallet>();
+		stmt = sql_statements.get("GetPalletsInSublocation");
+		stmt.setInt(1, subloIndex);
+		ResultSet rs = stmt.executeQuery();
+		while (rs.next()) {
+			String id = rs.getString("pallet_id");
+			palletList.add(new Pallet(id, sub));
+		}
+		return palletList;
+	}
+	
+	public static String getOrderNumberFromPallet(String palletID) throws SQLException {
+		stmt = sql_statements.get("PalletInDB");
+		stmt.setString(1, palletID);
+		rs = stmt.executeQuery();
+		rs.next();
+		return rs.getString("order_number");
+	}
 	
 	//#############################################Orders
 	public static boolean OrderInDB(String OrderNumber) throws SQLException {
@@ -748,16 +820,16 @@ public static boolean employeeExists(String employee_id) throws SQLException {
 			return false;
 	}
 	
-	public static void insertNewOrder(int orderNumber, String origin, String destination, String receiveEmployeeID, String shipEmployeeID, String datePlaced, String dateShipped, String dateDelivered) throws SQLException {
+	public static void insertNewOrder(String orderNumber, String origin, String destination, String receiveEmployeeID, String shipEmployeeID, Date datePlaced, Date dateShipped, Date dateDelivered) throws SQLException {
 		stmt = sql_statements.get("NewOrder");
-		stmt.setInt(1, orderNumber);
+		stmt.setString(1, orderNumber);
 		stmt.setString(2, origin);
 		stmt.setString(3, destination);
 		stmt.setString(4, receiveEmployeeID);
 		stmt.setString(5, shipEmployeeID);
-		stmt.setString(6, datePlaced);
-		stmt.setString(7, dateShipped);
-		stmt.setString(8, dateDelivered);
+		stmt.setDate(6, datePlaced);
+		stmt.setDate(7, dateShipped);
+		stmt.setDate(8, dateDelivered);
 		stmt.execute();
 	}
 	
@@ -780,6 +852,22 @@ public static boolean employeeExists(String employee_id) throws SQLException {
 		rs.next();
 		inOut = rs.getString("shipped/recieved");
 		return inOut;
+	}
+	
+	public static String getOrderOrigin(String orderNumber) throws SQLException {
+		stmt = sql_statements.get("OrderOrigin");  //TODO
+		stmt.setString(1, orderNumber);
+		rs = stmt.executeQuery();
+		rs.next();
+		return rs.getString("origin");
+	}
+	
+	public static String getOrderDestination(String orderNumber) throws SQLException {
+		stmt = sql_statements.get("OrderDestination");
+		stmt.setString(1, orderNumber);
+		rs = stmt.executeQuery();
+		rs.next();
+		return rs.getString("destination");
 	}
 		
 	//#############################################Warehouses
@@ -1081,5 +1169,17 @@ public static List<Object[]> getResultSetAsListOfArrays(ResultSet result) throws
 		}
 		return pallets;
 	}
+	
+	public static boolean SublocationInDB(String sublocationName) throws SQLException {
+		stmt = sql_statements.get("GetBlankFromSublocation");
+		stmt.setString(1, sublocationName);
+		rs = stmt.executeQuery();
+		if (rs.next())
+			return true;
+		else
+			return false;
+	}
 
 }
+
+
