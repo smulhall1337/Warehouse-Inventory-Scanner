@@ -1,7 +1,14 @@
+package gui;
+
 import javax.swing.JPanel;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JTextField;
+
+import controller.Order;
+import controller.Pallet;
+import controller.SQL_Handler;
+import controller.Valid;
 
 import java.awt.Dimension;
 
@@ -113,27 +120,34 @@ public class OrderPanel extends JPanel {
 			JOptionPane.showMessageDialog(this.getParent(), "An error occurred trying to reach the database, \nPlease try again");			
 		}
 		if (found) {  										//if the order is found 
-			// TODO fill out the Lists with info, SQL_Handler.allPalletsInOrder only returns one row with the rs
-			OrderWindow.setCurrentOrder(orderNumber);
-			OrderWindow.setFoundOrder(true);
-			postSearch();			
+			// TODO fill out the Lists with info, SQL_Handler.allPalletsInOrder only returns one row with the rs			
 			try {
+				String o = SQL_Handler.getOrderOrigin(orderNumber);
+				String d = SQL_Handler.getOrderDestination(orderNumber);
+				OrderWindow.setCurrentOrder(orderNumber);
+				OrderWindow.setFoundOrder(true);			
+				postSearch();
+				txtOrigin.setText(o);
+				txtDestination.setText(d);    //set the origin and destination fields
 				ArrayList<Pallet> PalletList = SQL_Handler.allPalletsInOrder(orderNumber);
 				for (Pallet temp : PalletList) {
 					OrderWindow.addPalletToJList(temp.getID(), temp.getSubLocation());
 					
 				}
+				OrderWindow.getFrame().setTitle("View Existing Order");
+				OrderWindow.disableCreate();
+				OrderWindow.enableView();
 			} catch (SQLException r) {
-				
-			}			
-			OrderWindow.getFrame().setTitle("View Existing Order");
+				JOptionPane.showMessageDialog(OrderWindow.getFrame(), "Error connecting to the database, \nPlease try again");
+			}//try catch end
 		}
 		else { 												//otherwise move focus to Origin and allow palletID to be modified
 			
 			postSearch();
 			OrderWindow.getCurrentPalletPanel().enableTxt();
 			OrderWindow.getFrame().setTitle("Create A New Order");
-			
+			OrderWindow.enableCreate();
+			OrderWindow.disableView();
 			OrderWindow.setCurrentOrder(orderNumber);    	//create the order object with the input			
 		}  
 	}//searchDB end

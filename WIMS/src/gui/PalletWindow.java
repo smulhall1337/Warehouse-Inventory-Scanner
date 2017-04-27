@@ -1,3 +1,5 @@
+package gui;
+
 import java.awt.EventQueue;
 
 import javax.swing.JFrame;
@@ -6,6 +8,10 @@ import javax.swing.JOptionPane;
 
 import java.awt.Font;
 import javax.swing.JTextField;
+
+import controller.SQL_Handler;
+import controller.Valid;
+
 import javax.swing.JComboBox;
 import javax.swing.JButton;
 import java.awt.event.ActionListener;
@@ -167,7 +173,7 @@ public class PalletWindow extends JFrame{
 			public void actionPerformed(ActionEvent e) {
 				frame.dispose();
 			}
-		});
+		}); 
 		
 		btnChange = new JButton("Change Pallet");		
 		btnChange.setFont(new Font("Tahoma", Font.PLAIN, 11));
@@ -268,13 +274,15 @@ public class PalletWindow extends JFrame{
 			int currentIndex = cbOnPallet.getSelectedIndex();
 			int intItemCountEntry = Integer.parseInt(txtItemCount.getText());
 			int totalPieceCount = 0;
+			String itemNumber = txtItemNumber.getText();
 			itemCountList.set(currentIndex, intItemCountEntry);
 			for (int i : itemCountList) {
 				totalPieceCount += i;
 			}
-			SQL_Handler.updateItemOnPallet(txtPalletID.getText(), txtItemNumber.getText(), Integer.parseInt(txtItemCount.getText()));
+			SQL_Handler.updateItemOnPallet(txtPalletID.getText(), itemNumber, Integer.parseInt(txtItemCount.getText()));
 			SQL_Handler.updatePieceCount(txtPalletID.getText(), totalPieceCount);
-			SQL_Handler.updateItemQtyByItemNum(changed, txtItemNumber.getText());
+			SQL_Handler.updateItemQtyByItemNum(changed, itemNumber);
+			SQL_Handler.updateOverages(changed, itemNumber);
 			JOptionPane.showMessageDialog(frame, "Updated " + cbOnPallet.getSelectedItem().toString() + ".");
 			changed = 0;  //after you update changed needs to be zero because whatever is currently on screen is the zero
 		}

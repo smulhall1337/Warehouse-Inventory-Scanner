@@ -1,3 +1,5 @@
+package gui;
+
 import java.awt.BorderLayout;
 import java.awt.Container;
 import java.awt.Dimension;
@@ -12,6 +14,13 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.border.TitledBorder;
+
+import controller.Order;
+import controller.Pallet;
+import controller.SQL_Handler;
+import controller.SubLocation;
+import controller.Valid;
+
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.sql.SQLException;
@@ -34,6 +43,7 @@ public class PalletPanel extends JPanel {
 	private JLabel lblPalletID, lblSubLocation;
 	private static JComboBox cbSubLocation;
 	private Order currentOrder;
+	private Component source;
 
 	/**
 	 * Create the panel.
@@ -54,6 +64,7 @@ public class PalletPanel extends JPanel {
 		lblPalletID = new JLabel("Pallet ID:");
 		lblPalletID.setBounds(10, 11, 55, 14);
 		this.add(lblPalletID);
+		source = lblPalletID.getParent().getParent();
 		
 		lblSubLocation = new JLabel("Sublocation:");
 		lblSubLocation.setBounds(10, 41, 75, 14);
@@ -72,9 +83,11 @@ public class PalletPanel extends JPanel {
 		});
 		txtPalletID.addFocusListener(new FocusAdapter() {
 			@Override
-			public void focusGained(FocusEvent e) {	
-				//probably would be good to not do this every single time? but theres no time to add a check rn	
-				populateSubLocationCB();
+			public void focusGained(FocusEvent e) {
+				if (!OrderWindow.getFoundOrder()) //and not found
+					populateSubLocationCB();	//populate the combobox when you focus on pallet id
+				
+				
 			}
 
 			@Override
@@ -122,24 +135,19 @@ public class PalletPanel extends JPanel {
 		this.add(btnDelete);
 		btnDelete.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				int n = JOptionPane.showConfirmDialog(OrderWindow.getFrame(), "Delete Pallet ID " + getSelectedPalletID() + " from this order? \nThis will remove its items too.");
+				int n = JOptionPane.showConfirmDialog(getParent(), "Delete Pallet ID " + getSelectedPalletID() + " from this order? \nThis will remove its items too.");
 				if (n == 0) { //if yes Delete
 					//TODO remove selected pallet
 					int index = PalletsInOrderPanel.getCurrentList().getSelectedIndex();
 					if (index != -1) {
-					    PalletsInOrderPanel.getListModel().remove(index);
-					    OrderWindow.getPalletList().remove(index);
-					    //clear item list model
-					    ItemsInPalletPanel.getListModel().clear();
-					    if (cbSubLocation.getSelectedIndex() != 0) {										//make sure a sublocation is selected		
-							SubLocation sublocation = (SubLocation) cbSubLocation.getSelectedItem();		//get the selected sublocation from the combobox
-							if (sublocation.decrementCurrent()) {											//if you are able to increase the current count on the sub location so it cant be under 0 when creating the order
-								OrderWindow.getPalletList().remove(index); //
-							}													
-									
-						}
-					}
-					
+						Pallet p = (Pallet) PalletsInOrderPanel.getCurrentList().getSelectedValue();
+						SubLocation sublocation = p.getSubLocation();
+							if (sublocation.decrementCurrent()) {											//if you are able to increase the current count on the sub location so it cant be under 0 when creating the order								
+							    PalletsInOrderPanel.getListModel().remove(index);
+							    OrderWindow.getPalletList().remove(index);							    
+							    ItemsInPalletPanel.getListModel().clear();	//clear item list model
+							}
+					}					
 					if (PalletsInOrderPanel.getListModel().isEmpty()) {
 						btnDelete.setEnabled(false);
 					}

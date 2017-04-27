@@ -1,22 +1,21 @@
 package gui;
 
-import java.awt.BorderLayout;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.EventQueue;
-import java.awt.FlowLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 import javax.swing.BoxLayout;
-import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JFrame;
-import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextField;
-import javax.swing.ScrollPaneLayout;
-import javax.swing.SwingConstants;
 
 import controller.Item;
 import controller.LabelFactory;
@@ -25,21 +24,7 @@ import controller.Pallet;
 import controller.SQL_Handler;
 import controller.SubLocation;
 
-import java.awt.event.ActionListener;
-import java.awt.event.ActionEvent;
-import java.awt.Component;
-import java.awt.Container;
-import java.awt.event.FocusAdapter;
-import java.awt.event.FocusEvent;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.SortedMap;
-import java.util.TreeMap;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
-
-public class OrderWindow extends JFrame {
+public class SublocationWindow {
 
 	private static JFrame frame;
 	private static final int LRHEIGHT = 400, LWIDTH = 375, RWIDTH = 290, BHEIGHT = 50, BWIDTH = LWIDTH + RWIDTH;
@@ -47,12 +32,12 @@ public class OrderWindow extends JFrame {
 	private JPanel leftPanel = new JPanel();
 	private	JPanel rightPanel = new JPanel();
 	private	JPanel bottomPanel = new JPanel();
-	private static JButton btnExit = new JButton("Exit"), btnCreateOrder = new JButton("Create Order"), btnViewBarcodes = new JButton("View Barcodes");
+	private JButton btnExit = new JButton("Exit"), btnCreateOrder = new JButton("Create Order"), btnViewBarcodes = new JButton("View Barcodes");
 	private JList palletJList = new JList(), itemJList = new JList();
 	
-	private static  Order currentOrder;
+	private static  SubLocation currentSublocation;
 	
-	private static boolean foundOrder = false;
+	private static boolean foundSublocation = false;
 	private static boolean isM;
 	
 	//private static ArrayList<Pallet> palletList = new ArrayList<Pallet>();
@@ -65,7 +50,7 @@ public class OrderWindow extends JFrame {
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
-					OrderWindow window = new OrderWindow(true);  //i dont think this will ever run but if it does need to change it from default true
+					SublocationWindow window = new SublocationWindow(true);  //i dont think this will ever run but if it does need to change it from default true
 					window.frame.setVisible(true);
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -77,16 +62,16 @@ public class OrderWindow extends JFrame {
 	/**
 	 * Create the application.
 	 */
-	public OrderWindow(boolean isManagement) {
+	public SublocationWindow(boolean isManagement) {
 		this.isM = isManagement;
 		initialize();
 	}
 	
-	public OrderWindow(boolean isManagement, String orderNumber) {
+	public SublocationWindow(boolean isManagement, String locationCoordinate) {
 		this.isM = isManagement;
 		initialize();
-		OrderPanel.setTxtOrderNumber(orderNumber);
-		OrderPanel.clickCheck();
+		SublocationPanel.setTxtLocationName(locationCoordinate);
+		SublocationPanel.clickCheck();
 	}
 
 	/**
@@ -97,7 +82,7 @@ public class OrderWindow extends JFrame {
 		frame.setBounds(100, 100, 740, 479);
 		frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		frame.setResizable(false);
-		frame.setTitle("Enter Order Number");
+		frame.setTitle("Enter Sublocation Name");
 		frame.getContentPane().setLayout(null);
 		leftPanel.setLocation(0, 0);
 		leftPanel.setSize(400, 400);
@@ -119,8 +104,8 @@ public class OrderWindow extends JFrame {
 		leftPanel.setMaximumSize(LSIZE);
 		leftPanel.setPreferredSize(LSIZE);
 		leftPanel.setLayout(new BoxLayout(leftPanel, BoxLayout.Y_AXIS));
-		OrderPanel orderPanel = new OrderPanel();
-		leftPanel.add(orderPanel);
+		SublocationPanel sublocationPanel = new SublocationPanel();
+		leftPanel.add(sublocationPanel);
 		PalletsInOrderPanel palletInOrderPanel = new PalletsInOrderPanel();
 		palletInOrderPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
 		leftPanel.add(palletInOrderPanel);
@@ -157,41 +142,6 @@ public class OrderWindow extends JFrame {
 			}
 		});
 		
-		btnCreateOrder.setBounds(434, 16, 115, 23);
-		btnCreateOrder.setVisible(false);
-		bottomPanel.add(btnCreateOrder);
-		btnCreateOrder.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				createWholeOrder();
-			}
-		});
-		
-		btnViewBarcodes.setBounds(559, 16, 125, 23);
-		btnViewBarcodes.setVisible(false);
-		bottomPanel.add(btnViewBarcodes);
-		btnViewBarcodes.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				SortedMap <String, String> itemsMap = new TreeMap<String, String>();  //TODO
-				String oNum = currentOrder.getOrderNumber();
-				try {
-					ArrayList<Pallet> palletList = SQL_Handler.allPalletsInOrder(oNum);
-					ArrayList<Item> currentItems = new ArrayList<Item>();
-					for (Pallet p : palletList) {
-						currentItems = SQL_Handler.getItemsOnPalletAsObject(p.getID());
-						for (Item temp : currentItems) {
-							itemsMap.put(temp.getItemNumber(), temp.getQuantityAsString());
-						}
-						LabelFactory.createLabel(oNum, p.getID(), itemsMap);
-					}
-					JOptionPane.showMessageDialog(frame, "barcodes are good bro");
-				} catch (SQLException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
-							
-			}
-		});
-		
 		
 		frame.setVisible(true);
 	}//initialize end
@@ -209,14 +159,14 @@ public class OrderWindow extends JFrame {
 		PalletsInOrderPanel.getListModel().addElement(p);						//add the new pallet to the list model
 		PalletsInOrderPanel.getCurrentList().setSelectedIndex(index);
         PalletsInOrderPanel.getCurrentList().ensureIndexIsVisible(index);
-        currentOrder.getPalletList().add(p);									//add the new pallet to the Order Object
+        currentSublocation.getPalletList().add(p);									//add the new pallet to the Order Object
         
 	}
 	
 	public static void addItemToJList(String itemNumber, int itemQuantity) {
 		Item i = new Item(itemNumber, itemQuantity);
 		int index = PalletsInOrderPanel.getCurrentList().getSelectedIndex();
-		Pallet p = currentOrder.getPalletList().get(index);
+		Pallet p = currentSublocation.getPalletList().get(index);
 		p.addItem(i);
 		ItemsInPalletPanel.getListModel().addElement(i);
 		ItemsInPalletPanel.getCurrentList().setSelectedIndex(index);
@@ -243,11 +193,11 @@ public class OrderWindow extends JFrame {
 	 * @return foundOrder true for existing order, false for new order
 	 */
 	public static boolean getFoundOrder() {
-		return foundOrder;
+		return foundSublocation;
 	}
 	
-	public static void setFoundOrder(boolean f) {
-		foundOrder = f;
+	public static void setFoundSublocation(boolean f) {
+		foundSublocation = f;
 	}
 	
 	/**
@@ -258,12 +208,24 @@ public class OrderWindow extends JFrame {
 		return frame;
 	}
 	
-	public static Order getCurrentOrder() {
-		return currentOrder;
+	public static SubLocation getCurrentSublocation() {
+		return currentSublocation;
 	}
 	
-	public static void setCurrentOrder(String id) {
-		currentOrder = new Order(id);
+	public static void setCurrentSublocation(String id) {
+		try {
+			int current = SQL_Handler.getCurrentFromSublocation(id);
+			int max = SQL_Handler.getMaxFromSublocation(id);
+			int index = SQL_Handler.getSimpleSubloIndex(id);
+			String warehouseID = SQL_Handler.getWareHouseFromSublocation(id);
+			currentSublocation = new SubLocation(id, max, current, warehouseID);
+		} catch (SQLException e) {
+			
+		}		
+	}
+	
+	public static void setCurrentSublocation(String id, int max, int current, String warehouseID) {
+		currentSublocation = new SubLocation(id, max, current, warehouseID);
 	}
 	
 	/**
@@ -282,70 +244,5 @@ public class OrderWindow extends JFrame {
 		return ItemsInPalletPanel.getCurrentItemPanel();
 	}
 	
-	public static ArrayList<Pallet> getPalletList() {
-		return currentOrder.getPalletList();
-	}
-	
-	public static void enableCreate() {
-		btnCreateOrder.setEnabled(true);
-		btnCreateOrder.setVisible(true);
-	}
-	
-	public static void disableCreate() {
-		btnCreateOrder.setEnabled(false);
-		btnCreateOrder.setVisible(false);
-	}
-	
-	public static void enableView() {
-		btnViewBarcodes.setEnabled(true);
-		btnViewBarcodes.setVisible(true);
-	}
-	
-	public static void disableView() {
-		btnViewBarcodes.setEnabled(false);
-		btnViewBarcodes.setVisible(false);
-	}
-	
-	
-	
-	/*
-	 ************************************************************************ 
-	 **********************************************************Create Order**
-	 ************************************************************************ 
-	 */
-	public void createWholeOrder() {
-				
-		try {
-			String receivedBy = "", shippedBy = "";
-			java.sql.Date datePlaced = new java.sql.Date(Calendar.getInstance().getTime().getTime());		//setting necessary variables
-			java.sql.Date dateShipped = datePlaced;
-			java.sql.Date dateDelivered = datePlaced;
-			
-			SQL_Handler.insertNewOrder(currentOrder.getOrderNumber(), OrderPanel.getOrigin(), OrderPanel.getDestination(), receivedBy, shippedBy, datePlaced, dateShipped, dateDelivered);  //create order in DB
-			
-			
-			ArrayList<Pallet> allPallets = currentOrder.getPalletList();
-			for (Pallet tempPallet : allPallets) {																			//for each pallet
-				tempPallet.addThisToDB();																					//add the pallet to the db
-				for (Item tempItem : tempPallet.getAllItems()) {															//for each item on that pallet					
-					SQL_Handler.addItemsToPallet(tempPallet.getID(), tempItem.getItemNumber(), tempItem.getQuantity());		//make the connection to the two
-					SQL_Handler.updateItemQtyByItemNum(tempItem.getQuantity(), tempItem.getItemNumber()); 					//update the stock of each item
-					SQL_Handler.updateSublocation(tempPallet.getSubLocation().getSubLocationName(), tempPallet.getSubLocation().getCurrent()); 	//update the sublocation's current pallet quantity
-				}
-			
-			JOptionPane.showMessageDialog(frame, "Order added successfully");	
-			}
-			
-			
-		} catch (SQLException e) {
-			JOptionPane.showMessageDialog(frame, "Error creating order please make sure all fields are filled out properly");
-			e.printStackTrace();
-		}
-		
-	}//createWholeOrder end
-	
-	
-	
-	
 
-}//Class end
+}

@@ -1,3 +1,5 @@
+package gui;
+
 import java.awt.BorderLayout;
 import java.awt.Container;
 import java.awt.Dimension;
@@ -25,6 +27,12 @@ import javax.swing.ListSelectionModel;
 import javax.swing.border.TitledBorder;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
+
+import controller.Item;
+import controller.Order;
+import controller.Pallet;
+import controller.SQL_Handler;
+import controller.Valid;
 
 import java.awt.Component;
 import javax.swing.ScrollPaneConstants;
@@ -88,15 +96,20 @@ public class PalletsInOrderPanel extends JPanel {
 	              System.out.print(selections[i] + "/" + selectionValues[i] + " ");
 	              
 	              DefaultListModel tempList = ItemsInPalletPanel.getListModel();
+	              
 	              Pallet temp = (Pallet) listModel.get(selections[i]);
 	              tempList.clear();
 	              ArrayList<Item> itemList = temp.getAllItems();
 	              for (Item currentItem : itemList) {
-	            	  tempList.addElement(currentItem); //TODO this doesnt work trying to get the items from selected pallet to add to right side list
-	            	  ItemsInPalletPanel.getCurrentList().setModel(tempList);
+	            	  if (!Valid.notInCurrentList(currentItem.getItemName(), tempList)) {
+	            		  tempList.addElement(currentItem); //TODO this doesnt work trying to get the items from selected pallet to add to right side list
+	            		  ItemsInPalletPanel.getCurrentList().setModel(tempList);
+	            	  }
 	              }
-	              
-	              enableItemPanel();
+	              if (!OrderWindow.getFoundOrder()) { //if the order doesnt exist enable item panel when you click a pallet
+	            	 
+	            	  enableItemPanel();
+	              }
 	            }
 	            System.out.println();
 	          }
@@ -152,7 +165,7 @@ public class PalletsInOrderPanel extends JPanel {
                 Component renderer = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
                 if (renderer instanceof JLabel && value instanceof Pallet) {
                     // Here value will be of the Type 'CD'
-                    ((JLabel) renderer).setText("Pallet ID: " + ((Pallet) value).getID() + " stored in location " + ((Pallet) value).getSubLocation());
+                    ((JLabel) renderer).setText("Pallet ID: " + ((Pallet) value).getID() + " stored in location " + ((Pallet) value).getSubLocation().getSubLocationName());
                 }
                 return renderer;
             }
@@ -165,7 +178,7 @@ public class PalletsInOrderPanel extends JPanel {
 		
 		//Scroll Section
 		palletScroll = new JScrollPane(palletJList);
-		palletScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+		palletScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 		add(palletScroll);				
 		palletScroll.setSize(342, 235);
 		palletScroll.setPreferredSize(pScrollSize);
@@ -195,7 +208,6 @@ public class PalletsInOrderPanel extends JPanel {
 	
 	public void enableItemPanel() {
 		ItemPanel.enableTxtItemNumber();
-		
 	}
 	
 	public ArrayList<String> getItemsOnPallet(String palletID) {

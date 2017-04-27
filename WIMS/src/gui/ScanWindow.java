@@ -1,3 +1,5 @@
+package gui;
+
 import java.awt.Component;
 import java.awt.EventQueue;
 import java.awt.Font;
@@ -9,6 +11,12 @@ import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JTextField;
 import javax.swing.ListCellRenderer;
+import javax.swing.SwingUtilities;
+
+import controller.FocusGrabber;
+import controller.SQL_Handler;
+import controller.Valid;
+
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.DefaultComboBoxModel;
@@ -25,6 +33,7 @@ import java.awt.event.FocusListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.event.ActionEvent;
+import java.awt.event.FocusAdapter;
 
 /**
  * This window handles entering and editing single items
@@ -33,7 +42,7 @@ import java.awt.event.ActionEvent;
  */
 public class ScanWindow extends JFrame {
 	private int itemWeight = 1, itemStock = 0, itemRestock = 0, itemAdd = 0;
-	private String itemNumber, itemName, itemPrice = "0.00", input = ""; 	
+	private String itemNumber, itemName, itemPrice = "1.00", input = ""; 	
 	private boolean found, isM;
 	public ArrayList<JCheckBox> itemTypeList = new ArrayList<JCheckBox>();
 	private ArrayList<String> selectedTypes = new ArrayList<String>();
@@ -65,6 +74,7 @@ public class ScanWindow extends JFrame {
 		});
 	}//main end
 
+	
 	public ScanWindow(boolean isManagement, String initialItemNumber) {
 		this.itemNumber = initialItemNumber;
 		this.isM = isManagement;
@@ -72,12 +82,12 @@ public class ScanWindow extends JFrame {
 		btnSearch.doClick();
 	}
 	
+	
 	/**
 	 * Create the application.
 	 */
 	public ScanWindow(boolean isManagement) {
 		this.isM = isManagement;
-		//this.isM = true;
 		initialize();
 	}//ScanWindow end
 
@@ -98,6 +108,7 @@ public class ScanWindow extends JFrame {
 		getItemTypes();
 		setButtons();
 		searchScreen();	
+		SwingUtilities.invokeLater(new FocusGrabber(txtItemNumber));
 	}//initialize end
 	
 	//#############################################Validation
@@ -116,6 +127,7 @@ public class ScanWindow extends JFrame {
 		if (found)
 			txtAdd.setText("0");
 	}
+	
 	private void updateVariables() {
 		if (chckbxRestock.isSelected()) {
 			itemRestock = Integer.parseInt(txtRestock.getText()); //set the reStock
@@ -146,7 +158,6 @@ public class ScanWindow extends JFrame {
 	private void searchScreen() {
 		//SEE
 		lblItemNumber.setVisible(true);
-		txtItemNumber.setVisible(true);
 		txtItemNumber.setEditable(true);
 		txtItemNumber.requestFocus();
 		btnExit.setVisible(true);
@@ -309,7 +320,7 @@ public class ScanWindow extends JFrame {
 		lblItemWeight.setVisible(true); 
 		lblItemTypeselect.setVisible(true); 
 		lblAdditionalItemInformation.setVisible(true);
-		txtItemNumber.setVisible(true);
+		//txtItemNumber.setVisible(true);
 		txtItemName.setVisible(true);
 		txtItemWeight.setVisible(true);
 		txtPrice.setVisible(true);
@@ -354,7 +365,7 @@ public class ScanWindow extends JFrame {
 		chckbxGlass.setEnabled(false); 
 		chckbxFurniture.setEnabled(false); 
 		chckbxOther.setEnabled(false); */
-		
+		updateVariables();
 		updateTextBoxes();
 	}
 	
@@ -429,9 +440,9 @@ public class ScanWindow extends JFrame {
 	public void searchDB(String input) {
 		try {			
 			found = SQL_Handler.itemInDB(input);  //search the database using SQL_Handler for user input, set boolean found to result of search
+			itemNumber = input;
 			if (found) {	 //if the item is already in the database, notify the user and retrieve the info from the database assigning it accordingly
-				//JOptionPane.showMessageDialog(frame, "Item Number " + txtItemNumber.getText() + " is in the inventory.");
-				itemNumber = input;
+				//JOptionPane.showMessageDialog(frame, "Item Number " + txtItemNumber.getText() + " is in the inventory.");				
 				itemName = SQL_Handler.getItemName(input);
 				itemPrice = SQL_Handler.getItemPrice(input);
 				itemWeight = SQL_Handler.getItemWeight(input);
@@ -468,11 +479,14 @@ public class ScanWindow extends JFrame {
 	}//setItemTypes
 
 	private void newSubmit() {
-		if (Valid.allEntriesValid(txtItemNumber.getText(), txtItemName.getText(), txtPrice.getText(), txtItemWeight.getText(), txtCurrentStock.getText(), txtRestock.getText())){
-			updateVariables();
+		updateVariables();
+		String weightString = txtItemWeight.getText();
+		String cStockString = txtCurrentStock.getText();
+		String rStockString = txtRestock.getText();
+		if (Valid.allEntriesValid(itemNumber, itemName, weightString, itemPrice, cStockString, rStockString)){
+			
 			
 			try { //try connecting and inserting a new item using the info on screen, notify user of success
-				Connection conn = SQL_Handler.getConnection();
 				SQL_Handler.insertNewItem(txtItemNumber.getText(), txtItemName.getText(), itemPrice, itemWeight, itemStock, itemRestock);
 				setItemTypes();
 				JOptionPane.showMessageDialog(frame, "Item Number " + itemNumber + ": " + itemName + " Added to inventory");
@@ -547,7 +561,7 @@ public class ScanWindow extends JFrame {
 	}
 	
 	public void setTxtPrice(String S) {
-		if (Valid.validDouble(S))
+		if (Valid.validPrice(S))
 			txtPrice.setText(S);
 	}
 	
@@ -636,11 +650,12 @@ public class ScanWindow extends JFrame {
 	 * This method creates and sets all the textfields onto the frame along with implementing their listeners
 	 */
 	private void setTextFieldsInfo() {		
-		txtItemNumber = new JTextField();
+		txtItemNumber = new JTextField();		
 		txtItemNumber.setBounds(168, 58, 175, 20);
 		frame.getContentPane().add(txtItemNumber);
 		txtItemNumber.setColumns(10);
 		txtItemNumber.setText("");
+		txtItemNumber.requestFocus();
 		txtItemNumber.setTransferHandler(null); //prevent copy paste into the field
 		txtItemNumber.addKeyListener(new KeyAdapter() {
 			@Override
@@ -725,8 +740,7 @@ public class ScanWindow extends JFrame {
 		    @Override
 			public void focusGained(FocusEvent e) {
 				if (txtAdd.getText().equals("0"))
-					txtAdd.setText("");
-				
+					txtAdd.setText("");				
 			}
 
 			@Override
@@ -736,7 +750,7 @@ public class ScanWindow extends JFrame {
 			}
 
 		    });//txtAdd FocusListener end
-																			//TODO remove if
+																		
 		//if the item was in the db populate the text fields with its info
 		txtItemName.setText(itemName);
 		txtItemWeight.setText(Integer.toString(itemWeight));
@@ -891,13 +905,13 @@ public class ScanWindow extends JFrame {
 					}//if found end
 					else {
 						if (isM) {
-						notFoundManagerScreen();
+							notFoundManagerScreen();
 						}//if isM end
 						else {
 							notFoundEmployeeScreen();
 						}
-					}//if not found end
-				}//if validEntry end
+					}//if not found end				
+				}//if validEntry end				
 				else {
 				JOptionPane.showMessageDialog(frame, "Cannot Search for an empty entry, \nPlease enter or scan an Item Number");
 				}//if invalidEntry end
