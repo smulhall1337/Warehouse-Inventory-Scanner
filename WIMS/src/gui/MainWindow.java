@@ -54,7 +54,7 @@ import controller.WIMSTable;
 import controller.WIMSTableModel;
 import controller.WidthAdjuster;
 
-public class MainWindow implements ErrorStatusReportable{
+public class MainWindow extends JFrame implements ErrorStatusReportable{
 
 	private JFrame frame;
 	
@@ -313,10 +313,10 @@ public class MainWindow implements ErrorStatusReportable{
 		ordersMenu.setFont(MENUBAR_FONT);
 		menubar.add(ordersMenu);
 		
-		createNewOrderMenuItem = new JMenuItem("Create New Order");
-		ordersMenu.add(createNewOrderMenuItem);
+//		createNewOrderMenuItem = new JMenuItem("Create New Order");
+//		ordersMenu.add(createNewOrderMenuItem);
 		
-		scanInOrderMenuItem = new JMenuItem("Scan in Order");
+		scanInOrderMenuItem = new JMenuItem("Create New Order");
 		ordersMenu.add(scanInOrderMenuItem);
 		scanInOrderMenuItem.addActionListener(new ActionListener() {
 			@Override
@@ -345,8 +345,8 @@ public class MainWindow implements ErrorStatusReportable{
 			}
 		});
 		
-		extraMenuItem = new JMenuItem("An extra menu item to be filled out later");
-		manageEmployeesMenu.add(extraMenuItem);
+//		extraMenuItem = new JMenuItem("An extra menu item to be filled out later");
+//		manageEmployeesMenu.add(extraMenuItem);
 	}
 
 	private void launchManageEmployees(String initializerEmpID)
@@ -408,8 +408,8 @@ public class MainWindow implements ErrorStatusReportable{
 		reportsMenu.setFont(MENUBAR_FONT);
 		menubar.add(reportsMenu);
 		
-		reportMenu = new JMenuItem("Reports");
-		reportsMenu.add(reportMenu);
+//		reportMenu = new JMenuItem("Reports");
+//		reportsMenu.add(reportMenu);
 		
 		modifyPallet = new JMenuItem("Modify Pallet");
 		reportsMenu.add(modifyPallet);
@@ -1046,5 +1046,9 @@ public class MainWindow implements ErrorStatusReportable{
 	
 	public JLabel getLoadingLabel(){
 		return this.lblLoadingIcon;
+	}
+	
+	public JFrame getFrame(){
+		return this.frame;
 	}
 }

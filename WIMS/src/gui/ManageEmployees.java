@@ -187,8 +187,10 @@ public class ManageEmployees extends JFrame implements ErrorStatusReportable {
 		else
 			this.initialEmployeeID = loggedInEmployeeID;
 		initialize();
-		comboBoxSelectAction.setSelectedItem(UPDATE_EMPLOYEE_ACTION_NAME);
-		displayOptionsForAction(UPDATE_EMPLOYEE_ACTION_NAME);
+		if(this.loggedInEmpIsManager){
+			comboBoxSelectAction.setSelectedItem(UPDATE_EMPLOYEE_ACTION_NAME);
+			displayOptionsForAction(UPDATE_EMPLOYEE_ACTION_NAME);
+		}
 	}
 
 	/**

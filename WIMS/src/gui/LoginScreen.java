@@ -90,7 +90,8 @@ public class LoginScreen extends JFrame {
 	}
 	
 	private void launchMainWindow() throws SQLException {
-		new MainWindow(emp_txtBox.getText(), SQL_Handler.isEmployeeManager(emp_txtBox.getText()));
+		MainWindow mainWindow = new MainWindow(emp_txtBox.getText(), SQL_Handler.isEmployeeManager(emp_txtBox.getText()));
+		mainWindow.getFrame().setVisible(true);
 	}
 
 	private void initializeEntryPanel() {
