@@ -56,5 +56,9 @@ public class WIMSTableModel extends DefaultTableModel {
     	}
     	return rowValues;
     }
+    
+    public String getColumnName(int col){
+    	return super.getColumnName(col);
+    }
       
 }

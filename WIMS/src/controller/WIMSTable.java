@@ -1,6 +1,7 @@
 package controller;
 
 import java.awt.Component;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import javax.swing.JTable;
@@ -187,5 +188,15 @@ public class WIMSTable extends JTable{
 		int width = c.getPreferredSize().width + this.getIntercellSpacing().width;
 
 		return width;
+	}
+	
+	public ArrayList<String> getColumnHeaders(){
+		
+		ArrayList<String> headers = new ArrayList<String>(this.getColumnCount());
+		for(int i = 0; i< this.getColumnCount(); i++)
+		{
+			headers.add(this.getColumnName(i));
+		}
+		return headers;
 	}
 }
