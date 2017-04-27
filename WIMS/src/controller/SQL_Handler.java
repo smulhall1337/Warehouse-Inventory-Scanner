@@ -259,6 +259,11 @@ public abstract class SQL_Handler {
 			statements.put(stmt_key, statement);
 			
 			//#############################################Warehouses
+			stmt_key = "newWH";
+			statement = conn.prepareStatement("INSERT INTO swenggdb.warehouses (warehouse_id, city, state, street_address, zip, name, telephone_number, email_address) "+
+												"VALUES(?, ?, ?, ?, ?, ?, ?, ?)");
+			statements.put(stmt_key, statement);
+			
 			stmt_key = "GetWHNamesIDs";
 			statement = conn.prepareStatement("SELECT warehouse_id, name FROM warehouses");
 			statements.put(stmt_key, statement);
@@ -1113,6 +1118,19 @@ public static void insertNewPallet(String palletID, int pieceCount, int weight, 
 		Object[] array = getColumnAsArray(rs, 1);
 		String[] cities = Arrays.copyOf(array, array.length, String[].class);
 		return cities;
+	}
+	
+	public static void addNewWarehouse(String ID, String city, String state, String address, int ZIP, String name, String phone, String email) throws SQLException{
+		stmt = sql_statements.get("NewWH");
+		stmt.setString(1, ID);
+		stmt.setString(2, city);
+		stmt.setString(3, state);
+		stmt.setString(4, address);
+		stmt.setInt(5, ZIP);
+		stmt.setString(6, name);
+		stmt.setString(7, phone);
+		stmt.setString(8, email);
+		stmt.execute();
 	}
  
 	//#############################################Display	
