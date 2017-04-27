@@ -167,7 +167,7 @@ public abstract class LabelFactory {
 			e.printStackTrace();
 		}
     	//Write label to file
-        ImageIO.write(label, "png", new File("Order_"+ orderNum +"_Label_Page_"+ pageNum +".png"));
+        ImageIO.write(label, "png", new File("Order_"+ orderNum + "_PID_"+ palletID + "_Label_Page_"+ pageNum +".png"));
     }
     
     /**
