@@ -28,7 +28,6 @@ public abstract class SQL_Handler {
 	 * Holds a prepared SQL statement
 	 */
 	private static PreparedStatement stmt;
-	private static Connection customConnection = getConnection(); //TODO THIS IS BAD AND IS A TIME-CRUNCH FIX
 	/**
 	 * Holds results sets from SQL queries
 	 */
@@ -322,17 +321,19 @@ public abstract class SQL_Handler {
 	
 	//#############################################All Entities
 	public static ResultSet getAllFromTable(String tableName) throws SQLException{
+		Connection conn = getConnection();
 		String query = "SELECT * FROM " + tableName;
-			stmt = customConnection.prepareStatement(query);
+			stmt = conn.prepareStatement(query);
 			rs = stmt.executeQuery();
 			return rs;
 	}
 	
 	public static ResultSet getAllFromTable(String tableName, String fieldName, 
 			String fieldModifier, String fieldValue) throws SQLException{
+		Connection conn = getConnection();
 		String query = "SELECT * FROM " + tableName + " WHERE " 
 			+ fieldName + getQueryModifierString(fieldModifier, sanitizeInput(fieldValue));
-		stmt = customConnection.prepareStatement(query);
+		stmt = conn.prepareStatement(query);
 		rs = stmt.executeQuery();
 		return rs;
 	}
@@ -1181,5 +1182,4 @@ public static List<Object[]> getResultSetAsListOfArrays(ResultSet result) throws
 	}
 
 }
-
 
