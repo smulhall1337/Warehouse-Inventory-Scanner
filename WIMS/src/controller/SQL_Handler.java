@@ -259,7 +259,7 @@ public abstract class SQL_Handler {
 			statements.put(stmt_key, statement);
 			
 			//#############################################Warehouses
-			stmt_key = "newWH";
+			stmt_key = "NewWH";
 			statement = conn.prepareStatement("INSERT INTO swenggdb.warehouses (warehouse_id, city, state, street_address, zip, name, telephone_number, email_address) "+
 												"VALUES(?, ?, ?, ?, ?, ?, ?, ?)");
 			statements.put(stmt_key, statement);
@@ -790,7 +790,7 @@ public static boolean employeeExists(String employee_id) throws SQLException {
 	}
 	
 	public static ResultSet getTopXPricedItems(int x) throws SQLException{
-		String query = "SELECT item_number, name, ROUND(CAST(price AS DECIMAL), 2) AS 'Price', current_stock "
+		String query = "SELECT item_number, name, ROUND(CAST(price AS DECIMAL), 2) AS 'price', current_stock "
 		+ "FROM items "
 		+ "ORDER BY price DESC "
 		+ "LIMIT " + x;
@@ -800,7 +800,7 @@ public static boolean employeeExists(String employee_id) throws SQLException {
 	}
 	
 	public static ResultSet getBottomXPricedItems(int x) throws SQLException{
-		String query = "SELECT item_number, name, ROUND(CAST(price AS DECIMAL), 2) AS 'Price', current_stock "
+		String query = "SELECT item_number, name, ROUND(CAST(price AS DECIMAL), 2) AS 'price', current_stock "
 		+ "FROM items "
 		+ "ORDER BY price ASC "
 		+ "LIMIT " + x;
@@ -810,7 +810,7 @@ public static boolean employeeExists(String employee_id) throws SQLException {
 	}
 	
 	public static ResultSet getAllItemsUnderRestock() throws SQLException{
-		String query = "SELECT item_number, name, ROUND(CAST(i.price AS DECIMAL), 2) AS 'Price', current_stock, restock_threshold "
+		String query = "SELECT item_number, name, ROUND(CAST(i.price AS DECIMAL), 2) AS 'price', current_stock, restock_threshold "
 		+ "FROM items AS i "
 		+ "WHERE current_stock < restock_threshold "
 		+ "ORDER BY Price DESC ";
@@ -999,21 +999,28 @@ public static void insertNewPallet(String palletID, int pieceCount, int weight, 
 	
 	public static ResultSet getPalletsWithSubloCoord(String fieldName, String fieldModifier, String fieldValue) throws SQLException{
 		String queryMod = getQueryModifierString(fieldModifier, sanitizeInput(fieldValue));
-		System.out.println(queryMod);
-		String table = "";
-		if(fieldName.equals(DBNamesManager.getItemCategoriesDbField()))
-			table = "iic.";
-		
-		String query = "SELECT i.*, group_concat(ic.type) "
-				+ "AS 'type' "
-				+ "FROM items AS i "
-				+ "LEFT OUTER JOIN items_item_category AS iic "
-				+ "ON (i.item_number = iic.item_number) "
-				+ "LEFT OUTER JOIN item_category AS ic "
-				+ "ON (ic.type = iic.type) WHERE " + table + fieldName + queryMod
-				+ " GROUP BY item_number"; 
-		System.out.println("modifier");
-		System.out.println(query);
+		String table ="";
+		if(fieldName.equals(DBNamesManager.getPalletLocDbField()))
+		{
+			fieldName = "sublo.location_coordinate";
+		}
+		String query = "SELECT p.simple_pallet_index, p.pallet_id, p.order_number, "
+				+ "p.piece_count, p.weight, p.length, p.width, p.height, p.receival_date, p.ship_date, p.notes, sublo.location_coordinate "
+				+ "FROM pallets AS p "
+				+ "JOIN sublocation AS sublo "
+				+ "ON (p.pallet_location = sublo.simple_sublo_index) "
+				+ "WHERE " + fieldName + queryMod;
+		stmt = customConnection.prepareStatement(query);
+		rs = stmt.executeQuery();
+		return rs;
+	}
+	
+	public static ResultSet getPalletsWithSubloCoord() throws SQLException{
+		String query = "SELECT p.simple_pallet_index, p.pallet_id, p.order_number, "
+				+ "p.piece_count, p.weight, p.length, p.width, p.height, p.receival_date, p.ship_date, p.notes, sublo.location_coordinate "
+				+ "FROM pallets AS p "
+				+ "JOIN sublocation AS sublo "
+				+ "ON (p.pallet_location = sublo.simple_sublo_index) ";
 		stmt = customConnection.prepareStatement(query);
 		rs = stmt.executeQuery();
 		return rs;
@@ -1223,8 +1230,11 @@ public static List<Object[]> getResultSetAsListOfArrays(ResultSet result) throws
 	public static void updateColumnNamesToDisplayNames(String[] columnNames) {
 		// TODO Auto-generated method stub
 		for (int i = 0; i < columnNames.length; i++) {
-			columnNames[i] = DBNamesManager.getFieldDisplayNameByDatabaseVariable(columnNames[i]);
-		}
+			String originalName = columnNames[i];
+			String newName = DBNamesManager.getFieldDisplayNameByDatabaseVariable(originalName);
+			if(newName != null)
+				columnNames[i] = newName;
+		}	
 	}
 
 	public static String getQueryModifierString(String fieldModifier, String fieldModifierValue) {
