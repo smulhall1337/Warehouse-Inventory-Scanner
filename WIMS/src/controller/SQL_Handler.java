@@ -28,6 +28,7 @@ public abstract class SQL_Handler {
 	 * Holds a prepared SQL statement
 	 */
 	private static PreparedStatement stmt;
+
 	/**
 	 * Holds results sets from SQL queries
 	 */
@@ -36,8 +37,8 @@ public abstract class SQL_Handler {
 	//This must be moved to a file or private location and loaded in for security
 	protected static String salt = "Random$SaltValue#With^ManySpecials(@*&Q$^T(^&#%$";
 	
-	private static Connection customConnection = getConnection();
-	
+	private static Connection customConnection = getConnection(); //TODO THIS IS BAD AND IS A TIME-CRUNCH FIX
+														  
 	/**
 	 * method used to connect to the database 
 	 * @return the connection to the database, null if connection cannot be established
@@ -134,7 +135,7 @@ public abstract class SQL_Handler {
 			statements.put(stmt_key, statement);
 			
 			stmt_key = "UpdateEmp";
-			statement = conn.prepareStatement("UPDATE employes SET name = ?,"
+			statement = conn.prepareStatement("UPDATE employees SET name = ?,"
 					+ " is_management = ?, warehouse_id = ? WHERE employee_id = ?");
 			statements.put(stmt_key, statement);
 			
@@ -185,8 +186,8 @@ public abstract class SQL_Handler {
 			
 			stmt_key = "GetOverage";
 			statement = conn.prepareStatement("SELECT overage_sortage FROM items WHERE item_number = ?");
-			statements.put(stmt_key, statement);
-			
+			statements.put(stmt_key, statement);				  
+   
 			//#############################################Pallets
 			stmt_key = "PalletInDB";
 			statement = conn.prepareStatement("SELECT * FROM pallets WHERE pallet_id = ?");
@@ -221,16 +222,16 @@ public abstract class SQL_Handler {
 			stmt_key = "GetPalletLocation";
 			statement = conn.prepareStatement("SELECT pallet_location FROM swenggdb.pallets WHERE pallet_id = ?");
 			statements.put(stmt_key, statement);
-			
+   
 			stmt_key = "GetPalletsInOrder";
 			statement = conn.prepareStatement("SELECT * FROM swenggdb.pallets WHERE order_number = ?");
 			statements.put(stmt_key, statement);
 			
 			stmt_key = "GetPalletsInSublocation";
 			statement = conn.prepareStatement("SELECT * FROM swenggdb.pallets WHERE pallet_location = ?");
-			statements.put(stmt_key, statement);
-			
-			
+			statements.put(stmt_key, statement);					  
+   
+   
 			//#############################################Orders
 			stmt_key = "OrderInDB";
 			statement = conn.prepareStatement("SELECT * FROM orders WHERE order_number = ?");
@@ -289,14 +290,14 @@ public abstract class SQL_Handler {
 			stmt_key = "ChangeSubLocationCurrentQty";
 			statement = conn.prepareStatement("UPDATE swenggdb.sublocation SET current_pallet_qty = ? WHERE location_coordinate = ?");
 			statements.put(stmt_key, statement);
-			
+   
 			stmt_key = "GetBlankFromSublocation";
 			statement = conn.prepareStatement("SELECT * FROM swenggdb.sublocation WHERE location_coordinate = ?");
 			statements.put(stmt_key, statement);
 			
 			stmt_key = "UpdateSublocation";
 			statement = conn.prepareStatement("UPDATE swenggdb.sublocation SET current_pallet_qty = ? WHERE location_coordinate = ?");
-			statements.put(stmt_key, statement);
+			statements.put(stmt_key, statement);								
    
    
 		} catch (SQLException e) {
@@ -323,7 +324,7 @@ public abstract class SQL_Handler {
 	
 	//#############################################All Entities
 	public static ResultSet getAllFromTable(String tableName) throws SQLException{
-		//Connection conn = getConnection();
+		sanitizeInput(tableName);
 		String query = "SELECT * FROM " + tableName;
 			stmt = customConnection.prepareStatement(query);
 			rs = stmt.executeQuery();
@@ -332,7 +333,7 @@ public abstract class SQL_Handler {
 	
 	public static ResultSet getAllFromTable(String tableName, String fieldName, 
 			String fieldModifier, String fieldValue) throws SQLException{
-		//Connection conn = getConnection();
+									  
 		String query = "SELECT * FROM " + tableName + " WHERE " 
 			+ fieldName + getQueryModifierString(fieldModifier, sanitizeInput(fieldValue));
 		stmt = customConnection.prepareStatement(query);
@@ -508,6 +509,24 @@ public static boolean employeeExists(String employee_id) throws SQLException {
 		stmt.setString(4, employeeID);
 		stmt.execute();
 	}
+	
+	public static ResultSet getEmployeesNoSalt() throws SQLException{
+		String query = "SELECT simple_employee_index, employee_id, name,"
+				+ "is_management, warehouse_id FROM employees";
+			stmt = customConnection.prepareStatement(query);
+			rs = stmt.executeQuery();
+			return rs;
+	}
+	
+	public static ResultSet getEmployeesNoSalt(String fieldName, 
+			String fieldModifier, String fieldValue) throws SQLException{
+		String query = "SELECT simple_employee_index, employee_id, name,"
+				+ "is_management, warehouse_id FROM employees WHERE " 
+			+ fieldName + getQueryModifierString(fieldModifier, sanitizeInput(fieldValue));
+		stmt = customConnection.prepareStatement(query);
+		rs = stmt.executeQuery();
+		return rs;
+	}
 		
  
 	//#############################################Items
@@ -676,9 +695,154 @@ public static boolean employeeExists(String employee_id) throws SQLException {
 		return rs;
 	}
 	
-	public static int getOverage(String itemNumber) throws SQLException {
+	public static ResultSet getAllFromItemsWithCategory() throws SQLException{
+		String query = "SELECT i.*, group_concat(ic.type SEPARATOR ';') "
+						+ "AS 'type' "
+						+ "FROM items AS i "
+						+ "LEFT OUTER JOIN items_item_category AS iic "
+						+ "ON (i.item_number = iic.item_number) "
+						+ "LEFT OUTER JOIN item_category AS ic "
+						+ "ON (ic.type = iic.type)"
+						+ " GROUP BY item_number"; 
+		System.out.println("no modifier");
+
+		//System.out.println(query);
+		stmt = customConnection.prepareStatement(query);
+		rs = stmt.executeQuery();
+		return rs;
+	}
+	
+	public static ResultSet getAllFromItemsWithCategory(String fieldName, String fieldModifier, String fieldValue) throws SQLException{
+		String queryMod = getQueryModifierString(fieldModifier, sanitizeInput(fieldValue));
+		System.out.println(queryMod);
+		String table = "";
+		if(fieldName.equals(DBNamesManager.getItemCategoriesDbField()))
+			table = "iic.";
+		
+		String query = "SELECT i.*, group_concat(ic.type) "
+				+ "AS 'type' "
+				+ "FROM items AS i "
+				+ "LEFT OUTER JOIN items_item_category AS iic "
+				+ "ON (i.item_number = iic.item_number) "
+				+ "LEFT OUTER JOIN item_category AS ic "
+				+ "ON (ic.type = iic.type) WHERE " + table + fieldName + queryMod
+				+ " GROUP BY item_number"; 
+		System.out.println("modifier");
+		System.out.println(query);
+		stmt = customConnection.prepareStatement(query);
+		rs = stmt.executeQuery();
+		return rs;
+	}
+	
+	public static ResultSet getAgingItems(int daysOlderThan) throws SQLException{
+		String query = "SELECT i.*, p.pallet_id, p.receival_date "
+				+ "FROM items AS i JOIN pallets_items AS pi "
+				+ "USING (item_number) "
+				+ "JOIN pallets AS p USING (pallet_id) "
+				+ "WHERE p.receival_date <= "
+				+ "(CAST(CURRENT_TIMESTAMP AS DATE) - INTERVAL " + daysOlderThan + " DAY)";
+		stmt = customConnection.prepareStatement(query);
+		rs = stmt.executeQuery();
+		return rs;
+	}
+	
+	public static ResultSet getOverageItems() throws SQLException{
+		String query = "SELECT * FROM items WHERE overage_shortage != 0";
+		stmt = customConnection.prepareStatement(query);
+		rs = stmt.executeQuery();
+		return rs;
+	}
+	
+	public static ResultSet getPalletsWithOverages() throws SQLException {
+		String query = "SELECT i.item_number, i.price, i.current_stock, i.restock_threshold, i.overage_shortage, p.pallet_id, sublo.location_coordinate "
+		+ "FROM items AS i "
+		+ "JOIN pallets_items AS pi USING (item_number) "
+		+ "JOIN pallets AS p USING (pallet_id) "
+		+ "JOIN sublocation AS sublo "
+		+ "ON (p.pallet_location = sublo.simple_sublo_index) "
+		+ "WHERE i.overage_shortage != 0";
+		stmt = customConnection.prepareStatement(query);
+		rs = stmt.executeQuery();
+		return rs;
+	}
+	
+	public static ResultSet getTotalInvWorth() throws SQLException {
+		String query = "SELECT sum(price * current_stock) AS 'Total Inventory Worth (USD)'"
+		+ "FROM items";
+		stmt = customConnection.prepareStatement(query);
+		rs = stmt.executeQuery();
+		return rs;
+	}
+	
+	public static ResultSet getItemsWithPriceToWeight() throws SQLException {
+		String query = "SELECT i.item_number, i.name, i.price, i.weight, i.current_stock, "
+				+ "ROUND((price / weight), 2) AS 'Price_Weight_Ratio' "
+				+ "FROM items AS i "
+				+ "ORDER BY Price_Weight_Ratio DESC";
+		stmt = customConnection.prepareStatement(query);
+		rs = stmt.executeQuery();
+		return rs;
+	}
+	
+	public static ResultSet getTopXPricedItems(int x) throws SQLException{
+		String query = "SELECT item_number, name, ROUND(CAST(price AS DECIMAL), 2) AS 'Price', current_stock "
+		+ "FROM items "
+		+ "ORDER BY price DESC "
+		+ "LIMIT " + x;
+		stmt = customConnection.prepareStatement(query);
+		rs = stmt.executeQuery();
+		return rs;
+	}
+	
+	public static ResultSet getBottomXPricedItems(int x) throws SQLException{
+		String query = "SELECT item_number, name, ROUND(CAST(price AS DECIMAL), 2) AS 'Price', current_stock "
+		+ "FROM items "
+		+ "ORDER BY price ASC "
+		+ "LIMIT " + x;
+		stmt = customConnection.prepareStatement(query);
+		rs = stmt.executeQuery();
+		return rs;
+	}
+	
+	public static ResultSet getAllItemsUnderRestock() throws SQLException{
+		String query = "SELECT item_number, name, ROUND(CAST(i.price AS DECIMAL), 2) AS 'Price', current_stock, restock_threshold "
+		+ "FROM items AS i "
+		+ "WHERE current_stock < restock_threshold "
+		+ "ORDER BY Price DESC ";
+		stmt = customConnection.prepareStatement(query);
+		rs = stmt.executeQuery();
+		return rs;
+	}
+	
+	public static ResultSet getTotalSquareFootageInWarehouse(String warehouseID) throws SQLException{
+		String query = "SELECT sum(length * width) AS 'Total Square Ft.', "
+				+ "count(*) AS 'Total Pallet Quantity' "
+				+ "FROM pallets AS p "
+				+ "JOIN sublocation AS sublo "
+				+ "ON (p.pallet_location = sublo.simple_sublo_index) "
+				+ "JOIN warehouses "
+				+ "USING (warehouse_id) WHERE warehouse_id = ?";
+		stmt = customConnection.prepareStatement(query);
+		stmt.setString(1, warehouseID);
+		rs = stmt.executeQuery();
+		return rs;
+	}
+	
+	public static ResultSet getTotalSquareFootageInOrder(String orderID) throws SQLException{
+		String query = "SELECT sum(length * width) AS 'Total Square Ft.', "
+				+ "count(*) AS 'Total Pallet Quantity' "
+				+ "FROM pallets "
+				+ "JOIN orders USING (order_number) "
+				+ "WHERE order_number = ?";
+		stmt = customConnection.prepareStatement(query);
+		stmt.setString(1, orderID);
+		rs = stmt.executeQuery();
+		return rs;	 
+	}
+	
+		public static int getOverage(String itemNumber) throws SQLException {
 		int reStock = 0;
-		stmt = sql_statements.get("ItemInfo");
+		stmt = sql_statements.get("ItemInfo");									  
 		stmt.setString(1, itemNumber);
 		rs = stmt.executeQuery();
 		rs.next();
@@ -689,11 +853,34 @@ public static boolean employeeExists(String employee_id) throws SQLException {
 	public static void updateOverages(int quantity, String itemNumber) throws SQLException {
 		int current = getOverage(itemNumber);
 		stmt = sql_statements.get("UpdateOverage");
-		stmt.setInt(1, current + quantity);
+		stmt.setInt(1, current + quantity);								  
 		stmt.setString(2, itemNumber);
 		stmt.execute();
+			
 	}
 	
+	public static ResultSet getTotalCubicFootageInWarehouse(String warehouseID) throws SQLException{
+		String query = "SELECT sum(p.length * p.width * p.height) AS 'Total Cubic Ft.', count(*) AS 'Total Pallet Quantity' "
+				+ "FROM pallets AS p "
+				+ "JOIN sublocation AS sublo "
+				+ "ON (p.pallet_location = sublo.simple_sublo_index) "
+				+ "JOIN warehouses USING (warehouse_id) WHERE warehouse_id = ?";
+		stmt = customConnection.prepareStatement(query);
+		stmt.setString(1, warehouseID);
+		rs = stmt.executeQuery();
+		return rs;
+	}
+	
+	public static ResultSet getTotalCubicFootageInOrder(String orderID) throws SQLException{
+		String query = "SELECT sum(length * width * height) AS 'Cubic Ft.', "
+				+ "count(*) AS 'Pallet Qty' "
+				+ "FROM pallets JOIN orders "
+				+ "USING (order_number) WHERE order_number = ?";
+		stmt = customConnection.prepareStatement(query);
+		stmt.setString(1, orderID);
+		rs = stmt.executeQuery();
+		return rs;
+	}
 	
 	//#############################################Pallets
 		public static boolean palletInDB(String palletID) throws SQLException {
@@ -737,8 +924,8 @@ public static boolean employeeExists(String employee_id) throws SQLException {
 			result.add(new Item(rs.getString("item_number"), rs.getInt("item_quantity")));
 		}
 		return result;
-	}
-	
+	}				
+ 
 	public static void updateItemOnPallet(String palletID, String itemNumber, int count) throws SQLException {
 		stmt = sql_statements.get("UpdateItemOnPallet");
 		stmt.setInt(1, count);
@@ -754,8 +941,9 @@ public static boolean employeeExists(String employee_id) throws SQLException {
 		stmt.execute();
 	}
 	
-	public static void insertNewPallet(String palletID, int pieceCount, int weight, int length, int width, int height, Date receiveDate, Date shipDate, String notes, String orderNumber, int i) throws SQLException {
-		stmt = sql_statements.get("NewPallet");
+public static void insertNewPallet(String palletID, int pieceCount, int weight, int length, int width, int height, Date receiveDate, Date shipDate, String notes, String orderNumber, int i) throws SQLException {		
+	
+		stmt = sql_statements.get("NewPallet");									 
 		stmt.setString(1,palletID);
 		stmt.setInt(2,pieceCount);
 		stmt.setInt(3,weight);;
@@ -790,9 +978,9 @@ public static boolean employeeExists(String employee_id) throws SQLException {
 		rs = stmt.executeQuery();
 		rs.next();
 		return rs.getString("location_coordinate");
-	}	
-	
-	public static ArrayList<Pallet> getPalletsBySublocation(int subloIndex, SubLocation sub) throws SQLException {
+	}					
+ 
+ public static ArrayList<Pallet> getPalletsBySublocation(int subloIndex, SubLocation sub) throws SQLException {
 		ArrayList<Pallet> palletList = new ArrayList<Pallet>();
 		stmt = sql_statements.get("GetPalletsInSublocation");
 		stmt.setInt(1, subloIndex);
@@ -804,9 +992,31 @@ public static boolean employeeExists(String employee_id) throws SQLException {
 		return palletList;
 	}
 	
+	public static ResultSet getPalletsWithSubloCoord(String fieldName, String fieldModifier, String fieldValue) throws SQLException{
+		String queryMod = getQueryModifierString(fieldModifier, sanitizeInput(fieldValue));
+		System.out.println(queryMod);
+		String table = "";
+		if(fieldName.equals(DBNamesManager.getItemCategoriesDbField()))
+			table = "iic.";
+		
+		String query = "SELECT i.*, group_concat(ic.type) "
+				+ "AS 'type' "
+				+ "FROM items AS i "
+				+ "LEFT OUTER JOIN items_item_category AS iic "
+				+ "ON (i.item_number = iic.item_number) "
+				+ "LEFT OUTER JOIN item_category AS ic "
+				+ "ON (ic.type = iic.type) WHERE " + table + fieldName + queryMod
+				+ " GROUP BY item_number"; 
+		System.out.println("modifier");
+		System.out.println(query);
+		stmt = customConnection.prepareStatement(query);
+		rs = stmt.executeQuery();
+		return rs;
+	}
+	
 	public static String getOrderNumberFromPallet(String palletID) throws SQLException {
 		stmt = sql_statements.get("PalletInDB");
-		stmt.setString(1, palletID);
+		stmt.setString(1, palletID);									  
 		rs = stmt.executeQuery();
 		rs.next();
 		return rs.getString("order_number");
@@ -823,7 +1033,7 @@ public static boolean employeeExists(String employee_id) throws SQLException {
 			return false;
 	}
 	
-	public static void insertNewOrder(String orderNumber, String origin, String destination, String receiveEmployeeID, String shipEmployeeID, Date datePlaced, Date dateShipped, Date dateDelivered) throws SQLException {
+	public static void insertNewOrder(String orderNumber, String origin, String destination, String receiveEmployeeID, String shipEmployeeID, Date datePlaced, Date dateShipped, Date dateDelivered) throws SQLException {		
 		stmt = sql_statements.get("NewOrder");
 		stmt.setString(1, orderNumber);
 		stmt.setString(2, origin);
@@ -835,8 +1045,8 @@ public static boolean employeeExists(String employee_id) throws SQLException {
 		stmt.setDate(8, dateDelivered);
 		stmt.execute();
 	}
-	
-	public static String getOrderEmployee(String orderNumber) throws SQLException {
+ 
+ public static String getOrderEmployee(String orderNumber) throws SQLException {
 		String Employee = "";		
 		stmt = sql_statements.get("OrderEmployees");
 		stmt.setString(1, orderNumber);
@@ -872,7 +1082,8 @@ public static boolean employeeExists(String employee_id) throws SQLException {
 		rs.next();
 		return rs.getString("destination");
 	}
-		
+  
+  
 	//#############################################Warehouses
 	public ResultSet getWarehouseNamesAndIDs() throws SQLException {
 		stmt = sql_statements.get("GetWHNamesIDs");
@@ -1017,7 +1228,7 @@ public static List<Object[]> getResultSetAsListOfArrays(ResultSet result) throws
 			modifierString = " LIKE " + "\"" + "%" + fieldModifierValue + "\"";
 			break;
 		case DBNamesManager.STRING_FIELD_CONTAINS:
-			modifierString = " LIKE " + "\"" + "%" + fieldModifierValue + "%" + "\""; //TODO check syntaxes for all of these
+			modifierString = " LIKE " + "\"" + "%" + fieldModifierValue + "%" + "\""; 
 			break;
 		case DBNamesManager.STRING_FIELD_THAT_IS:
 			modifierString = " = " + "\'" + fieldModifierValue + "\'";
@@ -1029,13 +1240,15 @@ public static List<Object[]> getResultSetAsListOfArrays(ResultSet result) throws
 			modifierString = " > " + "\'" + fieldModifierValue + "\'";
 			break;
 		case DBNamesManager.DATE_FIELD_ON:
-			modifierString = " = " + "\'" + fieldModifierValue + "\'";
+			modifierString = " BETWEEN \'" + fieldModifierValue + " 00:00:00\' AND \'" + fieldModifierValue + " 23:59:59\'";
+			System.out.println(modifierString);
+			//modifierString = " = " + "\'" + fieldModifierValue + "\'";
 			break;
 		case DBNamesManager.FLAG_FIELD_IS:
-			modifierString = " = " + "\'" + fieldModifierValue + "\'";
+			modifierString = " != " + "\'" + fieldModifierValue + "\'"; //TODO this was flipped to quick-fix display. look into this bug.
 			break;
 		case DBNamesManager.FLAG_FIELD_IS_NOT:
-			modifierString = " != " + "\'" + fieldModifierValue + "\'";
+			modifierString = " = " + "\'" + fieldModifierValue + "\'";
 			break;
 		}
 		return modifierString;
@@ -1096,9 +1309,9 @@ public static List<Object[]> getResultSetAsListOfArrays(ResultSet result) throws
 			stmt.setString(2, sublocation);
 			stmt.execute();
 		}
-	}
-	
-	public static String getWareHouseFromSublocation(String LC) throws SQLException {
+	}			
+ 
+ public static String getWareHouseFromSublocation(String LC) throws SQLException {
 		String s = "";
 		stmt = sql_statements.get("GetBlankFromSublocation");
 		stmt.setString(1, LC);
@@ -1184,4 +1397,3 @@ public static List<Object[]> getResultSetAsListOfArrays(ResultSet result) throws
 	}
 
 }
-
