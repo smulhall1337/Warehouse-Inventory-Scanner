@@ -16,6 +16,7 @@ import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -186,6 +187,8 @@ public class ManageEmployees extends JFrame implements ErrorStatusReportable {
 		else
 			this.initialEmployeeID = loggedInEmployeeID;
 		initialize();
+		comboBoxSelectAction.setSelectedItem(UPDATE_EMPLOYEE_ACTION_NAME);
+		displayOptionsForAction(UPDATE_EMPLOYEE_ACTION_NAME);
 	}
 
 	/**
@@ -194,6 +197,8 @@ public class ManageEmployees extends JFrame implements ErrorStatusReportable {
 	 * @return true if loading the fields was successful, false otherwise
 	 */
 	private boolean loadFieldsForID(String employeeID){
+		if(employeeID.equals(""))
+			return false;
 		try {
 			if(SQL_Handler.employeeExists(employeeID))
 			{
@@ -202,7 +207,9 @@ public class ManageEmployees extends JFrame implements ErrorStatusReportable {
 				boolean isManager = SQL_Handler.isEmployeeManager(employeeID);
 				formattedTextFieldEmployeeID.setText(employeeID);
 				formattedTextFieldEmployeeName.setText(employeeName);
-				comboBoxWarehouseID.setSelectedItem(wareHouseID);
+				int whNdx = Arrays.asList(warehouseIDs).indexOf(wareHouseID);
+				comboBoxWarehouseID.setSelectedIndex(whNdx);
+				//comboBoxWarehouseID.setSelectedItem(wareHouseID);
 				//comboBoxWarehouseID.setEnabled(true);
 				//formattedTextFieldEmployeeName.setEnabled(true);
 				checkBoxIsManager.setSelected(isManager);
@@ -591,6 +598,13 @@ public class ManageEmployees extends JFrame implements ErrorStatusReportable {
 		
 		formattedTextFieldEmployeeName.setEditable(true);
 		//formattedTextFieldEmployeeName.setEnabled(true);
+		try {
+			int whNdx = Arrays.asList(warehouseIDs).indexOf(SQL_Handler.getEmployeeWarehouseByEmpID(this.initialEmployeeID));
+			comboBoxWarehouseID.setSelectedIndex(whNdx);
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			//e.printStackTrace();
+		}
 		comboBoxWarehouseID.setEnabled(true);
 		checkBoxIsManager.setEnabled(true);
 		addIDActionListener();
@@ -849,7 +863,7 @@ public class ManageEmployees extends JFrame implements ErrorStatusReportable {
 	public void displayStatusForTime(String statusText, Color textColor, int milliseconds)
 	{
 		System.out.println("error");
-		if(!statusText.equals(errorStatusTextArea.getText()))
+		if(statusText != null && errorStatusTextArea != null && !statusText.equals(errorStatusTextArea.getText()))
 		{
 			errorStatusTextArea.setForeground(textColor);
 			errorStatusTextArea.setText(statusText);
