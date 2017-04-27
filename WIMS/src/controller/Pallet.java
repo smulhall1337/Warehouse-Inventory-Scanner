@@ -1,10 +1,14 @@
+package controller;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 
+import gui.ItemsInPalletPanel;
+import gui.OrderWindow;
+
 public class Pallet {
-	private String palletID, notes = "", orderNumber = OrderWindow.getCurrentOrder().getOrderNumber();
+	private String palletID, notes = "", orderNumber = "";
 	private SubLocation sublocation;
 	private ArrayList<Item> items = new ArrayList<Item>();
 	private int weight, pieceCount;
@@ -13,6 +17,7 @@ public class Pallet {
 	public Pallet(String palletID, SubLocation sublocation) {
 		this.palletID = palletID;
 		this.sublocation = sublocation;
+		setOrderForPallet();
 	}
 	
 	public void addItem(Item i) {
@@ -63,12 +68,16 @@ public class Pallet {
 		return sublocation;
 	}
 	
-	public ArrayList<Item> getAllItems() {
-		ArrayList<Item> fullItemList = new ArrayList<Item>();
-		for (Item temp : items) {
-			fullItemList.add(temp);
+	public void setOrderForPallet() {
+		try {
+			this.orderNumber = SQL_Handler.getOrderNumberFromPallet(palletID);
+		} catch (SQLException e) {
+			this.orderNumber = "";
 		}
-		return fullItemList;
+	}
+	
+	public ArrayList<Item> getAllItems() {
+		return items;
 	}
 
 	public String toString() {

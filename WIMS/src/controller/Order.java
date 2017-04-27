@@ -1,3 +1,5 @@
+package controller;
+
 import java.awt.Container;
 import java.util.ArrayList;
 import java.sql.Date;
@@ -126,6 +128,13 @@ public class Order {
 	}
 
 	public static ArrayList<Item> getEveryItemList() {
+		//loop thru the pallet list call getAllItems() loop thru and add each item
+		for (Pallet p : palletList) {
+			ArrayList<Item> currentPalletItems = p.getAllItems();
+			for (Item temp : currentPalletItems) {
+				everyItemList.add(temp);
+			}
+		}
 		return everyItemList;
 	}
 	
@@ -133,5 +142,6 @@ public class Order {
 		return sublocationList;
 	}
 
+	
 	
 }//Order class end

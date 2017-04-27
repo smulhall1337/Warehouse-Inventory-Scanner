@@ -1,3 +1,4 @@
+package controller;
 import java.awt.event.KeyEvent;
 
 import javax.swing.DefaultListModel;
@@ -9,7 +10,7 @@ import javax.swing.JOptionPane;
  *
  */
 abstract public class Valid {
-	private static final String NUMREGEX = "\\d+", PRICEREGEX = "[0-9]+([.][0-9]{1,2})?";
+	private static final String NUMREGEX = "\\d+", PRICEREGEX = "[1-9]+([.][0-9]{1,2})?";
 	
 	/**
 	 * True if the string is not empty, false if the string is ""
@@ -27,11 +28,11 @@ abstract public class Valid {
 	}//validString end
 	
 	/**
-	 * True if the string can be converted to a double
+	 * True if the string can be converted to a price matching [1-9]+([.][0-9]{1,2})?
 	 * @param s
 	 * @return boolean
 	 */
-	public static boolean validDouble(String s) {
+	public static boolean validPrice(String s) {
 		/*try {
 			Double.parseDouble(s);
 			return true;
@@ -44,7 +45,22 @@ abstract public class Valid {
 	}//validDouble end
 	
 	/**
-	 * True if the string can be converted to an integer
+	 * True if the string can be converted to a double
+	 * @param s
+	 * @return boolean
+	 */
+	public static boolean validDouble(String s) {
+		try {
+			Double.parseDouble(s);
+			return true;
+		} catch (Exception ee) {
+			System.out.println("Error: Input not valid, requires Double");
+			return false;
+		} 
+	}//validDouble end
+	
+	/**
+	 * True if the string can be converted to an id matching \\d+
 	 * @param s
 	 * @return boolean
 	 */
@@ -95,7 +111,7 @@ abstract public class Valid {
 	 * @return
 	 */
 	public static boolean validItemWeight(String s) {
-		if (validString(s) && validID(s)) {
+		if (validString(s) && validInt(s)) {
 				return true;
 			} 
 			else {
@@ -109,11 +125,11 @@ abstract public class Valid {
 	 * @return
 	 */
 	public static boolean validItemPrice(String s) {
-		if (validString(s) && validDouble(s)) {
+		if (validString(s) && validPrice(s)) {
 				return true;
 			} 
 			else {
-				System.out.println("Invalid Entry for Item Price");
+				System.out.println("Invalid Entry for Item Price, must be at least $1.00, nothing you're storing is cheaper than that cmon.");
 				return false;
 			}
 	}
@@ -123,7 +139,7 @@ abstract public class Valid {
 	 * @return
 	 */
 	public static boolean validCStock(String s) {
-		if (validString(s) && validID(s)) {
+		if (validString(s) && validInt(s)) {
 				return true;
 			} 
 			else {
@@ -137,7 +153,7 @@ abstract public class Valid {
 	 * @return
 	 */
 	public static boolean validRStock(String s) {
-		if (validString(s) && validID(s)) {
+		if (validString(s) && validInt(s)) {
 				return true;
 			} 
 			else {
@@ -151,7 +167,7 @@ abstract public class Valid {
 	 * @return
 	 */
 	public static boolean validAdd(String s) {
-		if (validString(s) && validID(s)) {
+		if (validString(s) && validInt(s)) {
 				return true;
 			} 
 			else {

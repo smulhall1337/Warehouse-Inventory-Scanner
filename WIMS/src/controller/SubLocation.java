@@ -1,11 +1,16 @@
+package controller;
 import java.sql.SQLException;
+import java.util.ArrayList;
 
 import javax.swing.JOptionPane;
+
+import gui.OrderWindow;
 
 public class SubLocation {
 	private int simple_sublo_index, current, max;
 	private String subLocationName, warehouse;
 	private final String SINGLESPACE = " space available", MULTISPACE = " spaces available";
+	private ArrayList<Pallet> palletList;
 	
 	public SubLocation(String subLocationName, int max, int current, String wareHouseID) {
 		//setSimple_sublo_index(simple_sublo_index);
@@ -90,4 +95,9 @@ public class SubLocation {
 		else
 			return subLocationName + " with " + remaining + MULTISPACE;
 	}
+	
+	public ArrayList<Pallet> getPalletList() {
+		return palletList;
+	}
+	
 }
