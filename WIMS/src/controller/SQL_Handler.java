@@ -259,7 +259,7 @@ public abstract class SQL_Handler {
 			statements.put(stmt_key, statement);
 			
 			//#############################################Warehouses
-			stmt_key = "newWH";
+			stmt_key = "NewWH";
 			statement = conn.prepareStatement("INSERT INTO swenggdb.warehouses (warehouse_id, city, state, street_address, zip, name, telephone_number, email_address) "+
 												"VALUES(?, ?, ?, ?, ?, ?, ?, ?)");
 			statements.put(stmt_key, statement);
