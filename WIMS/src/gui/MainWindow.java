@@ -66,7 +66,7 @@ public class MainWindow implements ErrorStatusReportable{
 	private static final Font QUERY_RESULT_STATUS_FONT = new Font(STANDARD_FONT_NAME, Font.PLAIN, 16);
 	private static final Font LOADING_STATUS_FONT = new Font(STANDARD_FONT_NAME, Font.PLAIN, 14);
 	private static final Font MENUBAR_FONT = new Font(STANDARD_FONT_NAME, Font.PLAIN, SMALLER_COMPONENT_FONT_SIZE);
-	private static final Font BUTTON_FONT = new Font(STANDARD_FONT_NAME, Font.PLAIN, 26);
+	private static final Font BUTTON_FONT = new Font(STANDARD_FONT_NAME, Font.PLAIN, 28);
 	
 	
 	private static final Font TABLE_FONT = new Font("Tahoma", Font.PLAIN, TABLE_FONT_SIZE);
@@ -392,6 +392,11 @@ public class MainWindow implements ErrorStatusReportable{
 	private void launchWarehouseWindow(String warehouseID) {
 		WarehouseWindow warehouseWindow = new WarehouseWindow();
 		warehouseWindow.getFrame().setVisible(true);
+	}
+	
+	private void launchSublocationWindow(String subloCoord) {
+		SublocationWindow subloWindow = new SublocationWindow(this.loggedInIsManager, subloCoord);
+		subloWindow.getFrame().setVisible(true);
 	}
 	
 	/**
@@ -780,9 +785,7 @@ public class MainWindow implements ErrorStatusReportable{
 	}
 	
 	private void showOptionMenuForDataAt(int viewRowIndex, int viewColIndex){
-//		int viewRowIndex = mainTable.getSelectedRow();
-//	    int viewColIndex = mainTable.getSelectedColumn();
-	    
+
 	    //get the column header
 	    String colHeader = mainTable.getColumnName(viewColIndex);
 	    WIMSTableModel model = (WIMSTableModel) mainTable.getModel();
@@ -792,13 +795,6 @@ public class MainWindow implements ErrorStatusReportable{
 	    
 	    Object[] row = model.getRowAt(modelRowIndex);
 	    showMenuForRow(colHeader, row);
-	    //get the value in this cell in the model
-	    //Object value = model.getValueAt(modelRowIndex, modelColIndex);
-	    //showMenuForValue(colHeader, value);
-	    
-	    //System.out.println("Cell selected at (row" + viewRowIndex + ",col" + viewColIndex
-	    //		+ ") " + "(" + colHeader + ") " +  value);
-	    //System.out.println(model.getValueAt(modelRowIndex, modelColIndex));
 	}
 	
 	private void showMenuForValue(String header, Object value)
@@ -827,12 +823,14 @@ public class MainWindow implements ErrorStatusReportable{
 				//TODO display warehouse menu
 				//here valueString = the selected warehouse id
 				System.out.println("Selected Warehouse ID: " + value);
-				launchWarehouseWindow(valueString);
+				if(this.loggedInIsManager)
+					launchWarehouseWindow(valueString);
 				break;
-			case DBNamesManager.SUBLOCATION_LOC_COORD_DISPLAYNAME:
+			case DBNamesManager.SUBLOCATION_SIMPLE_INDEX_DISPLAYNAME:
 				//TODO sublocation menu/functionality
 				//here valueString = the selected sublocation coordinate
 				System.out.println("Selected Sublocation Coordinate: " + valueString);
+				launchSublocationWindow(valueString);
 				break;
 			case DBNamesManager.EMPLOYEE_ID_DISPLAYNAME:
 				//here valueString = the selected employeeID

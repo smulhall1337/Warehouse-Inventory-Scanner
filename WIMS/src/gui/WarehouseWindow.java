@@ -66,8 +66,9 @@ public class WarehouseWindow extends JFrame{
 	private void initialize() {
 		frmAddWarehouse = new JFrame();
 		frmAddWarehouse.setTitle("Add Warehouse");
-		frmAddWarehouse.setBounds(100, 100, 391, 318);
-		frmAddWarehouse.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frmAddWarehouse.setBounds(100, 100, 400, 325);
+		frmAddWarehouse.setResizable(false);
+		frmAddWarehouse.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		frmAddWarehouse.getContentPane().setLayout(null);
 		
 		JLabel lblWarehouseId = new JLabel("Warehouse ID");
@@ -107,15 +108,17 @@ public class WarehouseWindow extends JFrame{
 			@Override
 			public void mouseClicked(MouseEvent e) {
 				try {
-					
+					System.out.println(ID.getText());
 					SQL_Handler.addNewWarehouse(ID.getText(), city.getText(), state.getText(), address.getText(), Integer.parseInt(zip.getText()), 
 							name.getText(), telephone.getText(), email.getText());
-					JOptionPane.showMessageDialog(frmAddWarehouse, "It probably worked, i dunno tho.");
+					JOptionPane.showMessageDialog(frmAddWarehouse, "Warehouse added");
+					dispose();
 				} catch (NumberFormatException e1) {
-					// TODO Auto-generated catch block
+					JOptionPane.showMessageDialog(frmAddWarehouse, "Error adding warehouse", "Warehouse add error", JOptionPane.ERROR_MESSAGE);
 					e1.printStackTrace();
 				} catch (SQLException e1) {
 					// TODO Auto-generated catch block
+					JOptionPane.showMessageDialog(frmAddWarehouse, "Error adding warehouse", "Warehouse add error", JOptionPane.ERROR_MESSAGE);
 					e1.printStackTrace();
 				}
 			}
